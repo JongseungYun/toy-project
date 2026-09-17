@@ -70,6 +70,7 @@ export function MarkdownEditor({ note }: { note: Note }) {
       onTitleChange={autosave.setTitle}
       status={autosave.status}
       savedAt={autosave.savedAt}
+      savedCount={autosave.savedCount}
       onRetry={() => void autosave.saveNow()}
       remote={autosave.remote}
       onTakeRemote={autosave.takeRemote}

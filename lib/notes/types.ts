@@ -1,3 +1,5 @@
+import type { CanvasElement } from "@/lib/notes/canvas";
+
 // 노트의 형식과 저장 모양. 데이터베이스의 public.notes와 짝을 이룬다.
 
 export const NOTE_FORMATS = ["doc", "markdown", "canvas"] as const;
@@ -20,7 +22,15 @@ export interface MarkdownContent {
   viewer: boolean;
 }
 
-export type NoteContent = DocContent | MarkdownContent | Record<string, unknown>;
+export interface CanvasContent {
+  elements: CanvasElement[];
+}
+
+export type NoteContent =
+  | DocContent
+  | MarkdownContent
+  | CanvasContent
+  | Record<string, unknown>;
 
 export interface Note {
   id: string;
