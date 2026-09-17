@@ -1,0 +1,1352 @@
+<!--
+  prototype shell: the review chrome every prototype starts from.
+
+  Keep this comment in the prototype you grow from here: it is the contract,
+  and later turns work from that file rather than from this one.
+
+  Contract (extend product screens; keep the review shell):
+  - Product:  .sh-stage contains only end-user product UI. Keep review notes,
+               rationale, instructions, and approval controls in conversation.
+  - Screens:  <section data-screen="slug" data-title="Label"> inside .sh-stage.
+               The selector, arrow keys, and #hash routing build themselves.
+               Use one option per product destination or distinct surface,
+               named by its product role. Keep baselines, variants, comparison
+               labels, steps, indexes, and progress out of names and states.
+               Links may use href="#slug".
+  - States:   "Default" is automatic. A screen declares only representative
+               presets in data-states="Empty,Error". Use natural, screen-specific
+               names. Reserve presets for important multi-step results, forced
+               data or errors, or materially different structure; keep one-click
+               and transient states as interactions. Use data-when="Empty" on
+               preset-only elements. Call prototypeShell.setState("Name") on
+               entry and setState("Default") on exit, including when repeated
+               actions cross a preset condition.
+  - Viewport: "vp (m)" cycles full / 390 / 768. The 390 preset is a
+               fixed-height, internally scrolling phone frame. Start a
+               mobile-first prototype by adding class="sh-vp-390" to <body>
+               (or a bootstrap classList.add before the chrome script runs).
+  - Pinning:  keep in-frame bars (tab bars, CTAs) inside the phone with
+               position: sticky; position: fixed pins to the browser window.
+  - Tokens:   replace the project-tokens block with project tokens copied
+               verbatim. Map differing names to --background, --foreground, and
+               --font afterwards; replace network fonts with a system stack and
+               note that substitution. Without a design system, keep this
+               palette as the finished style. When the project ships dark
+               tokens, copy them under .sh-theme-dark, which the shell sets
+               on both the root element and body, so :root.sh-theme-dark and
+               body.sh-theme-dark work too. A .dark class or a
+               prefers-color-scheme media query copied verbatim would follow
+               the reviewer's system instead of the toggle.
+  - Theme:    the light / dark switch (t) changes the product surface only.
+               It appears only when a .sh-theme-dark rule declares dark tokens,
+               so a prototype without them carries no theme control. Prototypes
+               always load light; the review bar keeps its own dark styling in
+               both themes so it still reads as chrome.
+  - Placeholders: .wf-pic stands in for pictures the prototype has no real
+               files for. Use real text everywhere text belongs.
+
+  - Chrome:   Keep exactly the screen selector, selected-screen state selector,
+               viewport cycle, and theme toggle.
+
+  Self-contained by design: no build, no framework, no network.
+-->
+<meta charset="utf-8">
+<title>Amu Note</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* ── project tokens: copied verbatim from app/globals.css ── */
+  :root {
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.148 0.004 228.8);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.148 0.004 228.8);
+    --primary: oklch(0.514 0.222 16.935);
+    --primary-foreground: oklch(0.969 0.015 12.422);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.963 0.002 197.1);
+    --muted-foreground: oklch(0.56 0.021 213.5);
+    --accent: oklch(0.963 0.002 197.1);
+    --accent-foreground: oklch(0.218 0.008 223.9);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.925 0.005 214.3);
+    --input: oklch(0.925 0.005 214.3);
+    --ring: oklch(0.723 0.014 214.4);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.987 0.002 197.1);
+    --sidebar-foreground: oklch(0.148 0.004 228.8);
+    --sidebar-primary: oklch(0.586 0.253 17.585);
+    --sidebar-primary-foreground: oklch(0.969 0.015 12.422);
+    --sidebar-accent: oklch(0.963 0.002 197.1);
+    --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
+    --sidebar-border: oklch(0.925 0.005 214.3);
+    --sidebar-ring: oklch(0.723 0.014 214.4);
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.148 0.004 228.8);
+
+    /* the project loads --font-sans through next/font; substituted with a system stack here */
+    --font: ui-sans-serif, system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, "Cascadia Mono", monospace;
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+  }
+
+  /* ── dark tokens: copied verbatim from the project's .dark block ── */
+  .sh-theme-dark {
+    --background: oklch(0.148 0.004 228.8);
+    --foreground: oklch(0.987 0.002 197.1);
+    --card: oklch(0.218 0.008 223.9);
+    --card-foreground: oklch(0.987 0.002 197.1);
+    --popover: oklch(0.218 0.008 223.9);
+    --popover-foreground: oklch(0.987 0.002 197.1);
+    --primary: oklch(0.455 0.188 13.697);
+    --primary-foreground: oklch(0.969 0.015 12.422);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.275 0.011 216.9);
+    --muted-foreground: oklch(0.723 0.014 214.4);
+    --accent: oklch(0.275 0.011 216.9);
+    --accent-foreground: oklch(0.987 0.002 197.1);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.56 0.021 213.5);
+    --sidebar: oklch(0.21 0.006 285.885);
+    --sidebar-foreground: oklch(0.987 0.002 197.1);
+    --sidebar-primary: oklch(0.645 0.246 16.439);
+    --sidebar-primary-foreground: oklch(0.969 0.015 12.422);
+    --sidebar-accent: oklch(0.275 0.011 216.9);
+    --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.56 0.021 213.5);
+  }
+
+  /* ── review chrome (sh-*): keep; extend product styles elsewhere ── */
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 0 0 40px;
+    background: var(--background, #f6f6f6); color: var(--foreground, #3a3a3a);
+    font-family: var(--font, system-ui, sans-serif);
+  }
+  .sh-bar {
+    position: sticky; top: 0; z-index: 999;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 12px; background: #191a1c; color: #d7d7d7;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .sh-bar b, .sh-control-label { color: #8a8f98; font-weight: 500 }
+  .sh-control { display: inline-flex; gap: 5px; align-items: center }
+  .sh-bar button {
+    border: 1px solid #3a3d42; background: none; color: inherit;
+    font: inherit; padding: 2px 9px; border-radius: 99px; cursor: pointer;
+  }
+  .sh-bar select {
+    width: 170px; border: 1px solid #3a3d42; background: #232428; color: inherit;
+    font: inherit; padding: 3px 28px 3px 9px; border-radius: 7px; cursor: pointer;
+    color-scheme: dark;
+  }
+  #sh-screen { width: 190px }
+  .sh-bar button.on { background: #d7d7d7; color: #191a1c; border-color: #d7d7d7 }
+  .sh-theme { display: inline-flex; border: 1px solid #3a3d42; border-radius: 99px; overflow: hidden }
+  .sh-theme button { border: 0; border-radius: 0; padding: 2px 10px }
+  .sh-spacer { flex: 1 }
+  .sh-stage { max-width: 960px; margin: 0 auto; padding: 12px 16px 0 }
+  [hidden] { display: none !important }
+
+  /* viewport presets */
+  .sh-vp-390 .sh-stage {
+    max-width: 390px; background: var(--background, #f6f6f6);
+    border: 10px solid #191a1c; border-radius: 28px;
+    padding: 16px 12px; height: min(844px, calc(100dvh - 52px));
+    overflow-y: auto; margin-top: 12px;
+  }
+  .sh-vp-768 .sh-stage {
+    max-width: 768px; border: 1px solid #c4c4c4; border-radius: 12px;
+    padding: 16px; margin-top: 12px;
+  }
+
+  /* placeholders */
+  .wf-pic  { border-radius: 4px; background:
+             repeating-linear-gradient(45deg, #e9e9e9, #e9e9e9 6px, #f2f2f2 6px, #f2f2f2 12px) }
+  .sh-theme-dark .wf-pic { background: repeating-linear-gradient(45deg,
+             color-mix(in srgb, var(--foreground) 16%, transparent) 0 6px,
+             color-mix(in srgb, var(--foreground) 8%, transparent) 6px 12px) }
+</style>
+<style>
+  /* ── product styles ── */
+  .app {
+    position: relative; display: grid; grid-template-columns: 304px 1fr;
+    height: 648px; background: var(--card); color: var(--foreground);
+    border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden;
+  }
+
+  /* sidebar */
+  .side { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;
+    background: var(--sidebar); color: var(--sidebar-foreground);
+    border-right: 1px solid var(--sidebar-border); }
+  .side-head { padding: 12px; display: flex; flex-direction: column; gap: 10px;
+    border-bottom: 1px solid var(--sidebar-border); }
+  .brand { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 650; letter-spacing: -.01em }
+  .brand svg { color: var(--sidebar-primary) }
+  .brand .who { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--muted-foreground) }
+  .crumbs { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--muted-foreground); flex-wrap: wrap }
+  .crumb-btn { background: none; border: 0; padding: 2px 5px; border-radius: var(--radius-sm);
+    color: inherit; font: inherit; font-size: 12px; cursor: pointer }
+  .crumb-btn:hover { background: var(--sidebar-accent) }
+  .crumb-now { padding: 2px 5px; color: var(--sidebar-foreground); font-weight: 650; font-size: 12px }
+  .side-tools { display: flex; gap: 6px; align-items: center }
+  .side-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px }
+  .side-foot { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--sidebar-border) }
+
+  .new-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    height: 86px; margin-bottom: 4px; border: 1.5px dashed var(--sidebar-border); border-radius: var(--radius-lg);
+    background: transparent; color: var(--muted-foreground); font: inherit; font-size: 12.5px; cursor: pointer }
+  .new-card:hover { border-color: var(--primary); color: var(--primary); background: var(--sidebar-accent) }
+
+  .group-label { font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted-foreground); padding: 6px 4px 2px }
+  .item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px; text-align: left;
+    border: 1px solid transparent; border-radius: var(--radius-lg); background: transparent;
+    color: inherit; font: inherit; cursor: pointer }
+  .item:hover { background: var(--sidebar-accent) }
+  .item.is-active { background: var(--sidebar-accent); border-color: var(--sidebar-border) }
+  .thumb { flex: none; width: 54px; height: 54px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+    background: var(--card); border: 1px solid var(--sidebar-border); border-radius: var(--radius-md); color: var(--muted-foreground) }
+  .thumb-text { font-size: 4.5px; line-height: 1.55; padding: 5px 6px; text-align: left; color: var(--muted-foreground);
+    overflow: hidden; width: 100%; height: 100% }
+  .thumb-text b { display: block; font-size: 6px; color: var(--foreground); margin-bottom: 2px }
+  .item-main { flex: 1; min-width: 0 }
+  .item-title { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .item-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 11px; color: var(--muted-foreground) }
+  .badge { padding: 1px 6px; border: 1px solid var(--border); border-radius: 99px; background: var(--muted);
+    color: var(--muted-foreground); font-size: 10px; white-space: nowrap }
+
+  /* main pane */
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; background: var(--card) }
+  .main-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--border) }
+  .note-title { flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid transparent; border-radius: var(--radius-sm);
+    background: none; color: inherit; font: inherit; font-size: 15px; font-weight: 650 }
+  .note-title:hover { border-color: var(--border) }
+  .note-title:focus { outline: 2px solid var(--ring); outline-offset: -1px }
+  .save-state { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+    font-size: 12px; color: var(--muted-foreground) }
+  .dot { width: 6px; height: 6px; border-radius: 99px; background: currentColor }
+  .spin { width: 11px; height: 11px; border: 2px solid var(--border); border-top-color: var(--muted-foreground);
+    border-radius: 99px; animation: sp .8s linear infinite }
+  @keyframes sp { to { transform: rotate(360deg) } }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); color: var(--foreground);
+    font: inherit; font-size: 13px; white-space: nowrap; cursor: pointer }
+  .btn:hover { background: var(--accent) }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); border-color: transparent }
+  .btn-primary:hover { background: var(--primary); filter: brightness(1.1) }
+  .btn-ghost { border-color: transparent; background: transparent }
+  .btn-ghost:hover { background: var(--accent) }
+  .btn-destructive { background: var(--destructive); color: oklch(0.99 0 0); border-color: transparent }
+  .btn-destructive:hover { filter: brightness(1.08) }
+  .btn-sm { height: 28px; padding: 0 9px; font-size: 12px }
+  .btn-icon { width: 32px; padding: 0 }
+  .btn-icon.btn-sm { width: 28px }
+  .btn.is-on { background: var(--accent); border-color: var(--ring) }
+  .btn-block { width: 100% }
+
+  /* editors */
+  .editor { flex: 1; min-height: 0; overflow: auto; padding: 30px 28px }
+  .paper { max-width: 620px; margin: 0 auto; font-size: 15px; line-height: 1.85 }
+  .paper h2 { font-size: 20px; margin: 0 0 12px }
+  .paper p { margin: 0 0 14px }
+  .paper ul { margin: 0 0 14px; padding-left: 20px }
+  .paper li { margin-bottom: 4px }
+  .caret { display: inline-block; width: 1.5px; height: 1.1em; vertical-align: -0.2em;
+    background: var(--primary); animation: bl 1.05s steps(1) infinite }
+  @keyframes bl { 50% { opacity: 0 } }
+
+  .toolbar { position: sticky; bottom: 0; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    padding: 7px 10px; border-top: 1px solid var(--border); background: var(--card) }
+  .tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 3px }
+  .tb-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; padding: 0 7px;
+    border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: inherit;
+    font: inherit; font-size: 13px; cursor: pointer }
+  .tb-btn:hover { background: var(--accent) }
+  .tb-btn.is-on { background: var(--accent); border-color: var(--border) }
+  .tb-select { height: 30px; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--card); color: inherit; font: inherit; font-size: 12px; cursor: pointer }
+  .tb-swatch { width: 30px; height: 30px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--card); cursor: pointer; display: inline-flex; align-items: center; justify-content: center }
+  .tb-swatch i { display: block; width: 100%; height: 100%; border-radius: 3px }
+
+  /* markdown */
+  .md-split { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0 }
+  .md-split.is-single { grid-template-columns: 1fr }
+  .md-src { min-height: 0; overflow: auto; padding: 22px 24px; border-right: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.85; white-space: pre-wrap; margin: 0 }
+  .md-view { min-height: 0; overflow: auto; padding: 22px 26px; font-size: 14.5px; line-height: 1.8 }
+  .md-view h1 { font-size: 21px; margin: 0 0 10px }
+  .md-view h2 { font-size: 16px; margin: 20px 0 8px }
+  .md-view p, .md-view ul { margin: 0 0 12px }
+  .md-view ul { padding-left: 20px }
+  .md-view code { font-family: var(--font-mono); font-size: 12.5px; background: var(--muted);
+    padding: 1px 5px; border-radius: 4px }
+  .md-view blockquote { margin: 0 0 12px; padding: 4px 0 4px 12px; border-left: 3px solid var(--border);
+    color: var(--muted-foreground) }
+  .md-view table { border-collapse: collapse; font-size: 13px; margin-bottom: 12px }
+  .md-view th, .md-view td { border: 1px solid var(--border); padding: 5px 10px; text-align: left }
+
+  /* canvas */
+  .canvas-wrap { flex: 1; min-height: 0; overflow: auto; display: flex; align-items: flex-start; justify-content: center;
+    padding: 20px; background: var(--muted) }
+  .canvas-paper { background: #fffdf8; border: 1px solid var(--border); border-radius: var(--radius-md);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 8%) }
+
+  /* overlays */
+  .overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+    padding: 20px; background: rgb(0 0 0 / 42%) }
+  .dialog { width: 100%; max-width: 456px; padding: 20px; background: var(--popover); color: var(--popover-foreground);
+    border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: 0 14px 44px rgb(0 0 0 / 20%) }
+  .dialog h3 { margin: 0 0 4px; font-size: 16px }
+  .dialog .hint { margin: 0 }
+  .dialog-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px }
+  .type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px }
+  .type-card { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 8px;
+    border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card);
+    color: inherit; font: inherit; cursor: pointer }
+  .type-card:hover { border-color: var(--primary); background: var(--accent) }
+  .type-art { display: flex; align-items: center; justify-content: center; width: 100%; height: 66px;
+    border-radius: var(--radius-md); background: var(--muted); color: var(--muted-foreground) }
+  .type-label { font-size: 13px; font-weight: 650 }
+  .type-desc { font-size: 11px; color: var(--muted-foreground); text-align: center; line-height: 1.5 }
+
+  .pop { position: absolute; z-index: 20; right: 12px; top: 52px; width: 258px; padding: 12px;
+    background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: 0 10px 30px rgb(0 0 0 / 16%) }
+  .pop h4 { margin: 0 0 8px; font-size: 12px; font-weight: 650; color: var(--muted-foreground) }
+  .bg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin-bottom: 12px }
+  .bg-dot { height: 30px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer }
+  .bg-dot.is-on { outline: 2px solid var(--ring); outline-offset: 1px }
+
+  .banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 12px;
+    background: var(--muted); border-bottom: 1px solid var(--border); font-size: 13px }
+  .banner .grow { flex: 1; min-width: 180px }
+
+  /* auth */
+  .auth { display: flex; align-items: center; justify-content: center; min-height: 560px; padding: 24px;
+    background: var(--background) }
+  .auth-card { width: 100%; max-width: 396px; padding: 26px; background: var(--card);
+    border: 1px solid var(--border); border-radius: var(--radius-xl) }
+  .auth-card h2 { margin: 0 0 4px; font-size: 19px; letter-spacing: -.01em }
+  .auth-card .lead { margin: 0 0 20px; font-size: 13px; color: var(--muted-foreground) }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px }
+  .label { font-size: 13px; font-weight: 550 }
+  .input { height: 38px; padding: 0 11px; border: 1px solid var(--input); border-radius: var(--radius-md);
+    background: var(--card); color: inherit; font: inherit; font-size: 14px }
+  .input:focus { outline: 2px solid var(--ring); outline-offset: -1px }
+  .input.is-bad { border-color: var(--destructive) }
+  .row { display: flex; gap: 8px; align-items: center }
+  .hint { font-size: 12px; color: var(--muted-foreground) }
+  .hint.ok { color: oklch(0.52 0.13 152) }
+  .hint.bad { color: var(--destructive) }
+  .alert { margin-bottom: 14px; padding: 9px 11px; border: 1px solid var(--destructive); border-radius: var(--radius-md);
+    background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); font-size: 13px }
+  .divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; font-size: 12px; color: var(--muted-foreground) }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border) }
+  .rules { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 0; padding: 0; list-style: none }
+  .rules li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted-foreground) }
+  .rules li.ok { color: oklch(0.52 0.13 152) }
+  .foot-link { margin: 18px 0 0; font-size: 13px; text-align: center; color: var(--muted-foreground) }
+  .foot-link a { color: var(--foreground); font-weight: 600 }
+
+  /* empty + settings + trash */
+  .empty { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    padding: 28px; text-align: center; color: var(--muted-foreground) }
+  .empty strong { font-size: 15px; color: var(--foreground) }
+  .empty p { margin: 0; font-size: 13px; max-width: 320px; line-height: 1.7 }
+  .scroll-body { flex: 1; min-height: 0; overflow: auto; padding: 22px 24px }
+  .panel { margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card) }
+  .panel-h { padding: 11px 15px; border-bottom: 1px solid var(--border); font-size: 13.5px; font-weight: 650 }
+  .panel-b { padding: 4px 15px }
+  .set-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0;
+    border-bottom: 1px solid var(--border) }
+  .set-row:last-child { border-bottom: 0 }
+  .set-label { display: block; font-size: 13.5px; font-weight: 550 }
+  .set-desc { display: block; margin-top: 3px; font-size: 12px; color: var(--muted-foreground); line-height: 1.6 }
+  .trash-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 9px 11px;
+    border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card) }
+
+  /* scroll areas: keep the bar visible so a long list reads as scrollable */
+  .side-body, .editor, .scroll-body, .md-src, .md-view, .canvas-wrap { scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--foreground) 22%, transparent) transparent }
+  .side-body::-webkit-scrollbar, .editor::-webkit-scrollbar, .scroll-body::-webkit-scrollbar,
+  .md-src::-webkit-scrollbar, .md-view::-webkit-scrollbar, .canvas-wrap::-webkit-scrollbar { width: 10px; height: 10px }
+  .side-body::-webkit-scrollbar-thumb, .editor::-webkit-scrollbar-thumb, .scroll-body::-webkit-scrollbar-thumb,
+  .md-src::-webkit-scrollbar-thumb, .md-view::-webkit-scrollbar-thumb, .canvas-wrap::-webkit-scrollbar-thumb {
+    border: 3px solid transparent; background-clip: content-box; border-radius: 99px;
+    background-color: color-mix(in oklab, var(--foreground) 22%, transparent) }
+  .side-body::-webkit-scrollbar-thumb:hover, .editor::-webkit-scrollbar-thumb:hover,
+  .scroll-body::-webkit-scrollbar-thumb:hover, .md-src::-webkit-scrollbar-thumb:hover,
+  .md-view::-webkit-scrollbar-thumb:hover, .canvas-wrap::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 38%, transparent) }
+
+  /* narrow viewport: stack, keep order, hide the pane that is not in use */
+  .only-narrow { display: none }
+  .sh-vp-390 .app { grid-template-columns: 1fr; height: 100% }
+  .sh-vp-390 .is-secondary { display: none }
+  .sh-vp-390 .only-narrow { display: inline-flex }
+  .sh-vp-390 .side { border-right: 0 }
+  .sh-vp-390 .editor { padding: 20px 16px }
+  .sh-vp-390 .md-split { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr }
+  .sh-vp-390 .md-src { border-right: 0; border-bottom: 1px solid var(--border) }
+  .sh-vp-390 .type-grid { grid-template-columns: 1fr }
+  .sh-vp-390 .type-art { height: 52px }
+  .sh-vp-390 .toolbar { flex-wrap: nowrap; overflow-x: auto }
+  .sh-vp-390 .auth { min-height: 640px; padding: 0 }
+  .sh-vp-390 .auth-card { border: 0; padding: 4px 0 }
+  .sh-vp-768 .app { grid-template-columns: 262px 1fr }
+</style>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h7A1.5 1.5 0 0 1 19 10v7.5A1.5 1.5 0 0 1 17.5 19h-13A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M17.9 6.1l-1.4 1.4M7.5 16.5l-1.4 1.4M17.9 17.9l-1.4-1.4M7.5 7.5 6.1 6.1"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h16M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M6.5 7l.8 11.2A1.8 1.8 0 0 0 9.1 20h5.8a1.8 1.8 0 0 0 1.8-1.8L17.5 7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.5 3.5h7L18 8v12.5H6.5z"/><path d="M13 3.5V8h5M9 12h6M9 15.5h6M9 18h3.5"/></symbol>
+  <symbol id="i-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M6.5 15V9l2.5 3 2.5-3v6M15.5 9v4.5M15.5 13.5 17.5 15l2-1.5"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4 10.5-10.5a2 2 0 0 1 2.8 2.8L7.8 18.8z"/><path d="M13.8 6.8l2.9 2.9"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l4.5-4.5 3.5 3.5 3-3 4.5 4.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.2 2.4 3.3 5.3 3.3 8.5S14.2 18.1 12 20.5c-2.2-2.4-3.3-5.3-3.3-8.5S9.8 5.9 12 3.5z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="8" r=".9" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7H4.5V3.5"/><path d="M4.8 7.2A7.5 7.5 0 1 1 5 16.4"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M5 4.5h14v10.5L14.5 19.5H5z"/><path d="M19 15h-4.5v4.5"/></symbol>
+</svg>
+
+<header class="sh-bar">
+  <b>proto</b>
+  <label class="sh-control"><span class="sh-control-label">screen</span><select id="sh-screen"></select></label>
+  <span class="sh-spacer"></span>
+  <label class="sh-control"><span class="sh-control-label">state</span><select id="sh-state"></select></label>
+  <button id="sh-vp">vp: full (m)</button>
+  <div class="sh-theme" id="sh-theme" role="group" aria-label="theme (t)" hidden>
+    <button data-theme="light">light</button><button data-theme="dark">dark</button>
+  </div>
+</header>
+
+<template id="tpl-side">
+  <div class="side-head">
+    <div class="brand" data-component="new:AppBrand">
+      <svg width="18" height="18"><use href="#i-note"/></svg> 아무노트
+      <span class="who">yunjs</span>
+    </div>
+    <nav class="crumbs" aria-label="폴더 경로" data-component="Breadcrumb">
+      <span class="crumb-now" data-crumb-root>내 노트</span>
+      <button class="crumb-btn" data-crumb-up hidden>내 노트</button>
+      <span data-crumb-sep hidden>›</span>
+      <span class="crumb-now" data-crumb-here hidden>회사 회의록</span>
+    </nav>
+    <div class="side-tools">
+      <select class="tb-select" data-sort aria-label="정렬 기준" style="flex:1">
+        <option value="updated">수정일 최신순</option>
+        <option value="created">생성일 최신순</option>
+        <option value="title">제목 가나다순</option>
+      </select>
+      <button class="btn btn-sm btn-icon btn-ghost" data-sort-dir aria-label="정렬 순서 뒤집기">↓</button>
+    </div>
+  </div>
+
+  <div class="side-body">
+    <button class="new-card" data-open-picker data-component="new:NewNoteCard">
+      <svg width="22" height="22"><use href="#i-plus"/></svg>
+      새 노트 만들기
+    </button>
+
+    <div data-list="root">
+      <div data-empty-root hidden>
+        <p class="hint" style="padding:18px 6px;text-align:center;line-height:1.7">
+          아직 노트가 없습니다.<br>위 카드를 눌러 첫 노트를 만들어 보세요.
+        </p>
+      </div>
+      <div data-rows-root>
+        <div class="group-label">폴더 3</div>
+        <button class="item" data-open-folder data-title="회사 회의록" data-updated="9" data-created="3">
+          <span class="thumb"><svg width="24" height="24"><use href="#i-folder"/></svg></span>
+          <span class="item-main">
+            <span class="item-title">회사 회의록</span>
+            <span class="item-meta">노트 12개 · 하위 폴더 2개</span>
+          </span>
+        </button>
+        <button class="item" data-open-folder data-title="자격증 공부" data-updated="6" data-created="2">
+          <span class="thumb"><svg width="24" height="24"><use href="#i-folder"/></svg></span>
+          <span class="item-main">
+            <span class="item-title">자격증 공부</span>
+            <span class="item-meta">노트 5개</span>
+          </span>
+        </button>
+        <button class="item" data-open-folder data-title="여행 계획" data-updated="2" data-created="1">
+          <span class="thumb"><svg width="24" height="24"><use href="#i-folder"/></svg></span>
+          <span class="item-main">
+            <span class="item-title">여행 계획</span>
+            <span class="item-meta">노트 3개</span>
+          </span>
+        </button>
+
+        <div class="group-label">노트 5</div>
+        <button class="item" data-note="note-doc" data-title="2026-09-15 주간 스프린트 회의" data-updated="10" data-created="10">
+          <span class="thumb"><span class="thumb-text"><b>2026-09-15 주간 스프린트 회의</b>참석: 윤종승, 김하늘, Marcus Lindqvist<br>지난 주 배포 지연 원인부터 정리. 결제 모듈 회귀 테스트가 밀린 게 직접 원인이었고…</span></span>
+          <span class="item-main">
+            <span class="item-title">2026-09-15 주간 스프린트 회의</span>
+            <span class="item-meta"><span class="badge">일반 문서</span> 오후 2:41</span>
+          </span>
+        </button>
+        <button class="item" data-note="note-markdown" data-title="React 19 Server Components 정리" data-updated="9" data-created="7">
+          <span class="thumb"><span class="thumb-text"><b># React 19 Server Components</b>## 왜 쓰는가<br>- 번들에 안 들어간다<br>- 데이터 접근이 서버에서 끝난다<br>```tsx<br>export default async function Page()…</span></span>
+          <span class="item-main">
+            <span class="item-title">React 19 Server Components 정리</span>
+            <span class="item-meta"><span class="badge">Markdown</span> 어제</span>
+          </span>
+        </button>
+        <button class="item" data-note="note-canvas" data-title="제주 3박 4일 동선 스케치" data-updated="8" data-created="8">
+          <span class="thumb">
+            <svg viewBox="0 0 54 54" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="7" y="9" width="15" height="10" rx="2"/><circle cx="39" cy="15" r="6"/>
+              <path d="M22 14h11M13 19v9l14 7" stroke-linecap="round"/><path d="M27 35l11-6" stroke-linecap="round"/>
+              <path d="M8 44c5-7 9 3 14-3s8 5 13-1" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="item-main">
+            <span class="item-title">제주 3박 4일 동선 스케치</span>
+            <span class="item-meta"><span class="badge">그림판</span> 9월 12일</span>
+          </span>
+        </button>
+        <button class="item" data-note="note-doc" data-title="장보기" data-updated="4" data-created="5">
+          <span class="thumb"><span class="thumb-text"><b>장보기</b>대파 2단<br>달걀 한 판<br>두부 (찌개용)<br>고양이 모래 — 지난번에 산 것 말고<br>세제 리필</span></span>
+          <span class="item-main">
+            <span class="item-title">장보기</span>
+            <span class="item-meta"><span class="badge">일반 문서</span> 9월 9일</span>
+          </span>
+        </button>
+        <button class="item" data-note="note-markdown" data-title="면접 질문 모음 (백엔드)" data-updated="1" data-created="4">
+          <span class="thumb"><span class="thumb-text"><b># 면접 질문 모음</b>## 데이터베이스<br>1. 인덱스가 오히려 느려지는 경우는?<br>2. 트랜잭션 격리 수준을 실제로 바꿔본 적…</span></span>
+          <span class="item-main">
+            <span class="item-title">면접 질문 모음 (백엔드)</span>
+            <span class="item-meta"><span class="badge">Markdown</span> 9월 3일</span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <div data-list="folder" hidden>
+      <div class="group-label">폴더 2</div>
+      <button class="item" data-open-folder data-title="2026 3분기" data-updated="7" data-created="6">
+        <span class="thumb"><svg width="24" height="24"><use href="#i-folder"/></svg></span>
+        <span class="item-main">
+          <span class="item-title">2026 3분기</span>
+          <span class="item-meta">노트 7개</span>
+        </span>
+      </button>
+      <button class="item" data-open-folder data-title="2026 2분기" data-updated="3" data-created="2">
+        <span class="thumb"><svg width="24" height="24"><use href="#i-folder"/></svg></span>
+        <span class="item-main">
+          <span class="item-title">2026 2분기</span>
+          <span class="item-meta">노트 5개</span>
+        </span>
+      </button>
+      <div class="group-label">노트 3</div>
+      <button class="item" data-note="note-doc" data-title="09-15 스프린트 회고" data-updated="10" data-created="9">
+        <span class="thumb"><span class="thumb-text"><b>09-15 스프린트 회고</b>좋았던 점: 배포 롤백이 5분 안에 끝났다<br>아쉬운 점: 알림이 늦게 왔다…</span></span>
+        <span class="item-main">
+          <span class="item-title">09-15 스프린트 회고</span>
+          <span class="item-meta"><span class="badge">일반 문서</span> 오후 2:41</span>
+        </span>
+      </button>
+      <button class="item" data-note="note-doc" data-title="09-08 디자인 리뷰" data-updated="8" data-created="8">
+        <span class="thumb"><span class="thumb-text"><b>09-08 디자인 리뷰</b>좌측 목록 밀도를 한 단계 줄이기로. 썸네일 56px은 그대로 두되…</span></span>
+        <span class="item-main">
+          <span class="item-title">09-08 디자인 리뷰</span>
+          <span class="item-meta"><span class="badge">일반 문서</span> 9월 8일</span>
+        </span>
+      </button>
+      <button class="item" data-note="note-markdown" data-title="08-27 분기 목표 정렬" data-updated="2" data-created="1">
+        <span class="thumb"><span class="thumb-text"><b># 08-27 분기 목표 정렬</b>## 확정<br>- 재방문율을 1순위 지표로<br>- 사용 시간은 보조 지표…</span></span>
+        <span class="item-main">
+          <span class="item-title">08-27 분기 목표 정렬</span>
+          <span class="item-meta"><span class="badge">Markdown</span> 8월 27일</span>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <div class="side-foot">
+    <a class="btn btn-sm btn-ghost" href="#trash" style="flex:1"><svg width="15" height="15"><use href="#i-trash"/></svg> 휴지통</a>
+    <a class="btn btn-sm btn-ghost" href="#settings" style="flex:1"><svg width="15" height="15"><use href="#i-gear"/></svg> 설정</a>
+  </div>
+</template>
+
+<main class="sh-stage">
+
+  <!-- ─────────────── 로그인 ─────────────── -->
+  <section data-screen="signin" data-title="로그인" data-states="로그인 실패">
+    <div class="auth">
+      <div class="auth-card" data-component="Card">
+        <h2>아무노트에 로그인</h2>
+        <p class="lead">아이디와 비밀번호로 들어오거나, Google 계정으로 이어서 씁니다.</p>
+
+        <div class="alert" data-when="로그인 실패" data-component="Alert">
+          아이디 또는 비밀번호가 맞지 않습니다.
+        </div>
+
+        <div class="field" data-component="Field">
+          <label class="label" for="si-id">아이디</label>
+          <input class="input" id="si-id" value="yunjs" autocomplete="username">
+        </div>
+        <div class="field" data-component="Field">
+          <label class="label" for="si-pw">비밀번호</label>
+          <input class="input" id="si-pw" type="password" value="notmyrealpassword" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary btn-block" data-component="Button">로그인</button>
+
+        <div class="divider">또는</div>
+        <button class="btn btn-block" data-component="Button">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.68-.06-1.33-.18-1.96H12v3.71h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.89-1.74 2.98-4.3 2.98-7.28z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.24-2.51c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.06v2.59A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.41 13.9a6 6 0 0 1 0-3.8V7.51H3.06a10 10 0 0 0 0 8.98l3.35-2.59z"/><path fill="#EA4335" d="M12 5.98c1.47 0 2.79.51 3.83 1.5l2.87-2.87C16.95 2.99 14.7 2 12 2a10 10 0 0 0-8.94 5.51l3.35 2.59C7.2 7.74 9.4 5.98 12 5.98z"/></svg>
+          Google로 계속하기
+        </button>
+
+        <p class="foot-link">계정이 없으신가요? <a href="#signup">가입하기</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 회원가입 ─────────────── -->
+  <section data-screen="signup" data-title="회원가입" data-states="아이디 사용 가능,아이디 중복,비밀번호 규칙 미충족">
+    <div class="auth">
+      <div class="auth-card" data-component="Card">
+        <h2>계정 만들기</h2>
+        <p class="lead">아이디와 비밀번호만 있으면 됩니다. 이메일은 받지 않습니다.</p>
+
+        <div class="field" data-component="Field">
+          <label class="label" for="su-id">아이디</label>
+          <div class="row">
+            <input class="input" id="su-id" style="flex:1" value="yunjs" autocomplete="username">
+            <button class="btn" data-component="Button">중복 확인</button>
+          </div>
+          <span class="hint" data-when="Default">영문 소문자와 숫자 4–20자를 쓸 수 있습니다.</span>
+          <span class="hint ok" data-when="아이디 사용 가능"><svg width="13" height="13"><use href="#i-check"/></svg> 쓸 수 있는 아이디입니다.</span>
+          <span class="hint bad" data-when="아이디 중복"><svg width="13" height="13"><use href="#i-x"/></svg> 이미 사용 중인 아이디입니다.</span>
+        </div>
+
+        <div class="field" data-component="Field">
+          <label class="label" for="su-pw">비밀번호</label>
+          <input class="input" id="su-pw" type="password" value="Gureum2026!" autocomplete="new-password">
+          <ul class="rules" data-when="Default,아이디 사용 가능,아이디 중복">
+            <li class="ok"><svg width="12" height="12"><use href="#i-check"/></svg> 8자 이상</li>
+            <li class="ok"><svg width="12" height="12"><use href="#i-check"/></svg> 영문 대·소문자 포함</li>
+            <li class="ok"><svg width="12" height="12"><use href="#i-check"/></svg> 숫자 포함</li>
+            <li class="ok"><svg width="12" height="12"><use href="#i-check"/></svg> 기호 포함</li>
+          </ul>
+          <ul class="rules" data-when="비밀번호 규칙 미충족">
+            <li class="ok"><svg width="12" height="12"><use href="#i-check"/></svg> 8자 이상</li>
+            <li class="ok"><svg width="12" height="12"><use href="#i-check"/></svg> 영문 대·소문자 포함</li>
+            <li><svg width="12" height="12"><use href="#i-x"/></svg> 숫자 포함</li>
+            <li><svg width="12" height="12"><use href="#i-x"/></svg> 기호 포함</li>
+          </ul>
+        </div>
+
+        <div class="field" data-component="Field">
+          <label class="label" for="su-pw2">비밀번호 확인</label>
+          <input class="input" id="su-pw2" type="password" value="Gureum2026!" autocomplete="new-password">
+        </div>
+
+        <p class="hint" style="margin:0 0 14px;line-height:1.65">
+          비밀번호를 잊으면 되돌릴 방법이 없습니다. 이메일을 받지 않기 때문입니다.
+        </p>
+        <button class="btn btn-primary btn-block" data-component="Button">가입하고 시작하기</button>
+        <p class="foot-link">이미 계정이 있으신가요? <a href="#signin">로그인</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 보관함 ─────────────── -->
+  <section data-screen="library" data-title="보관함" data-states="폴더 안,빈 보관함">
+    <div class="app">
+      <div class="side" data-side data-component="Sidebar"></div>
+      <div class="main is-secondary">
+        <div class="empty" data-when="Default,폴더 안">
+          <svg width="30" height="30" style="opacity:.55"><use href="#i-note"/></svg>
+          <strong>왼쪽에서 노트를 고르세요</strong>
+          <p>고른 노트가 이 자리에 열립니다. 새로 쓰려면 왼쪽 위의 빈 카드를 누르세요.</p>
+        </div>
+        <div class="empty" data-when="빈 보관함">
+          <svg width="30" height="30" style="opacity:.55"><use href="#i-plus"/></svg>
+          <strong>첫 노트를 만들어 보세요</strong>
+          <p>일반 문서, Markdown, 그림판 중에서 고를 수 있습니다. 쓰는 동안 저장은 알아서 됩니다.</p>
+          <button class="btn btn-primary" data-open-picker>새 노트 만들기</button>
+        </div>
+      </div>
+      <div class="overlay" data-picker hidden>
+        <div class="dialog" role="dialog" aria-modal="true" aria-label="새 노트 형식 고르기" data-component="Dialog">
+          <h3>어떤 형식으로 쓸까요?</h3>
+          <p class="hint">노트마다 따로 고를 수 있습니다. 나중에 형식을 바꿀 수는 없습니다.</p>
+          <div class="type-grid">
+            <button class="type-card" data-pick="note-doc">
+              <span class="type-art"><svg width="30" height="30"><use href="#i-doc"/></svg></span>
+              <span class="type-label">일반 문서</span>
+              <span class="type-desc">글꼴과 색을 바꿔 가며 쓰는 보통 노트</span>
+            </button>
+            <button class="type-card" data-pick="note-markdown">
+              <span class="type-art"><svg width="30" height="30"><use href="#i-md"/></svg></span>
+              <span class="type-label">Markdown</span>
+              <span class="type-desc">기호로 쓰고 옆에서 결과를 확인</span>
+            </button>
+            <button class="type-card" data-pick="note-canvas">
+              <span class="type-art"><svg width="30" height="30"><use href="#i-pen"/></svg></span>
+              <span class="type-label">그림판</span>
+              <span class="type-desc">선, 도형, 글자를 손으로 그리기</span>
+            </button>
+          </div>
+          <div class="dialog-foot">
+            <button class="btn" data-close-picker>취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 일반 문서 ─────────────── -->
+  <section data-screen="note-doc" data-title="일반 문서" data-states="저장 중,충돌 알림" data-active="2026-09-15 주간 스프린트 회의">
+    <div class="app">
+      <div class="side is-secondary" data-side data-component="Sidebar"></div>
+      <div class="main">
+        <div class="main-head">
+          <a class="btn btn-sm btn-icon btn-ghost only-narrow" href="#library" aria-label="목록으로"><svg width="16" height="16"><use href="#i-back"/></svg></a>
+          <input class="note-title" value="2026-09-15 주간 스프린트 회의" aria-label="노트 제목">
+          <span class="save-state" data-when="Default,충돌 알림"><span class="dot"></span> 저장됨 · 오후 2:41</span>
+          <span class="save-state" data-when="저장 중"><span class="spin"></span> 저장 중…</span>
+          <button class="btn btn-sm btn-icon" data-bg-toggle title="배경 바꾸기" aria-label="배경 바꾸기"><svg width="16" height="16"><use href="#i-image"/></svg></button>
+          <button class="btn btn-sm btn-icon" title="휴지통으로 보내기" aria-label="휴지통으로 보내기"><svg width="16" height="16"><use href="#i-trash"/></svg></button>
+        </div>
+
+        <div class="banner" data-when="충돌 알림" data-component="Alert">
+          <span class="grow">다른 기기에서 이 노트를 고쳤습니다. 어느 쪽을 남길까요?</span>
+          <button class="btn btn-sm">최신 내용 불러오기</button>
+          <button class="btn btn-sm btn-primary">내 내용으로 덮기</button>
+        </div>
+
+        <div class="pop" data-bg-pop hidden data-component="Popover">
+          <h4>배경 색</h4>
+          <div class="bg-grid" data-bg-grid>
+            <button class="bg-dot is-on" style="background:#ffffff" data-bg="#ffffff" aria-label="흰색"></button>
+            <button class="bg-dot" style="background:#fffaf0" data-bg="#fffaf0" aria-label="크림"></button>
+            <button class="bg-dot" style="background:#f2f7f4" data-bg="#f2f7f4" aria-label="연한 초록"></button>
+            <button class="bg-dot" style="background:#eef3fb" data-bg="#eef3fb" aria-label="연한 파랑"></button>
+            <button class="bg-dot" style="background:#fbeef3" data-bg="#fbeef3" aria-label="연한 분홍"></button>
+          </div>
+          <h4>배경 이미지</h4>
+          <button class="btn btn-sm btn-block"><svg width="15" height="15"><use href="#i-image"/></svg> 이미지 올리기</button>
+          <p class="hint" style="margin:8px 0 0;line-height:1.6">JPG·PNG, 5MB까지. 내 계정에만 보관됩니다.</p>
+        </div>
+
+        <div class="editor" data-paper-bg>
+          <div class="paper">
+            <h2>주간 스프린트 회의</h2>
+            <p>참석: 윤종승, 김하늘, Marcus Lindqvist / 불참: 이도현(휴가)</p>
+            <p>지난 주 배포가 이틀 밀린 원인부터 정리했습니다. 결제 모듈 회귀 테스트가 늦게 돌아간 게 직접적인 이유였고, 그 앞단에 스테이징 데이터가 초기화된 일이 있었습니다.</p>
+            <ul>
+              <li>회귀 테스트를 배포 전날이 아니라 <span style="color:#b3123f;font-weight:600">머지 직후</span>에 돌리기로 함</li>
+              <li>스테이징 초기화 스크립트는 금요일 밤에만 돌도록 시간을 옮김</li>
+              <li>알림 채널을 #deploy 하나로 합침 — 지금은 세 군데로 흩어져 있음</li>
+            </ul>
+            <p style="font-family:Georgia,serif;font-size:17px">다음 회의는 9월 22일 오후 2시, 같은 자리입니다.<span class="caret"></span></p>
+          </div>
+        </div>
+
+        <div class="toolbar" data-component="new:FormatBar">
+          <select class="tb-select" aria-label="글꼴" data-fmt-font>
+            <option>본고딕</option><option>나눔명조</option><option>Georgia</option><option>코드용 고정폭</option>
+          </select>
+          <select class="tb-select" aria-label="글자 크기" data-fmt-size>
+            <option>14</option><option selected>15</option><option>17</option><option>20</option><option>24</option>
+          </select>
+          <span class="tb-sep"></span>
+          <button class="tb-btn" data-toggle style="font-weight:800">가</button>
+          <button class="tb-btn" data-toggle style="font-style:italic">가</button>
+          <button class="tb-btn" data-toggle style="text-decoration:underline">가</button>
+          <button class="tb-btn" data-toggle style="text-decoration:line-through">가</button>
+          <button class="tb-swatch" data-fmt-color aria-label="글자 색"><i style="background:#b3123f"></i></button>
+          <span class="tb-sep"></span>
+          <button class="tb-btn" data-toggle aria-label="글머리 목록">•—</button>
+          <button class="tb-btn" data-toggle aria-label="번호 목록">1.</button>
+          <span class="tb-sep"></span>
+          <button class="tb-btn is-on" data-align aria-label="왼쪽 정렬">⇤</button>
+          <button class="tb-btn" data-align aria-label="가운데 정렬">↔</button>
+          <button class="tb-btn" data-align aria-label="오른쪽 정렬">⇥</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── Markdown 문서 ─────────────── -->
+  <section data-screen="note-markdown" data-title="Markdown 문서" data-states="뷰어 숨김" data-active="React 19 Server Components 정리">
+    <div class="app">
+      <div class="side is-secondary" data-side data-component="Sidebar"></div>
+      <div class="main">
+        <div class="main-head">
+          <a class="btn btn-sm btn-icon btn-ghost only-narrow" href="#library" aria-label="목록으로"><svg width="16" height="16"><use href="#i-back"/></svg></a>
+          <input class="note-title" value="React 19 Server Components 정리" aria-label="노트 제목">
+          <span class="save-state"><span class="dot"></span> 저장됨 · 어제</span>
+          <button class="btn btn-sm is-on" data-md-toggle><svg width="15" height="15"><use href="#i-eye"/></svg> 뷰어</button>
+          <button class="btn btn-sm btn-icon" title="배경 바꾸기" aria-label="배경 바꾸기"><svg width="16" height="16"><use href="#i-image"/></svg></button>
+        </div>
+
+        <div class="md-split" data-md-split>
+<pre class="md-src"># React 19 Server Components 정리
+
+## 왜 쓰는가
+
+- 컴포넌트 코드가 브라우저 번들에 안 들어간다
+- 데이터 접근이 서버에서 끝나서 물 흐르듯 이어진다
+- 단, `useState`는 못 쓴다. 상태가 필요하면 경계를 나눈다
+
+```tsx
+export default async function Page() {
+  const notes = await db.note.findMany()
+  return &lt;NoteList items={notes} /&gt;
+}
+```
+
+## 헷갈렸던 것
+
+> "서버 컴포넌트"와 "서버 액션"은 다른 이야기다.
+
+| 구분 | 실행 시점 | 상태 |
+| --- | --- | --- |
+| 서버 컴포넌트 | 렌더 | 없음 |
+| 클라이언트 컴포넌트 | 렌더 + 이후 | 있음 |
+</pre>
+          <div class="md-view" data-md-view>
+            <h1>React 19 Server Components 정리</h1>
+            <h2>왜 쓰는가</h2>
+            <ul>
+              <li>컴포넌트 코드가 브라우저 번들에 안 들어간다</li>
+              <li>데이터 접근이 서버에서 끝나서 물 흐르듯 이어진다</li>
+              <li>단, <code>useState</code>는 못 쓴다. 상태가 필요하면 경계를 나눈다</li>
+            </ul>
+            <pre style="background:var(--muted);padding:10px 12px;border-radius:8px;font-family:var(--font-mono);font-size:12.5px;line-height:1.7;overflow:auto">export default async function Page() {
+  const notes = await db.note.findMany()
+  return &lt;NoteList items={notes} /&gt;
+}</pre>
+            <h2>헷갈렸던 것</h2>
+            <blockquote>“서버 컴포넌트”와 “서버 액션”은 다른 이야기다.</blockquote>
+            <table>
+              <thead><tr><th>구분</th><th>실행 시점</th><th>상태</th></tr></thead>
+              <tbody>
+                <tr><td>서버 컴포넌트</td><td>렌더</td><td>없음</td></tr>
+                <tr><td>클라이언트 컴포넌트</td><td>렌더 + 이후</td><td>있음</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 그림판 ─────────────── -->
+  <section data-screen="note-canvas" data-title="그림판" data-active="제주 3박 4일 동선 스케치">
+    <div class="app">
+      <div class="side is-secondary" data-side data-component="Sidebar"></div>
+      <div class="main">
+        <div class="main-head">
+          <a class="btn btn-sm btn-icon btn-ghost only-narrow" href="#library" aria-label="목록으로"><svg width="16" height="16"><use href="#i-back"/></svg></a>
+          <input class="note-title" value="제주 3박 4일 동선 스케치" aria-label="노트 제목">
+          <span class="save-state"><span class="dot"></span> 저장됨 · 9월 12일</span>
+          <button class="btn btn-sm btn-icon" title="되돌리기" aria-label="되돌리기"><svg width="16" height="16"><use href="#i-undo"/></svg></button>
+          <button class="btn btn-sm btn-icon" title="배경 바꾸기" aria-label="배경 바꾸기"><svg width="16" height="16"><use href="#i-image"/></svg></button>
+        </div>
+
+        <div class="canvas-wrap">
+          <svg class="canvas-paper" viewBox="0 0 620 400" width="620" height="400" role="img" aria-label="제주 여행 동선 스케치">
+            <g fill="none" stroke="#2b2b2b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="42" y="48" width="150" height="62" rx="8"/>
+              <circle cx="330" cy="79" r="36"/>
+              <path d="M192 79h100"/><path d="M292 74l10 5-10 5"/>
+              <path d="M366 79h92"/><path d="M458 74l10 5-10 5"/>
+              <rect x="468" y="48" width="110" height="62" rx="8"/>
+              <path d="M117 110v70"/><path d="M112 170l5 10 5-10"/>
+              <path d="M60 210c26-34 58 18 96-12s70 26 108-6 66 24 100-2"/>
+              <path d="M330 300c-40 0-62 22-62 44"/>
+              <path d="M330 300c40 0 62 22 62 44"/>
+            </g>
+            <g fill="#b3123f" stroke="none">
+              <circle cx="117" cy="196" r="5"/><circle cx="268" cy="344" r="5"/><circle cx="392" cy="344" r="5"/>
+            </g>
+            <g font-family="ui-sans-serif, system-ui, sans-serif" fill="#2b2b2b">
+              <text x="117" y="85" font-size="17" text-anchor="middle">제주공항 도착</text>
+              <text x="330" y="85" font-size="15" text-anchor="middle">애월</text>
+              <text x="523" y="85" font-size="17" text-anchor="middle">한림 숙소</text>
+              <text x="117" y="222" font-size="14" text-anchor="middle" fill="#b3123f">렌터카 1일차</text>
+              <text x="330" y="245" font-size="15" text-anchor="middle">2일차 — 동쪽 / 서쪽 갈림</text>
+              <text x="268" y="372" font-size="14" text-anchor="middle">성산 일출봉</text>
+              <text x="392" y="372" font-size="14" text-anchor="middle">한라산 둘레길</text>
+            </g>
+          </svg>
+        </div>
+
+        <div class="toolbar" data-component="new:DrawBar">
+          <button class="tb-btn is-on" data-tool aria-label="펜"><svg width="16" height="16"><use href="#i-pen"/></svg></button>
+          <button class="tb-btn" data-tool aria-label="지우개">지우개</button>
+          <span class="tb-sep"></span>
+          <button class="tb-btn" data-tool aria-label="사각형">▭</button>
+          <button class="tb-btn" data-tool aria-label="원">◯</button>
+          <button class="tb-btn" data-tool aria-label="선">╱</button>
+          <button class="tb-btn" data-tool aria-label="화살표">→</button>
+          <button class="tb-btn" data-tool aria-label="글상자">가</button>
+          <span class="tb-sep"></span>
+          <select class="tb-select" aria-label="선 굵기">
+            <option>가늘게 1px</option><option selected>보통 2px</option><option>굵게 4px</option><option>아주 굵게 8px</option>
+          </select>
+          <button class="tb-swatch" aria-label="선 색"><i style="background:#2b2b2b"></i></button>
+          <button class="tb-swatch" aria-label="선 색 빨강"><i style="background:#b3123f"></i></button>
+          <button class="tb-swatch" aria-label="선 색 파랑"><i style="background:#1d4ed8"></i></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 휴지통 ─────────────── -->
+  <section data-screen="trash" data-title="휴지통" data-states="비어 있음">
+    <div class="app">
+      <div class="side is-secondary" data-side data-component="Sidebar"></div>
+      <div class="main">
+        <div class="main-head">
+          <a class="btn btn-sm btn-icon btn-ghost only-narrow" href="#library" aria-label="목록으로"><svg width="16" height="16"><use href="#i-back"/></svg></a>
+          <strong style="flex:1;font-size:15px;padding-left:4px">휴지통</strong>
+          <button class="btn btn-sm btn-destructive" data-when="Default">휴지통 비우기</button>
+        </div>
+        <div class="scroll-body" data-when="Default">
+          <p class="hint" style="margin:0 0 14px">되돌리면 원래 있던 폴더로 돌아갑니다.</p>
+          <div data-trash-list>
+            <div class="trash-row" data-component="Card">
+              <svg width="20" height="20" style="color:var(--muted-foreground)"><use href="#i-folder"/></svg>
+              <span style="flex:1;min-width:0">
+                <span class="item-title">2025 아카이브</span>
+                <span class="item-meta">폴더 · 노트 9개 함께 들어옴 · 9월 14일 삭제</span>
+              </span>
+              <button class="btn btn-sm" data-restore>되돌리기</button>
+              <button class="btn btn-sm btn-ghost" data-restore>영구 삭제</button>
+            </div>
+            <div class="trash-row" data-component="Card">
+              <svg width="20" height="20" style="color:var(--muted-foreground)"><use href="#i-doc"/></svg>
+              <span style="flex:1;min-width:0">
+                <span class="item-title">임시 — 나중에 정리</span>
+                <span class="item-meta">일반 문서 · 9월 11일 삭제</span>
+              </span>
+              <button class="btn btn-sm" data-restore>되돌리기</button>
+              <button class="btn btn-sm btn-ghost" data-restore>영구 삭제</button>
+            </div>
+            <div class="trash-row" data-component="Card">
+              <svg width="20" height="20" style="color:var(--muted-foreground)"><use href="#i-pen"/></svg>
+              <span style="flex:1;min-width:0">
+                <span class="item-title">낙서</span>
+                <span class="item-meta">그림판 · 8월 30일 삭제</span>
+              </span>
+              <button class="btn btn-sm" data-restore>되돌리기</button>
+              <button class="btn btn-sm btn-ghost" data-restore>영구 삭제</button>
+            </div>
+          </div>
+        </div>
+        <div class="empty" data-when="비어 있음">
+          <svg width="30" height="30" style="opacity:.55"><use href="#i-trash"/></svg>
+          <strong>휴지통이 비었습니다</strong>
+          <p>지운 노트와 폴더가 여기 모입니다. 되돌리기 전까지는 사라지지 않습니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── 설정 ─────────────── -->
+  <section data-screen="settings" data-title="설정">
+    <div class="app">
+      <div class="side is-secondary" data-side data-component="Sidebar"></div>
+      <div class="main">
+        <div class="main-head">
+          <a class="btn btn-sm btn-icon btn-ghost only-narrow" href="#library" aria-label="목록으로"><svg width="16" height="16"><use href="#i-back"/></svg></a>
+          <strong style="flex:1;font-size:15px;padding-left:4px">설정</strong>
+        </div>
+        <div class="scroll-body">
+          <div class="panel" data-component="Card">
+            <div class="panel-h">계정</div>
+            <div class="panel-b">
+              <div class="set-row">
+                <span>
+                  <span class="set-label">아이디</span>
+                  <span class="set-desc">가입할 때 정한 아이디입니다. 바꿀 수 없습니다.</span>
+                </span>
+                <span class="hint">yunjs</span>
+              </div>
+              <div class="set-row">
+                <span>
+                  <span class="set-label">로그아웃</span>
+                  <span class="set-desc">이 기기에서만 나갑니다. 다른 기기는 그대로입니다.</span>
+                </span>
+                <button class="btn btn-sm">로그아웃</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-component="Card">
+            <div class="panel-h">언어</div>
+            <div class="panel-b">
+              <div class="set-row">
+                <span>
+                  <span class="set-label"><svg width="14" height="14" style="vertical-align:-2px"><use href="#i-globe"/></svg> 표시 언어</span>
+                  <span class="set-desc">처음에는 브라우저 언어를 따릅니다. 여기서 바꾸면 계정에 저장되어 다른 기기에서도 그대로 열립니다.</span>
+                </span>
+                <select class="tb-select" style="height:34px" aria-label="표시 언어">
+                  <option selected>한국어</option>
+                  <option>English</option>
+                  <option>Français</option>
+                  <option>Deutsch</option>
+                  <option>Italiano</option>
+                  <option>Español</option>
+                  <option>简体中文</option>
+                  <option>繁體中文</option>
+                  <option>日本語</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-component="Card">
+            <div class="panel-h">기본 배경</div>
+            <div class="panel-b">
+              <div class="set-row">
+                <span>
+                  <span class="set-label">새 노트의 배경</span>
+                  <span class="set-desc">여기서 고른 배경으로 새 노트가 시작합니다. 이미 만든 노트는 그대로입니다.</span>
+                </span>
+                <span style="display:flex;gap:7px">
+                  <button class="bg-dot is-on" style="width:30px;background:#ffffff" aria-label="흰색"></button>
+                  <button class="bg-dot" style="width:30px;background:#fffaf0" aria-label="크림"></button>
+                  <button class="bg-dot" style="width:30px;background:#f2f7f4" aria-label="연한 초록"></button>
+                  <button class="bg-dot" style="width:30px;background:#eef3fb" aria-label="연한 파랑"></button>
+                </span>
+              </div>
+              <div class="set-row">
+                <span>
+                  <span class="set-label">기본 배경 이미지</span>
+                  <span class="set-desc">JPG·PNG, 5MB까지. 내 계정에만 보관됩니다.</span>
+                </span>
+                <button class="btn btn-sm"><svg width="15" height="15"><use href="#i-image"/></svg> 이미지 올리기</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-component="Card">
+            <div class="panel-h">앱 정보</div>
+            <div class="panel-b">
+              <div class="set-row">
+                <span>
+                  <span class="set-label"><svg width="14" height="14" style="vertical-align:-2px"><use href="#i-info"/></svg> 아무노트</span>
+                  <span class="set-desc">버전 0.1.0 · 광고 없음 · 무료</span>
+                </span>
+                <button class="btn btn-sm">자세히</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  /* one canonical sidebar, cloned into every screen that shows it */
+  const sideTpl = document.getElementById('tpl-side');
+  document.querySelectorAll('[data-side]').forEach(host => {
+    host.append(sideTpl.content.cloneNode(true));
+  });
+</script>
+
+<script>
+  const stage = document.querySelector('.sh-stage');
+  const screens = [...stage.querySelectorAll('[data-screen]')];
+  const screenSelect = document.getElementById('sh-screen');
+  const stateSelect = document.getElementById('sh-state');
+  const vpBtn = document.getElementById('sh-vp');
+  const themeCtl = document.getElementById('sh-theme');
+  const themeBtns = [...themeCtl.querySelectorAll('button')];
+  let current = null;
+  let currentStates = [];
+
+  screens.forEach(s => {
+    const option = document.createElement('option');
+    option.textContent = s.dataset.title || s.dataset.screen;
+    option.value = s.dataset.screen;
+    screenSelect.append(option);
+  });
+  screenSelect.onchange = () => show(screenSelect.value);
+
+  function show(slug) {
+    current = screens.find(s => s.dataset.screen === slug) || screens[0];
+    screens.forEach(s => s.hidden = s !== current);
+    screenSelect.value = current.dataset.screen;
+    history.replaceState(null, '', '#' + current.dataset.screen);
+    buildStates();
+  }
+
+  function buildStates() {
+    const declared = (current.dataset.states || '').split(',').map(x => x.trim()).filter(Boolean);
+    currentStates = ['Default', ...declared.filter(name => name !== 'Default')];
+    stateSelect.innerHTML = '';
+    currentStates.forEach(name => {
+      const option = document.createElement('option');
+      option.textContent = name;
+      option.value = name;
+      stateSelect.append(option);
+    });
+    applyState('Default');
+  }
+
+  function applyState(name) {
+    const active = currentStates.includes(name) ? name : 'Default';
+    current.querySelectorAll('[data-when]').forEach(el => {
+      el.hidden = !el.dataset.when.split(',').map(x => x.trim()).includes(active);
+    });
+    stateSelect.value = active;
+  }
+  stateSelect.onchange = () => applyState(stateSelect.value);
+
+  window.prototypeShell = {
+    showScreen: show,
+    setState: applyState,
+    getScreen: () => current?.dataset.screen,
+    getState: () => stateSelect.value
+  };
+
+  const VPS = ['full', '390', '768'];
+  let vp = VPS.find(v => document.body.classList.contains('sh-vp-' + v)) || 'full';
+  function applyVp() {
+    VPS.forEach(v => document.body.classList.toggle('sh-vp-' + v, v === vp && v !== 'full'));
+    vpBtn.textContent = 'vp: ' + vp + ' (m)';
+    vpBtn.classList.toggle('on', vp !== 'full');
+  }
+  vpBtn.onclick = () => { vp = VPS[(VPS.indexOf(vp) + 1) % VPS.length]; applyVp(); };
+  applyVp();
+
+  const hasDark = [...document.styleSheets].some(sheet => {
+    try {
+      return [...sheet.cssRules].some(rule => (rule.selectorText || '')
+        .split(',').some(part => /\.sh-theme-dark$/.test(part.trim())));
+    } catch { return false }
+  });
+  let dark = false;
+  function applyTheme() {
+    document.documentElement.classList.toggle('sh-theme-dark', dark);
+    document.body.classList.toggle('sh-theme-dark', dark);
+    themeBtns.forEach(b => b.classList.toggle('on', (b.dataset.theme === 'dark') === dark));
+  }
+  themeCtl.hidden = !hasDark;
+  themeBtns.forEach(b => b.onclick = () => { dark = b.dataset.theme === 'dark'; applyTheme(); });
+  applyTheme();
+
+  addEventListener('keydown', e => {
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const i = screens.indexOf(current);
+    if (e.key === 'ArrowRight') show(screens[(i + 1) % screens.length].dataset.screen);
+    if (e.key === 'ArrowLeft') show(screens[(i - 1 + screens.length) % screens.length].dataset.screen);
+    if (e.key === 'm') vpBtn.click();
+    if (e.key === 't' && !themeCtl.hidden) { dark = !dark; applyTheme(); }
+  });
+
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+  show(location.hash.slice(1));
+</script>
+
+<script>
+  /* ── product behaviour ── */
+  const sortState = { key: 'updated', desc: true };
+
+  function sectionOf(el) { return el.closest('[data-screen]'); }
+  function activeSection() { return screens.find(s => !s.hidden); }
+
+  /* sidebar: which list is showing, which note is open, folder path */
+  function syncSide() {
+    const section = activeSection();
+    if (!section) return;
+    const state = prototypeShell.getState();
+    const inFolder = state === '폴더 안';
+    const emptyLibrary = state === '빈 보관함';
+
+    section.querySelectorAll('.side').forEach(side => {
+      const root = side.querySelector('[data-list="root"]');
+      const folder = side.querySelector('[data-list="folder"]');
+      const rows = side.querySelector('[data-rows-root]');
+      const emptyMsg = side.querySelector('[data-empty-root]');
+      if (root) root.hidden = inFolder;
+      if (folder) folder.hidden = !inFolder;
+      if (rows) rows.hidden = emptyLibrary;
+      if (emptyMsg) emptyMsg.hidden = !emptyLibrary;
+
+      side.querySelector('[data-crumb-root]').hidden = inFolder;
+      side.querySelector('[data-crumb-up]').hidden = !inFolder;
+      side.querySelector('[data-crumb-sep]').hidden = !inFolder;
+      side.querySelector('[data-crumb-here]').hidden = !inFolder;
+
+      const openTitle = section.dataset.active || '';
+      side.querySelectorAll('.item').forEach(item => {
+        item.classList.toggle('is-active', !!openTitle && item.dataset.title === openTitle);
+      });
+
+      const sel = side.querySelector('[data-sort]');
+      if (sel) sel.value = sortState.key;
+      const dir = side.querySelector('[data-sort-dir]');
+      if (dir) {
+        dir.textContent = sortState.desc ? '↓' : '↑';
+        dir.title = sortState.desc ? '순서 뒤집기 — 지금은 기준 순서대로' : '순서 뒤집기 — 지금은 거꾸로';
+      }
+      applySort(side);
+    });
+
+    /* markdown viewer follows the screen state */
+    const split = section.querySelector('[data-md-split]');
+    if (split) {
+      const hidden = state === '뷰어 숨김';
+      split.classList.toggle('is-single', hidden);
+      section.querySelector('[data-md-view]').hidden = hidden;
+      const btn = section.querySelector('[data-md-toggle]');
+      btn.classList.toggle('is-on', !hidden);
+    }
+  }
+
+  /* sort each labelled run (folders, then notes) in place */
+  function applySort(side) {
+    side.querySelectorAll('[data-list]').forEach(list => {
+      [...list.querySelectorAll('.group-label')].forEach(label => {
+        const run = [];
+        let node = label.nextElementSibling;
+        while (node && node.classList.contains('item')) { run.push(node); node = node.nextElementSibling; }
+        if (run.length < 2) return;
+        const sorted = [...run].sort((a, b) => {
+          if (sortState.key === 'title') return a.dataset.title.localeCompare(b.dataset.title, 'ko');
+          return Number(b.dataset[sortState.key]) - Number(a.dataset[sortState.key]);
+        });
+        if (!sortState.desc) sorted.reverse();
+        sorted.forEach(el => label.parentNode.insertBefore(el, node));
+      });
+    });
+  }
+
+  function goLibraryThen(fn) {
+    if (prototypeShell.getScreen() !== 'library') prototypeShell.showScreen('library');
+    fn();
+    syncSide();
+  }
+
+  function openPicker() {
+    const picker = activeSection().querySelector('[data-picker]');
+    if (picker) picker.hidden = false;
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target;
+
+    const newBtn = t.closest('[data-open-picker]');
+    if (newBtn) { goLibraryThen(() => {}); openPicker(); return; }
+
+    if (t.closest('[data-close-picker]')) {
+      activeSection().querySelector('[data-picker]').hidden = true; return;
+    }
+    const overlay = t.closest('[data-picker]');
+    if (overlay && t === overlay) { overlay.hidden = true; return; }
+
+    const pick = t.closest('[data-pick]');
+    if (pick) {
+      activeSection().querySelector('[data-picker]').hidden = true;
+      location.hash = pick.dataset.pick;
+      return;
+    }
+
+    const note = t.closest('[data-note]');
+    if (note) { location.hash = note.dataset.note; return; }
+
+    const folder = t.closest('[data-open-folder]');
+    if (folder) {
+      const title = folder.dataset.title;
+      goLibraryThen(() => {
+        prototypeShell.setState('폴더 안');
+        activeSection().querySelectorAll('[data-crumb-here]').forEach(el => el.textContent = title);
+      });
+      return;
+    }
+
+    if (t.closest('[data-crumb-up]')) { prototypeShell.setState('Default'); syncSide(); return; }
+
+    const sortDir = t.closest('[data-sort-dir]');
+    if (sortDir) { sortState.desc = !sortState.desc; syncSide(); return; }
+
+    const mdBtn = t.closest('[data-md-toggle]');
+    if (mdBtn) {
+      prototypeShell.setState(prototypeShell.getState() === '뷰어 숨김' ? 'Default' : '뷰어 숨김');
+      syncSide(); return;
+    }
+
+    const bgBtn = t.closest('[data-bg-toggle]');
+    if (bgBtn) {
+      const pop = activeSection().querySelector('[data-bg-pop]');
+      pop.hidden = !pop.hidden; return;
+    }
+
+    const bgDot = t.closest('[data-bg]');
+    if (bgDot) {
+      const grid = bgDot.closest('[data-bg-grid]');
+      grid.querySelectorAll('.bg-dot').forEach(d => d.classList.remove('is-on'));
+      bgDot.classList.add('is-on');
+      const paper = activeSection().querySelector('[data-paper-bg]');
+      if (paper) paper.style.background = bgDot.dataset.bg;
+      return;
+    }
+
+    const toggle = t.closest('[data-toggle]');
+    if (toggle) { toggle.classList.toggle('is-on'); return; }
+
+    const align = t.closest('[data-align]');
+    if (align) {
+      align.parentNode.querySelectorAll('[data-align]').forEach(b => b.classList.remove('is-on'));
+      align.classList.add('is-on'); return;
+    }
+
+    const tool = t.closest('[data-tool]');
+    if (tool) {
+      tool.parentNode.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('is-on'));
+      tool.classList.add('is-on'); return;
+    }
+
+    const restore = t.closest('[data-restore]');
+    if (restore) {
+      restore.closest('.trash-row').remove();
+      const list = activeSection().querySelector('[data-trash-list]');
+      if (list && !list.querySelector('.trash-row')) { prototypeShell.setState('비어 있음'); syncSide(); }
+      return;
+    }
+
+    /* close the background popover when clicking elsewhere */
+    const pop = activeSection()?.querySelector('[data-bg-pop]');
+    if (pop && !pop.hidden && !t.closest('[data-bg-pop]')) pop.hidden = true;
+  });
+
+  document.addEventListener('change', e => {
+    const sel = e.target.closest('[data-sort]');
+    if (sel) { sortState.key = sel.value; syncSide(); }
+  });
+
+  stateSelect.addEventListener('change', syncSide);
+  screenSelect.addEventListener('change', syncSide);
+  addEventListener('hashchange', () => setTimeout(syncSide));
+  addEventListener('keydown', () => setTimeout(syncSide));
+  syncSide();
+</script>
