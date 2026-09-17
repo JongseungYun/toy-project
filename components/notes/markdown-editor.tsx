@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -23,7 +24,13 @@ function read(content: NoteContent): MarkdownContent {
  * Markdown 편집기. 왼쪽에 원문을 쓰고 오른쪽에서 결과를 본다.
  * 뷰어를 켜고 끈 상태는 본문과 함께 노트에 저장되어 다시 열었을 때 그대로다.
  */
-export function MarkdownEditor({ note }: { note: Note }) {
+export function MarkdownEditor({
+  note,
+  actions,
+}: {
+  note: Note;
+  actions?: ReactNode;
+}) {
   const initial = read(note.content);
   const [source, setSource] = useState(initial.source);
   const [viewer, setViewer] = useState(initial.viewer);
@@ -76,6 +83,7 @@ export function MarkdownEditor({ note }: { note: Note }) {
       onTakeRemote={autosave.takeRemote}
       onKeepMine={autosave.keepMine}
       actions={
+        <>
         <button
           type="button"
           onClick={toggleViewer}
@@ -90,6 +98,8 @@ export function MarkdownEditor({ note }: { note: Note }) {
           <EyeIcon className="size-4" />
           뷰어
         </button>
+        {actions}
+        </>
       }
     >
       {/* 넓은 화면에서는 좌우로, 좁은 화면에서는 위아래로 나눈다. */}

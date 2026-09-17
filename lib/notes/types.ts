@@ -41,6 +41,8 @@ export interface Note {
   version: number;
   createdAt: string;
   updatedAt: string;
+  /** 담겨 있는 폴더. null이면 보관함 뿌리에 있다. */
+  folderId?: string | null;
 }
 
 // 목록에 필요한 만큼만 담는다. 본문 전체는 노트를 열 때 읽는다.

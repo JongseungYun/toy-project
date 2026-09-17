@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isNoteFormat, type NoteContent, type NoteFormat } from "@/lib/notes/types";
 
-/** 새 노트를 만들고 바로 편집 화면으로 보낸다. */
-export async function createNote(format: NoteFormat) {
+/** 새 노트를 만들고 바로 편집 화면으로 보낸다. 지금 열려 있는 폴더 안에 만든다. */
+export async function createNote(format: NoteFormat, folderId: string | null = null) {
   if (!isNoteFormat(format)) {
     throw new Error(`알 수 없는 형식입니다: ${format}`);
   }
@@ -18,7 +18,7 @@ export async function createNote(format: NoteFormat) {
 
   const { data, error } = await supabase
     .from("notes")
-    .insert({ owner_id: user.id, format })
+    .insert({ owner_id: user.id, format, folder_id: folderId })
     .select("id")
     .single();
 

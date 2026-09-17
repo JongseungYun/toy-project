@@ -4,6 +4,7 @@ import type { Note, NoteSummary } from "@/lib/notes/types";
 
 interface NoteRow {
   id: string;
+  folder_id: string | null;
   format: Note["format"];
   title: string;
   preview: string;
@@ -16,7 +17,7 @@ interface NoteRow {
 const SUMMARY_COLUMNS =
   "id, format, title, preview, version, created_at, updated_at";
 
-function toSummary(row: Omit<NoteRow, "content">): NoteSummary {
+function toSummary(row: Omit<NoteRow, "content" | "folder_id">): NoteSummary {
   return {
     id: row.id,
     format: row.format,
@@ -32,17 +33,26 @@ function toSummary(row: Omit<NoteRow, "content">): NoteSummary {
  * 지금 로그인한 사람의 노트 목록.
  * 소유자 제한은 RLS가 걸지만, 인덱스를 타도록 owner_id 조건도 함께 준다.
  */
-export async function listNotes(sort: ResolvedSort): Promise<NoteSummary[]> {
+export async function listNotes(
+  sort: ResolvedSort,
+  folderId: string | null = null,
+): Promise<NoteSummary[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("notes")
     .select(SUMMARY_COLUMNS)
     .eq("owner_id", user.id)
+    // 휴지통에 있는 노트는 보관함 목록에 나오지 않는다.
+    .is("deleted_at", null);
+
+  query = folderId ? query.eq("folder_id", folderId) : query.is("folder_id", null);
+
+  const { data, error } = await query
     .order(sortColumn(sort.key), { ascending: sort.ascending })
     .order("id", { ascending: true });
 
@@ -50,15 +60,23 @@ export async function listNotes(sort: ResolvedSort): Promise<NoteSummary[]> {
   return data.map(toSummary);
 }
 
-/** 노트 하나를 본문까지 읽는다. 내 노트가 아니면 RLS가 걸러 null이 된다. */
+/**
+ * 노트 하나를 본문까지 읽는다. 내 노트가 아니면 RLS가 걸러 null이 된다.
+ * 휴지통에 있는 노트도 열리지 않는다. 되돌리기는 휴지통 화면에서 한다.
+ */
 export async function getNote(id: string): Promise<Note | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
-    .select(`${SUMMARY_COLUMNS}, content`)
+    .select(`${SUMMARY_COLUMNS}, content, folder_id`)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle<NoteRow>();
 
   if (error || !data) return null;
-  return { ...toSummary(data), content: data.content ?? {} };
+  return {
+    ...toSummary(data),
+    content: data.content ?? {},
+    folderId: data.folder_id ?? null,
+  };
 }

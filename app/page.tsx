@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { NotePencilIcon, PlusIcon } from "@phosphor-icons/react/ssr";
+import { FolderIcon, NotePencilIcon, PlusIcon } from "@phosphor-icons/react/ssr";
 import { createClient } from "@/lib/supabase/server";
+import { folderPath, listFolders } from "@/lib/notes/folders";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
 import { FormatPicker } from "@/components/notes/format-picker";
@@ -21,9 +22,11 @@ export const metadata: Metadata = {
 export default async function LibraryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; dir?: string }>;
+  searchParams: Promise<{ sort?: string; dir?: string; folder?: string }>;
 }) {
-  const sort = resolveSort(await searchParams);
+  const params = await searchParams;
+  const sort = resolveSort(params);
+  const folderId = params.folder ?? null;
 
   const supabase = await createClient();
   const {
@@ -40,28 +43,40 @@ export default async function LibraryPage({
       ).data
     : null;
 
-  const notes = await listNotes(sort);
+  const [crumbs, folders, notes] = await Promise.all([
+    folderPath(folderId),
+    listFolders(folderId, sort),
+    listNotes(sort, folderId),
+  ]);
+
+  // 경로를 되짚지 못하면 사라졌거나 휴지통에 들어간 폴더다. 뿌리로 본다.
+  const here = crumbs[crumbs.length - 1].id;
+  const empty = folders.length === 0 && notes.length === 0;
 
   return (
     <LibraryShell
       displayName={profile?.username ?? user?.email ?? ""}
+      crumbs={crumbs}
+      folders={folders}
       notes={notes}
       sort={sort}
     >
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
-        {notes.length === 0 ? (
+        {empty ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <PlusIcon />
+                {here ? <FolderIcon /> : <PlusIcon />}
               </EmptyMedia>
-              <EmptyTitle>첫 노트를 만들어 보세요</EmptyTitle>
+              <EmptyTitle>
+                {here ? "이 폴더는 비어 있습니다" : "첫 노트를 만들어 보세요"}
+              </EmptyTitle>
               <EmptyDescription>
                 일반 문서, Markdown, 그림판 중에서 고를 수 있습니다. 쓰는 동안 저장은 알아서 됩니다.
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <FormatPicker variant="button" />
+              <FormatPicker variant="button" folderId={here} />
             </EmptyContent>
           </Empty>
         ) : (
