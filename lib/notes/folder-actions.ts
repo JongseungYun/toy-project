@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMessages } from "@/lib/i18n/server";
 
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
 async function ownerId() {
   const supabase = await createClient();
   const {
@@ -65,7 +67,57 @@ export async function trashFolder(folderId: string, parentId: string | null) {
   redirect(parentId ? `/?folder=${parentId}` : "/");
 }
 
-/** 휴지통에서 되돌린다. 함께 들어온 것들도 같이 원래 자리로 돌아간다. */
+/** 담겨 있던 폴더가 아직 휴지통에 있는지 본다. 이미 사라진 폴더도 같게 본다. */
+async function placeIsGone(supabase: Supabase, folderId: string | null) {
+  if (!folderId) return false;
+
+  const { data } = await supabase
+    .from("folders")
+    .select("deleted_at")
+    .eq("id", folderId)
+    .maybeSingle();
+
+  return !data || data.deleted_at !== null;
+}
+
+/**
+ * 사용자가 직접 지운 항목 하나가 돌아갈 자리를 확인한다. 자리가 아직 휴지통에
+ * 있으면 보관함 뿌리로 올린다. 함께 딸려 들어온 것들은 자기 부모와 한 묶음으로
+ * 돌아오므로 건드리지 않는다.
+ */
+async function liftIfPlaceIsGone(supabase: Supabase, rootId: string) {
+  const { data: folder } = await supabase
+    .from("folders")
+    .select("parent_id")
+    .eq("id", rootId)
+    .maybeSingle();
+
+  if (folder) {
+    if (await placeIsGone(supabase, folder.parent_id)) {
+      await supabase.from("folders").update({ parent_id: null }).eq("id", rootId);
+    }
+    return;
+  }
+
+  const { data: note } = await supabase
+    .from("notes")
+    .select("folder_id")
+    .eq("id", rootId)
+    .maybeSingle();
+
+  if (note && (await placeIsGone(supabase, note.folder_id))) {
+    await supabase.from("notes").update({ folder_id: null }).eq("id", rootId);
+  }
+}
+
+/**
+ * 휴지통에서 되돌린다. 함께 들어온 것들도 같이 원래 자리로 돌아간다.
+ *
+ * 돌아갈 자리가 아직 휴지통에 있으면 보관함 뿌리로 올린다. 그러지 않으면 되돌린
+ * 것이 보관함에도 휴지통에도 보이지 않고, 나중에 그 자리를 영구 삭제할 때
+ * on delete cascade로 함께 사라진다.
+ * docs/decisions/note-safety.md 참고.
+ */
 export async function restoreTrashed(rootId: string) {
   const { supabase } = await ownerId();
 
@@ -78,6 +130,8 @@ export async function restoreTrashed(rootId: string) {
   if (folders.error || notes.error) {
     throw new Error("되돌리지 못했습니다.");
   }
+
+  await liftIfPlaceIsGone(supabase, rootId);
   revalidatePath("/", "layout");
 }
 

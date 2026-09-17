@@ -174,6 +174,58 @@ test("노트를 지우면 휴지통으로 가고 보관함 목록에서 사라�
   await expect(page.getByTestId("note-item")).toContainText("임시 — 나중에 정리");
 });
 
+test("돌아갈 폴더가 아직 휴지통에 있으면 되돌린 폴더가 보관함 뿌리로 온다", async ({
+  page,
+}) => {
+  await signUpAndEnter(page);
+
+  await makeFolder(page, "상위 폴더");
+  await openFolder(page, "상위 폴더");
+  const parentUrl = page.url();
+  await makeFolder(page, "하위 폴더");
+  await openFolder(page, "하위 폴더");
+  const childUrl = page.url();
+  await createDocNote(page);
+  await writeNote(page, "하위 폴더 안의 노트");
+
+  // 하위 폴더를 먼저 지우고, 이어서 상위 폴더도 지운다.
+  // 따로 지웠으므로 휴지통에 두 줄이 각각 선다.
+  await page.goto(childUrl);
+  await page.getByRole("button", { name: "이 폴더를 휴지통으로" }).click();
+  await confirmDialog(page, "휴지통으로 보내기");
+  await expect(page.getByTestId("folder-item")).toHaveCount(0);
+
+  await page.goto(parentUrl);
+  await page.getByRole("button", { name: "이 폴더를 휴지통으로" }).click();
+  await confirmDialog(page, "휴지통으로 보내기");
+
+  await page.goto("/trash");
+  await expect(page.getByTestId("trash-row")).toHaveCount(2);
+
+  // 하위 폴더만 되돌린다. 돌아갈 자리인 상위 폴더가 아직 휴지통에 있으므로
+  // 원래 자리 대신 보관함 뿌리에 나타난다.
+  await page
+    .getByTestId("trash-row")
+    .filter({ hasText: "하위 폴더" })
+    .getByRole("button", { name: "되돌리기" })
+    .click();
+  await expect(page.getByTestId("trash-row")).toHaveCount(1);
+
+  await page.goto("/");
+  await expect(page.getByTestId("folder-item")).toContainText("하위 폴더");
+
+  // 남은 상위 폴더를 영구 삭제해도 되돌려 둔 폴더와 그 안의 노트는 남는다
+  await page.goto("/trash");
+  await page.getByTestId("trash-row").getByRole("button", { name: "영구 삭제" }).click();
+  await confirmDialog(page, "영구 삭제");
+  await expect(page.getByTestId("trash-row")).toHaveCount(0);
+
+  await page.goto("/");
+  await expect(page.getByTestId("folder-item")).toHaveCount(1);
+  await openFolder(page, "하위 폴더");
+  await expect(page.getByTestId("note-item")).toContainText("하위 폴더 안의 노트");
+});
+
 test("영구 삭제는 확인을 받은 뒤에만 이루어지고 되돌릴 수 없다", async ({ page }) => {
   await signUpAndEnter(page);
 
