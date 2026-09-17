@@ -19,38 +19,34 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useMessages } from "@/components/i18n-provider";
+import type { Messages } from "@/lib/i18n/messages";
 
 // 스펙이 정한 세 형식. 노트마다 하나를 고르고, 만든 뒤에는 바꾸지 않는다.
-const CREATABLE_FORMATS: {
-  format: NoteFormat;
-  label: string;
-  description: string;
-  icon: typeof FileTextIcon;
-}[] = [
-  {
-    format: "doc",
-    label: "일반 문서",
-    description: "글꼴과 색을 바꿔 가며 쓰는 보통 노트",
-    icon: FileTextIcon,
-  },
-  {
-    format: "markdown",
-    label: "Markdown",
-    description: "기호로 쓰고 옆에서 결과를 확인",
-    icon: MarkdownLogoIcon,
-  },
-  {
-    format: "canvas",
-    label: "그림판",
-    description: "선, 도형, 글자를 손으로 그리기",
-    icon: PencilSimpleIcon,
-  },
+const CREATABLE_FORMATS: { format: NoteFormat; icon: typeof FileTextIcon }[] = [
+  { format: "doc", icon: FileTextIcon },
+  { format: "markdown", icon: MarkdownLogoIcon },
+  { format: "canvas", icon: PencilSimpleIcon },
 ];
 
-function FormatCards({ onPick, pending }: { onPick: (format: NoteFormat) => void; pending: boolean }) {
+const DESCRIPTION = {
+  doc: "docDesc",
+  markdown: "markdownDesc",
+  canvas: "canvasDesc",
+} as const;
+
+function FormatCards({
+  onPick,
+  pending,
+  t,
+}: {
+  onPick: (format: NoteFormat) => void;
+  pending: boolean;
+  t: Messages;
+}) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {CREATABLE_FORMATS.map(({ format, label, description, icon: Icon }) => (
+      {CREATABLE_FORMATS.map(({ format, icon: Icon }) => (
         <button
           key={format}
           type="button"
@@ -61,8 +57,10 @@ function FormatCards({ onPick, pending }: { onPick: (format: NoteFormat) => void
           <span className="flex h-16 w-full items-center justify-center rounded-xl bg-muted text-muted-foreground">
             <Icon className="size-7" />
           </span>
-          <span className="text-sm font-semibold">{label}</span>
-          <span className="text-xs text-muted-foreground">{description}</span>
+          <span className="text-sm font-semibold">{t.format[format]}</span>
+          <span className="text-xs text-muted-foreground">
+            {t.format[DESCRIPTION[format]]}
+          </span>
         </button>
       ))}
     </div>
@@ -81,6 +79,7 @@ export function FormatPicker({
   /** 지금 열려 있는 폴더. 새 노트는 이 안에 만들어진다. */
   folderId?: string | null;
 }) {
+  const t = useMessages();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -100,24 +99,24 @@ export function FormatPicker({
               className="flex h-20 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-sidebar-border bg-sidebar text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-sidebar-accent hover:text-primary"
             >
               <PlusIcon className="size-5" />
-              새 노트 만들기
+              {t.library.newNote}
             </button>
           ) : (
-            <Button>새 노트 만들기</Button>
+            <Button>{t.library.newNote}</Button>
           )
         }
       />
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>어떤 형식으로 쓸까요?</DialogTitle>
+          <DialogTitle>{t.format.pickerTitle}</DialogTitle>
           <DialogDescription>
-            노트마다 따로 고를 수 있습니다. 나중에 형식을 바꿀 수는 없습니다.
+            {t.format.pickerLead}
           </DialogDescription>
         </DialogHeader>
-        <FormatCards onPick={pick} pending={pending} />
+        <FormatCards onPick={pick} pending={pending} t={t} />
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-            취소
+            {t.format.cancel}
           </Button>
         </DialogFooter>
       </DialogContent>

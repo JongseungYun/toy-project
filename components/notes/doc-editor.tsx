@@ -6,6 +6,7 @@ import { previewFromHtml } from "@/lib/notes/display";
 import type { DocContent, Note, NoteContent } from "@/lib/notes/types";
 import { FormatBar } from "@/components/notes/format-bar";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
 function htmlOf(content: NoteContent): string {
@@ -40,6 +41,7 @@ export function DocEditor({
     if (editorRef.current) editorRef.current.innerHTML = htmlOf(content);
   }, []);
 
+  const t = useMessages();
   const autosave = useNoteAutosave({ note, readDraft, applyRemote });
 
   return (
@@ -63,7 +65,7 @@ export function DocEditor({
           suppressContentEditableWarning
           role="textbox"
           aria-multiline="true"
-          aria-label="노트 본문"
+          aria-label={t.note.bodyLabel}
           data-testid="note-body"
           onInput={autosave.scheduleSave}
           style={surface}

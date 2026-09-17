@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
+import { getMessages } from "@/lib/i18n/server";
 import { AuthCard } from "@/components/account/auth-card";
 import { LoginForm } from "@/components/account/login-form";
 
-export const metadata: Metadata = {
-  title: "로그인 — 아무노트",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getMessages();
+  return { title: `${t.auth.submitSignIn} — ${t.app.name}` };
+}
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const { t } = await getMessages();
+
   return (
-    <AuthCard
-      title="아무노트에 로그인"
-      description="아이디와 비밀번호로 들어오거나, Google 계정으로 이어서 씁니다."
-    >
+    <AuthCard title={t.auth.signInTitle} description={t.auth.signInLead}>
       <LoginForm />
     </AuthCard>
   );

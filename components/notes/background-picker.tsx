@@ -17,6 +17,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useMessages } from "@/components/i18n-provider";
+
+// 팔레트 순서와 같은 이름 키.
+const COLOR_KEYS = ["white", "cream", "green", "blue", "pink"] as const;
 
 /**
  * 배경 고르기. 프로토타입의 배경 popover를 그대로 따른다.
@@ -26,13 +30,14 @@ export function BackgroundPicker({
   background,
   onChange,
   trigger,
-  label = "배경 바꾸기",
+  label,
 }: {
   background: NoteBackground;
   onChange: (next: NoteBackground) => Promise<void> | void;
   trigger?: ReactElement;
   label?: string;
 }) {
+  const t = useMessages();
   const [open, setOpen] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -49,7 +54,9 @@ export function BackgroundPicker({
     // 화면에서 먼저 거른다. 버킷 쪽에도 같은 제한이 걸려 있다.
     const reason = rejectBackgroundFile(file);
     if (reason) {
-      setProblem(reason);
+      setProblem(
+        reason === "type" ? t.background.rejectType : t.background.rejectSize,
+      );
       return;
     }
     setProblem(null);
@@ -59,7 +66,7 @@ export function BackgroundPicker({
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      setProblem("로그인이 풀렸습니다. 다시 들어와 주세요.");
+      setProblem(t.background.sessionLost);
       return;
     }
 
@@ -72,7 +79,7 @@ export function BackgroundPicker({
       .upload(path, file, { contentType: file.type });
 
     if (error) {
-      setProblem("이미지를 올리지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setProblem(t.background.uploadFailed);
       return;
     }
 
@@ -84,23 +91,30 @@ export function BackgroundPicker({
       <PopoverTrigger
         render={
           trigger ?? (
-            <Button variant="outline" size="icon-sm" aria-label={label} title={label}>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label={label ?? t.background.change}
+              title={label ?? t.background.change}
+            >
               <ImageIcon />
             </Button>
           )
         }
       />
       <PopoverContent className="w-64" align="end">
-        <h4 className="mb-2 text-xs font-semibold text-muted-foreground">배경 색</h4>
+        <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
+          {t.background.colors}
+        </h4>
         <div className="mb-3 grid grid-cols-5 gap-1.5">
-          {BACKGROUND_COLORS.map((color) => {
+          {BACKGROUND_COLORS.map((color, index) => {
             const on =
               background.kind === "color" && background.value === color.value;
             return (
               <button
                 key={color.value}
                 type="button"
-                aria-label={color.label}
+                aria-label={t.background[COLOR_KEYS[index]]}
                 aria-pressed={on}
                 disabled={pending}
                 onClick={() => apply({ kind: "color", value: color.value })}
@@ -114,12 +128,14 @@ export function BackgroundPicker({
           })}
         </div>
 
-        <h4 className="mb-2 text-xs font-semibold text-muted-foreground">배경 이미지</h4>
+        <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
+          {t.background.images}
+        </h4>
         <input
           ref={fileInput}
           type="file"
           accept={ALLOWED_TYPES.join(",")}
-          aria-label="배경 이미지 파일"
+          aria-label={t.background.fileLabel}
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];
@@ -135,7 +151,7 @@ export function BackgroundPicker({
           onClick={() => fileInput.current?.click()}
         >
           <ImageIcon data-icon="inline-start" />
-          이미지 올리기
+          {t.background.upload}
         </Button>
 
         {problem ? (
@@ -148,7 +164,7 @@ export function BackgroundPicker({
           </p>
         ) : (
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            JPG·PNG, 5MB까지. 내 계정에만 보관됩니다.
+            {t.background.hint}
           </p>
         )}
       </PopoverContent>

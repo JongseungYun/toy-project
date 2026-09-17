@@ -15,16 +15,21 @@ import {
   STROKE_WIDTHS,
   type CanvasTool,
 } from "@/lib/notes/canvas";
+import { useMessages } from "@/components/i18n-provider";
 
-const TOOLS: { tool: CanvasTool; label: string; Icon: typeof PencilSimpleIcon }[] = [
-  { tool: "pen", label: "펜", Icon: PencilSimpleIcon },
-  { tool: "eraser", label: "지우개", Icon: EraserIcon },
-  { tool: "rect", label: "사각형", Icon: RectangleIcon },
-  { tool: "ellipse", label: "원", Icon: CircleIcon },
-  { tool: "line", label: "선", Icon: LineSegmentIcon },
-  { tool: "arrow", label: "화살표", Icon: ArrowRightIcon },
-  { tool: "text", label: "글상자", Icon: TextTIcon },
+const TOOLS: { tool: CanvasTool; Icon: typeof PencilSimpleIcon }[] = [
+  { tool: "pen", Icon: PencilSimpleIcon },
+  { tool: "eraser", Icon: EraserIcon },
+  { tool: "rect", Icon: RectangleIcon },
+  { tool: "ellipse", Icon: CircleIcon },
+  { tool: "line", Icon: LineSegmentIcon },
+  { tool: "arrow", Icon: ArrowRightIcon },
+  { tool: "text", Icon: TextTIcon },
 ];
+
+// 굵기와 색의 이름은 사전에서 가져온다. 값은 화면과 무관하다.
+const WIDTH_KEYS = ["thin", "normal", "thick", "thickest"] as const;
+const COLOR_KEYS = ["black", "red", "blue"] as const;
 
 /** 그림면 아래에 고정된 도구 모음. 도구, 선 굵기, 선 색을 고른다. */
 export function DrawBar({
@@ -42,20 +47,22 @@ export function DrawBar({
   color: string;
   onColorChange: (color: string) => void;
 }) {
+  const t = useMessages();
+
   return (
     <div
       className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-2"
       role="toolbar"
-      aria-label="그리기 도구"
+      aria-label={t.draw.toolbar}
     >
-      {TOOLS.map(({ tool: candidate, label, Icon }, index) => (
+      {TOOLS.map(({ tool: candidate, Icon }, index) => (
         <div key={candidate} className="contents">
           {(index === 2 || index === 6) && (
             <span className="mx-1 h-5 w-px bg-border" />
           )}
           <button
             type="button"
-            aria-label={label}
+            aria-label={t.draw[candidate]}
             aria-pressed={tool === candidate}
             onClick={() => onToolChange(candidate)}
             className={cn(
@@ -73,23 +80,23 @@ export function DrawBar({
       <span className="mx-1 h-5 w-px bg-border" />
 
       <select
-        aria-label="선 굵기"
+        aria-label={t.draw.strokeWidth}
         value={width}
         onChange={(event) => onWidthChange(Number(event.target.value))}
         className="h-8 rounded-md border border-border bg-card px-2 text-xs text-foreground"
       >
-        {STROKE_WIDTHS.map((option) => (
+        {STROKE_WIDTHS.map((option, index) => (
           <option key={option.value} value={option.value}>
-            {option.label}
+            {t.draw[WIDTH_KEYS[index]]}
           </option>
         ))}
       </select>
 
-      {STROKE_COLORS.map((option) => (
+      {STROKE_COLORS.map((option, index) => (
         <button
           key={option.value}
           type="button"
-          aria-label={`선 색 ${option.label}`}
+          aria-label={`${t.formatBar.color} ${t.draw[COLOR_KEYS[index]]}`}
           aria-pressed={color === option.value}
           onClick={() => onColorChange(option.value)}
           className={cn(

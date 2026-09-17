@@ -2,12 +2,13 @@ import type { CSSProperties } from "react";
 
 // 노트 배경. 프로토타입이 정한 다섯 가지 색과, 사용자가 올린 이미지 한 장.
 // 색은 모두 옅어서 검은 본문 글자가 그대로 읽힌다.
+// 이름은 사전이 가진다. 여기에는 값만 둔다.
 export const BACKGROUND_COLORS = [
-  { value: "#ffffff", label: "흰색" },
-  { value: "#fffaf0", label: "크림" },
-  { value: "#f2f7f4", label: "연한 초록" },
-  { value: "#eef3fb", label: "연한 파랑" },
-  { value: "#fbeef3", label: "연한 분홍" },
+  { value: "#ffffff" },
+  { value: "#fffaf0" },
+  { value: "#f2f7f4" },
+  { value: "#eef3fb" },
+  { value: "#fbeef3" },
 ] as const;
 
 export type ColorBackground = { kind: "color"; value: string };
@@ -66,13 +67,14 @@ export function backgroundStyle(
   };
 }
 
-/** 올릴 수 없는 파일이면 그 이유를 돌려준다. 올릴 수 있으면 null이다. */
-export function rejectBackgroundFile(file: File): string | null {
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return "JPG와 PNG만 올릴 수 있습니다.";
-  }
-  if (file.size > MAX_BYTES) {
-    return "5MB까지 올릴 수 있습니다.";
-  }
+export type RejectReason = "type" | "size";
+
+/**
+ * 올릴 수 없는 파일이면 그 이유를 돌려준다. 올릴 수 있으면 null이다.
+ * 문구가 아니라 이유만 돌려주어 화면이 표시 언어에 맞는 말을 고르게 한다.
+ */
+export function rejectBackgroundFile(file: File): RejectReason | null {
+  if (!ALLOWED_TYPES.includes(file.type)) return "type";
+  if (file.size > MAX_BYTES) return "size";
   return null;
 }

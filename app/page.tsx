@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { folderPath, listFolders } from "@/lib/notes/folders";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
+import { getMessages } from "@/lib/i18n/server";
 import { FormatPicker } from "@/components/notes/format-picker";
 import { LibraryShell } from "@/components/notes/library-shell";
 import {
@@ -15,15 +16,17 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-export const metadata: Metadata = {
-  title: "내 보관함 — 아무노트",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getMessages();
+  return { title: `${t.library.title} — ${t.app.name}` };
+}
 
 export default async function LibraryPage({
   searchParams,
 }: {
   searchParams: Promise<{ sort?: string; dir?: string; folder?: string }>;
 }) {
+  const { locale, t } = await getMessages();
   const params = await searchParams;
   const sort = resolveSort(params);
   const folderId = params.folder ?? null;
@@ -44,7 +47,7 @@ export default async function LibraryPage({
     : null;
 
   const [crumbs, folders, notes] = await Promise.all([
-    folderPath(folderId),
+    folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
   ]);
@@ -56,6 +59,8 @@ export default async function LibraryPage({
   return (
     <LibraryShell
       displayName={profile?.username ?? user?.email ?? ""}
+      t={t}
+      locale={locale}
       crumbs={crumbs}
       folders={folders}
       notes={notes}
@@ -69,10 +74,10 @@ export default async function LibraryPage({
                 {here ? <FolderIcon /> : <PlusIcon />}
               </EmptyMedia>
               <EmptyTitle>
-                {here ? "이 폴더는 비어 있습니다" : "첫 노트를 만들어 보세요"}
+                {here ? t.library.emptyFolderTitle : t.library.emptyTitle}
               </EmptyTitle>
               <EmptyDescription>
-                일반 문서, Markdown, 그림판 중에서 고를 수 있습니다. 쓰는 동안 저장은 알아서 됩니다.
+                {t.library.emptyBody}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -85,9 +90,9 @@ export default async function LibraryPage({
               <EmptyMedia variant="icon">
                 <NotePencilIcon />
               </EmptyMedia>
-              <EmptyTitle>왼쪽에서 노트를 고르세요</EmptyTitle>
+              <EmptyTitle>{t.library.pickTitle}</EmptyTitle>
               <EmptyDescription>
-                고른 노트가 이 자리에 열립니다. 새로 쓰려면 왼쪽 위의 빈 카드를 누르세요.
+                {t.library.pickBody}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

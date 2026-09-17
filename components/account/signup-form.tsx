@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldGroup, FieldDescription, FieldError } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useMessages } from "@/components/i18n-provider";
 
 type UsernameCheck = "idle" | "checking" | "available" | "taken" | "error";
 
 export function SignupForm() {
+  const t = useMessages();
   const [state, action, pending] = useActionState<SignUpState | undefined, FormData>(
     signUp,
     undefined,
@@ -55,7 +57,7 @@ export function SignupForm() {
         )}
 
         <Field data-invalid={Boolean(state?.errors?.username) || undefined}>
-          <FieldLabel htmlFor="username">아이디</FieldLabel>
+          <FieldLabel htmlFor="username">{t.auth.username}</FieldLabel>
           <div className="flex gap-2">
             <Input
               id="username"
@@ -72,26 +74,26 @@ export function SignupForm() {
               onClick={handleCheckUsername}
               disabled={!usernameFormatValid || usernameCheck === "checking"}
             >
-              중복 확인
+              {t.auth.checkUsername}
             </Button>
           </div>
           {state?.errors?.username ? (
             <FieldError>{state.errors.username}</FieldError>
           ) : usernameCheck === "available" ? (
             <FieldDescription className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
-              <CheckIcon className="size-3" /> 쓸 수 있는 아이디입니다.
+              <CheckIcon className="size-3" /> {t.auth.usernameFree}
             </FieldDescription>
           ) : usernameCheck === "taken" ? (
             <FieldDescription className="flex items-center gap-1 text-destructive">
-              <XIcon className="size-3" /> 이미 사용 중인 아이디입니다.
+              <XIcon className="size-3" /> {t.auth.usernameTaken}
             </FieldDescription>
           ) : (
-            <FieldDescription>영문 소문자와 숫자 4-20자를 쓸 수 있습니다.</FieldDescription>
+            <FieldDescription>{t.auth.usernameHint}</FieldDescription>
           )}
         </Field>
 
         <Field data-invalid={Boolean(state?.errors?.password) || undefined}>
-          <FieldLabel htmlFor="password">비밀번호</FieldLabel>
+          <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
           <Input
             id="password"
             name="password"
@@ -103,16 +105,19 @@ export function SignupForm() {
             aria-invalid={Boolean(state?.errors?.password)}
           />
           <ul className="mt-0.5 flex flex-col gap-1">
-            <PasswordRuleItem ok={passwordRules.minLength} label="8자 이상" />
-            <PasswordRuleItem ok={passwordRules.hasUpperAndLower} label="영문 대·소문자 포함" />
-            <PasswordRuleItem ok={passwordRules.hasNumber} label="숫자 포함" />
-            <PasswordRuleItem ok={passwordRules.hasSymbol} label="기호 포함" />
+            <PasswordRuleItem ok={passwordRules.minLength} label={t.auth.ruleLength} />
+            <PasswordRuleItem
+              ok={passwordRules.hasUpperAndLower}
+              label={t.auth.ruleLetters}
+            />
+            <PasswordRuleItem ok={passwordRules.hasNumber} label={t.auth.ruleDigit} />
+            <PasswordRuleItem ok={passwordRules.hasSymbol} label={t.auth.ruleSymbol} />
           </ul>
           {state?.errors?.password && <FieldError>{state.errors.password}</FieldError>}
         </Field>
 
         <Field data-invalid={Boolean(state?.errors?.passwordConfirm) || undefined}>
-          <FieldLabel htmlFor="passwordConfirm">비밀번호 확인</FieldLabel>
+          <FieldLabel htmlFor="passwordConfirm">{t.auth.passwordConfirm}</FieldLabel>
           <Input
             id="passwordConfirm"
             name="passwordConfirm"
@@ -125,17 +130,17 @@ export function SignupForm() {
         </Field>
 
         <FieldDescription>
-          비밀번호를 잊으면 되돌릴 방법이 없습니다. 이메일을 받지 않기 때문입니다.
+          {t.auth.noRecovery}
         </FieldDescription>
 
         <Button type="submit" className="w-full" disabled={pending}>
-          가입하고 시작하기
+          {t.auth.submitSignUp}
         </Button>
       </FieldGroup>
       <p className="mt-5 text-center text-sm text-muted-foreground">
-        이미 계정이 있으신가요?{" "}
+        {t.auth.hasAccount}{" "}
         <Link href="/login" className="font-semibold text-foreground underline underline-offset-4">
-          로그인
+          {t.auth.goSignIn}
         </Link>
       </p>
     </form>

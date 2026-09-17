@@ -12,12 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useMessages } from "@/components/i18n-provider";
 
 /**
  * 정렬 기준과 방향. 고른 값을 주소에 담아 서버가 순서를 정하게 한다.
  * 그래야 새로고침해도 순서가 유지되고 목록을 클라이언트에서 다시 정렬하지 않는다.
  */
+const SORT_KEYS = {
+  updated: "sortUpdated",
+  created: "sortCreated",
+  title: "sortTitle",
+} as const;
+
 export function SortControls({ sort }: { sort: ResolvedSort }) {
+  const t = useMessages();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -38,23 +46,24 @@ export function SortControls({ sort }: { sort: ResolvedSort }) {
     router.push(`${pathname}?${params.toString()}`);
   }
 
-  const current = SORT_OPTIONS.find((option) => option.value === sort.key)!;
-
   return (
     <div className="flex items-center gap-2">
       <Select
-        items={SORT_OPTIONS.map(({ value, label }) => ({ value, label }))}
+        items={SORT_OPTIONS.map(({ value }) => ({
+          value,
+          label: t.library[SORT_KEYS[value]],
+        }))}
         value={sort.key}
         onValueChange={(value) => changeKey(String(value))}
       >
-        <SelectTrigger className="h-8 flex-1 text-xs" aria-label="정렬 기준">
+        <SelectTrigger className="h-8 flex-1 text-xs" aria-label={t.library.sortBy}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             {SORT_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
-                {option.label}
+                {t.library[SORT_KEYS[option.value]]}
               </SelectItem>
             ))}
           </SelectGroup>
@@ -63,8 +72,10 @@ export function SortControls({ sort }: { sort: ResolvedSort }) {
       <Button
         variant="outline"
         size="icon-sm"
-        aria-label="정렬 순서 뒤집기"
-        title={`${current.label} · ${sort.ascending ? "오름차순" : "내림차순"}`}
+        aria-label={t.library.flipOrder}
+        title={`${t.library[SORT_KEYS[sort.key]]} · ${
+          sort.ascending ? t.library.ascending : t.library.descending
+        }`}
         onClick={() => changeDirection(toggleDirection(sort.ascending))}
       >
         {sort.ascending ? <ArrowUpIcon /> : <ArrowDownIcon />}

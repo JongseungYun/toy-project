@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useMessages } from "@/components/i18n-provider";
 import { createClient } from "@/lib/supabase/client";
 
 function GoogleMark() {
@@ -28,6 +29,7 @@ function GoogleMark() {
 }
 
 export function GoogleSignInButton() {
+  const t = useMessages();
   const [isPending, setIsPending] = useState(false);
 
   async function handleClick() {
@@ -53,7 +55,7 @@ export function GoogleSignInButton() {
       disabled={isPending}
     >
       <GoogleMark data-icon="inline-start" />
-      Google로 계속하기
+      {t.auth.google}
     </Button>
   );
 }

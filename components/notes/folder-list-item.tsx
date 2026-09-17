@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { FolderIcon } from "@phosphor-icons/react/ssr";
 import type { FolderSummary } from "@/lib/notes/folders";
+import { format, type Messages } from "@/lib/i18n/messages";
 
 /** 좌측 목록의 폴더 한 줄. 노트와 같은 모양이고, 누르면 그 안으로 들어간다. */
-export function FolderListItem({ folder }: { folder: FolderSummary }) {
-  const parts = [`노트 ${folder.noteCount}개`];
+export function FolderListItem({
+  folder,
+  t,
+}: {
+  folder: FolderSummary;
+  t: Messages;
+}) {
+  const parts = [format(t.folder.noteCount, { count: folder.noteCount })];
   if (folder.childFolderCount > 0) {
-    parts.push(`하위 폴더 ${folder.childFolderCount}개`);
+    parts.push(format(t.folder.childFolderCount, { count: folder.childFolderCount }));
   }
 
   return (

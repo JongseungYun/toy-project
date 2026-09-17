@@ -56,17 +56,18 @@ export interface CanvasContent {
   elements: CanvasElement[];
 }
 
+// 이름은 사전이 가진다. 여기에는 값만 둔다.
 export const STROKE_WIDTHS = [
-  { label: "가늘게 1px", value: 1 },
-  { label: "보통 2px", value: 2 },
-  { label: "굵게 4px", value: 4 },
-  { label: "아주 굵게 8px", value: 8 },
+  { value: 1 },
+  { value: 2 },
+  { value: 4 },
+  { value: 8 },
 ] as const;
 
 export const STROKE_COLORS = [
-  { label: "검정", value: "#2b2b2b" },
-  { label: "빨강", value: "#b3123f" },
-  { label: "파랑", value: "#1d4ed8" },
+  { value: "#2b2b2b" },
+  { value: "#b3123f" },
+  { value: "#1d4ed8" },
 ] as const;
 
 // 목록 미리보기에 담을 요소 수. 그림이 아무리 복잡해도 목록이 무거워지지 않게 한다.

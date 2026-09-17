@@ -25,6 +25,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useMessages } from "@/components/i18n-provider";
+import { format } from "@/lib/i18n/messages";
 
 /**
  * 상단 경로와 폴더 도구. 프로토타입이 정한 경로 표시에, 폴더를 만들고 지우는
@@ -34,6 +36,7 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
   const here = crumbs[crumbs.length - 1];
   const parent = crumbs.length > 1 ? crumbs[crumbs.length - 2] : null;
 
+  const t = useMessages();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [pending, startTransition] = useTransition();
@@ -50,7 +53,7 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
 
   return (
     <div className="flex items-center gap-1">
-      <nav aria-label="폴더 경로" className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 text-xs">
+      <nav aria-label={t.library.folderPath} className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 text-xs">
         {crumbs.map((crumb, index) => {
           const last = index === crumbs.length - 1;
           return (
@@ -74,8 +77,8 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="새 폴더"
-        title="새 폴더"
+        aria-label={t.folder.newFolder}
+        title={t.folder.newFolder}
         onClick={() => setCreating(true)}
       >
         <FolderPlusIcon />
@@ -88,8 +91,8 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                aria-label="이 폴더를 휴지통으로"
-                title="이 폴더를 휴지통으로"
+                aria-label={t.folder.trashThisFolder}
+                title={t.folder.trashThisFolder}
               >
                 <TrashIcon />
               </Button>
@@ -97,14 +100,15 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
           />
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{here.name} 폴더를 휴지통으로 보낼까요?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {format(t.folder.trashFolderTitle, { name: here.name })}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                안에 있는 하위 폴더와 노트도 함께 들어갑니다. 휴지통에서 되돌리면 원래
-                자리로 돌아옵니다.
+                {t.folder.trashFolderBody}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogCancel>{t.folder.cancel}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() =>
                   startTransition(async () => {
@@ -112,7 +116,7 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
                   })
                 }
               >
-                휴지통으로 보내기
+                {t.folder.sendToTrash}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -122,12 +126,12 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>새 폴더</DialogTitle>
+            <DialogTitle>{t.folder.newFolder}</DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
-            aria-label="폴더 이름"
-            placeholder="폴더 이름"
+            aria-label={t.folder.folderName}
+            placeholder={t.folder.folderName}
             value={name}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {
@@ -136,10 +140,10 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreating(false)} disabled={pending}>
-              취소
+              {t.folder.cancel}
             </Button>
             <Button onClick={submit} disabled={pending || !name.trim()}>
-              만들기
+              {t.folder.create}
             </Button>
           </DialogFooter>
         </DialogContent>

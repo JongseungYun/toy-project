@@ -9,6 +9,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { BackgroundPicker } from "@/components/notes/background-picker";
+import { useMessages } from "@/components/i18n-provider";
+import { format } from "@/lib/i18n/messages";
+
+const COLOR_KEYS = ["white", "cream", "green", "blue", "pink"] as const;
 
 /**
  * 설정의 기본 배경. 여기서 고른 배경으로 새 노트가 시작하고,
@@ -19,24 +23,27 @@ export function DefaultBackgroundRow({
 }: {
   background: NoteBackground;
 }) {
+  const t = useMessages();
+  const index = BACKGROUND_COLORS.findIndex(
+    (color) => color.value === (background.kind === "color" ? background.value : ""),
+  );
   const current =
-    background.kind === "color"
-      ? (BACKGROUND_COLORS.find((color) => color.value === background.value)
-          ?.label ?? "색")
-      : "올린 이미지";
+    background.kind === "color" && index >= 0
+      ? t.background[COLOR_KEYS[index]]
+      : t.background.uploadedImage;
 
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">새 노트의 배경</p>
+        <p className="text-sm font-medium">{t.background.defaultLabel}</p>
         <p className="text-sm text-muted-foreground">
-          여기서 고른 배경으로 새 노트가 시작합니다. 이미 만든 노트는 그대로입니다.
+          {t.background.defaultBody}
         </p>
       </div>
 
       <div className="flex flex-none items-center gap-2">
         <span
-          aria-label={`지금 기본 배경: ${current}`}
+          aria-label={format(t.background.currentDefault, { name: current })}
           className={cn(
             "size-8 rounded-sm border border-border",
             background.kind === "image" &&
@@ -52,9 +59,9 @@ export function DefaultBackgroundRow({
         </span>
         <BackgroundPicker
           background={background}
-          label="기본 배경 고르기"
+          label={t.background.defaultPick}
           onChange={(next) => setDefaultBackground(next)}
-          trigger={<Button variant="outline">기본 배경 고르기</Button>}
+          trigger={<Button variant="outline">{t.background.defaultPick}</Button>}
         />
       </div>
     </div>

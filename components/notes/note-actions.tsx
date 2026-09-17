@@ -6,6 +6,7 @@ import { moveNote, trashNote } from "@/lib/notes/folder-actions";
 import { setNoteBackground } from "@/lib/notes/background-actions";
 import type { NoteBackground } from "@/lib/notes/background";
 import { BackgroundPicker } from "@/components/notes/background-picker";
+import { useMessages } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,8 +29,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const ROOT = { id: null as string | null, label: "내 노트" };
-
 /**
  * 노트 머리말의 폴더·휴지통 도구. 프로토타입의 머리말에 있는 휴지통 버튼에,
  * 노트를 다른 폴더로 옮기는 자리를 함께 둔다.
@@ -45,10 +44,14 @@ export function NoteActions({
   folders: { id: string; label: string }[];
   background: NoteBackground;
 }) {
+  const t = useMessages();
   const [moving, setMoving] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const places = [ROOT, ...folders.map((folder) => ({ id: folder.id, label: folder.label }))];
+  const places = [
+    { id: null as string | null, label: t.library.root },
+    ...folders.map((folder) => ({ id: folder.id, label: folder.label })),
+  ];
 
   function move(to: string | null) {
     startTransition(async () => {
@@ -67,8 +70,8 @@ export function NoteActions({
       <Button
         variant="outline"
         size="icon-sm"
-        aria-label="폴더로 옮기기"
-        title="폴더로 옮기기"
+        aria-label={t.folder.moveNote}
+        title={t.folder.moveNote}
         onClick={() => setMoving(true)}
       >
         <FolderOpenIcon />
@@ -80,8 +83,8 @@ export function NoteActions({
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label="휴지통으로 보내기"
-              title="휴지통으로 보내기"
+              aria-label={t.folder.sendToTrash}
+              title={t.folder.sendToTrash}
             >
               <TrashIcon />
             </Button>
@@ -89,17 +92,17 @@ export function NoteActions({
         />
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>이 노트를 휴지통으로 보낼까요?</AlertDialogTitle>
+            <AlertDialogTitle>{t.trash.trashNoteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              휴지통에서 되돌리면 원래 자리로 돌아옵니다.
+              {t.trash.trashNoteBody}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t.trash.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => startTransition(async () => void (await trashNote(noteId)))}
             >
-              휴지통으로 보내기
+              {t.folder.sendToTrash}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -108,9 +111,9 @@ export function NoteActions({
       <Dialog open={moving} onOpenChange={setMoving}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>어느 폴더로 옮길까요?</DialogTitle>
+            <DialogTitle>{t.folder.moveTitle}</DialogTitle>
             <DialogDescription>
-              폴더를 먼저 만들어 두면 여기에 나옵니다.
+              {t.folder.moveBody}
             </DialogDescription>
           </DialogHeader>
           <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
@@ -128,14 +131,16 @@ export function NoteActions({
                   )}
                 >
                   {place.label}
-                  {current && <span className="ml-2 text-xs">지금 자리</span>}
+                  {current && (
+                    <span className="ml-2 text-xs">{t.folder.currentPlace}</span>
+                  )}
                 </button>
               );
             })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoving(false)} disabled={pending}>
-              취소
+              {t.folder.cancel}
             </Button>
           </DialogFooter>
         </DialogContent>

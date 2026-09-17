@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { previewFromMarkdown } from "@/lib/notes/display";
 import type { MarkdownContent, Note, NoteContent } from "@/lib/notes/types";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
 function read(content: NoteContent): MarkdownContent {
@@ -56,6 +57,7 @@ export function MarkdownEditor({
     viewerRef.current = latest.viewer;
   }, []);
 
+  const t = useMessages();
   const autosave = useNoteAutosave({ note, readDraft, applyRemote });
 
   function changeSource(value: string) {
@@ -98,7 +100,7 @@ export function MarkdownEditor({
           )}
         >
           <EyeIcon className="size-4" />
-          뷰어
+          {t.markdown.viewer}
         </button>
         {actions}
         </>
@@ -116,10 +118,10 @@ export function MarkdownEditor({
           style={surface}
           value={source}
           onChange={(event) => changeSource(event.target.value)}
-          aria-label="Markdown 원문"
+          aria-label={t.markdown.source}
           data-testid="note-body"
           spellCheck={false}
-          placeholder="# 제목부터 써 보세요"
+          placeholder={t.markdown.placeholder}
           className={cn(
             "min-h-0 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none",
             viewer && "border-b border-border sm:border-r sm:border-b-0",

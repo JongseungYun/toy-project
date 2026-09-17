@@ -8,9 +8,11 @@ import {
   PencilSimpleIcon,
 } from "@phosphor-icons/react";
 import { purgeTrashed, restoreTrashed } from "@/lib/notes/folder-actions";
-import { FORMAT_LABEL, formatUpdatedAt } from "@/lib/notes/display";
+import { formatLabel, formatUpdatedAt } from "@/lib/notes/display";
 import type { TrashEntry } from "@/lib/notes/trash";
 import { Button } from "@/components/ui/button";
+import { useLocale, useMessages } from "@/components/i18n-provider";
+import { format } from "@/lib/i18n/messages";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,15 +33,23 @@ const FORMAT_ICON = {
 
 /** 휴지통의 한 줄. 되돌리기와 영구 삭제를 고를 수 있다. */
 export function TrashRow({ entry }: { entry: TrashEntry }) {
+  const t = useMessages();
+  const locale = useLocale();
   const [pending, startTransition] = useTransition();
 
   const Icon =
     entry.kind === "folder" ? FolderIcon : FORMAT_ICON[entry.format ?? "doc"];
 
+  const when = formatUpdatedAt(entry.deletedAt, {
+    locale,
+    yesterday: t.note.yesterday,
+  });
   const meta = [
-    entry.kind === "folder" ? "폴더" : FORMAT_LABEL[entry.format ?? "doc"],
-    entry.sweptCount > 0 ? `${entry.sweptCount}개 함께 들어옴` : null,
-    `${formatUpdatedAt(entry.deletedAt)} 삭제`,
+    entry.kind === "folder" ? t.trash.folder : formatLabel(t, entry.format ?? "doc"),
+    entry.sweptCount > 0
+      ? format(t.trash.sweptCount, { count: entry.sweptCount })
+      : null,
+    format(t.trash.deletedAt, { time: when }),
   ].filter(Boolean);
 
   return (
@@ -61,32 +71,34 @@ export function TrashRow({ entry }: { entry: TrashEntry }) {
         disabled={pending}
         onClick={() => startTransition(async () => await restoreTrashed(entry.id))}
       >
-        되돌리기
+        {t.trash.restore}
       </Button>
 
       <AlertDialog>
         <AlertDialogTrigger
           render={
             <Button variant="ghost" size="sm" disabled={pending}>
-              영구 삭제
+              {t.trash.purge}
             </Button>
           }
         />
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{entry.title}을(를) 영구 삭제할까요?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {format(t.trash.purgeTitle, { name: entry.title })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              돌이킬 수 없습니다.
+              {t.trash.purgeBody}
               {entry.sweptCount > 0 &&
-                ` 함께 들어온 ${entry.sweptCount}개도 같이 사라집니다.`}
+                ` ${format(t.trash.purgeSwept, { count: entry.sweptCount })}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t.trash.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => startTransition(async () => await purgeTrashed(entry.id))}
             >
-              영구 삭제
+              {t.trash.purge}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

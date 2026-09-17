@@ -14,9 +14,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useMessages } from "@/components/i18n-provider";
+import { format } from "@/lib/i18n/messages";
 
 /** 휴지통을 통째로 비운다. 돌이킬 수 없으므로 확인을 먼저 받는다. */
 export function EmptyTrashButton({ count }: { count: number }) {
+  const t = useMessages();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -24,23 +27,23 @@ export function EmptyTrashButton({ count }: { count: number }) {
       <AlertDialogTrigger
         render={
           <Button variant="destructive" size="sm" disabled={pending}>
-            휴지통 비우기
+            {t.trash.emptyTrash}
           </Button>
         }
       />
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>휴지통을 비울까요?</AlertDialogTitle>
+          <AlertDialogTitle>{t.trash.emptyTrashTitle}</AlertDialogTitle>
           <AlertDialogDescription>
-            {count}개가 영구히 사라집니다. 돌이킬 수 없습니다.
+            {format(t.trash.emptyTrashBody, { count })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>취소</AlertDialogCancel>
+          <AlertDialogCancel>{t.trash.cancel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => startTransition(async () => await emptyTrash())}
           >
-            휴지통 비우기
+            {t.trash.emptyTrash}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

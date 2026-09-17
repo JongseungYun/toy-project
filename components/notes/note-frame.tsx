@@ -3,17 +3,24 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, CircleNotchIcon, WarningIcon } from "@phosphor-icons/react";
-import { DEFAULT_TITLE, formatUpdatedAt } from "@/lib/notes/display";
+import { formatUpdatedAt, untitledTitle } from "@/lib/notes/display";
 import type { NoteFormat } from "@/lib/notes/types";
 import { Button } from "@/components/ui/button";
 import type { RemoteNote, SaveStatus } from "@/components/notes/use-note-autosave";
+import { useLocale, useMessages } from "@/components/i18n-provider";
+import { format, type Messages } from "@/lib/i18n/messages";
+import type { Locale } from "@/lib/i18n/locales";
 
 function SaveIndicator({
+  t,
+  locale,
   status,
   savedAt,
   savedCount,
   onRetry,
 }: {
+  t: Messages;
+  locale: Locale;
   status: SaveStatus;
   savedAt: string;
   savedCount: number;
@@ -28,7 +35,7 @@ function SaveIndicator({
         className="flex items-center gap-1.5 text-xs text-muted-foreground"
       >
         <CircleNotchIcon className="size-3.5 animate-spin" />
-        저장 중…
+        {t.note.saving}
       </span>
     );
   }
@@ -44,7 +51,7 @@ function SaveIndicator({
         className="flex items-center gap-1.5 text-xs font-medium text-destructive"
       >
         <WarningIcon className="size-3.5" />
-        저장하지 못했습니다 · 눌러서 다시 시도
+        {t.note.saveFailed}
       </button>
     );
   }
@@ -57,7 +64,7 @@ function SaveIndicator({
       className="flex items-center gap-1.5 text-xs text-muted-foreground"
     >
       <span className="size-1.5 rounded-full bg-emerald-500" />
-      저장됨 · {formatUpdatedAt(savedAt)}
+      {format(t.note.saved, { time: formatUpdatedAt(savedAt, { locale, yesterday: t.note.yesterday }) })}
     </span>
   );
 }
@@ -94,6 +101,9 @@ export function NoteFrame({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useMessages();
+  const locale = useLocale();
+
   return (
     <>
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
@@ -101,7 +111,7 @@ export function NoteFrame({
           variant="ghost"
           size="icon-sm"
           className="sm:hidden"
-          render={<Link href="/" aria-label="목록으로" />}
+          render={<Link href="/" aria-label={t.library.backToList} />}
           nativeButton={false}
         >
           <ArrowLeftIcon />
@@ -109,11 +119,13 @@ export function NoteFrame({
         <input
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
-          aria-label="노트 제목"
-          placeholder={DEFAULT_TITLE[format]}
+          aria-label={t.note.titleLabel}
+          placeholder={untitledTitle(t, format)}
           className="min-w-0 flex-1 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-[15px] font-semibold outline-none focus:border-border"
         />
         <SaveIndicator
+          t={t}
+          locale={locale}
           status={status}
           savedAt={savedAt}
           savedCount={savedCount}
@@ -128,13 +140,13 @@ export function NoteFrame({
           className="flex flex-wrap items-center gap-2 border-b border-border bg-muted px-3 py-2 text-sm"
         >
           <span className="min-w-45 flex-1">
-            다른 기기에서 이 노트를 고쳤습니다. 어느 쪽을 남길까요?
+            {t.note.conflict}
           </span>
           <Button size="sm" variant="outline" onClick={onTakeRemote}>
-            최신 내용 불러오기
+            {t.note.takeRemote}
           </Button>
           <Button size="sm" onClick={onKeepMine}>
-            내 내용으로 덮기
+            {t.note.keepMine}
           </Button>
         </div>
       )}

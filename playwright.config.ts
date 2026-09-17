@@ -27,6 +27,10 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        // 표시 언어는 브라우저 언어를 따른다(태스크 07). 스펙 대부분이 한국어
+        // 문구로 화면을 찾으므로 기본을 한국어로 둔다. 언어 자체를 확인하는
+        // e2e/language.spec.ts는 필요한 언어로 context를 직접 연다.
+        locale: "ko-KR",
         launchOptions: executablePath ? { executablePath } : {},
       },
     },

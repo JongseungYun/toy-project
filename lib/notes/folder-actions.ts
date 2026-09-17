@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMessages } from "@/lib/i18n/server";
 
 async function ownerId() {
   const supabase = await createClient();
@@ -16,7 +17,8 @@ async function ownerId() {
 /** 폴더를 만든다. parentId가 있으면 그 폴더 안에 만든다. 깊이 제한은 없다. */
 export async function createFolder(name: string, parentId: string | null) {
   const { supabase, userId } = await ownerId();
-  const trimmed = name.trim() || "새 폴더";
+  const { t } = await getMessages();
+  const trimmed = name.trim() || t.folder.newFolder;
 
   const { error } = await supabase
     .from("folders")

@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GoogleSignInButton } from "@/components/account/google-sign-in-button";
+import { useMessages } from "@/components/i18n-provider";
 
 export function LoginForm() {
+  const t = useMessages();
   const [state, action, pending] = useActionState<SignInState | undefined, FormData>(
     signIn,
     undefined,
@@ -24,11 +26,11 @@ export function LoginForm() {
           </Alert>
         )}
         <Field>
-          <FieldLabel htmlFor="username">아이디</FieldLabel>
+          <FieldLabel htmlFor="username">{t.auth.username}</FieldLabel>
           <Input id="username" name="username" autoComplete="username" required />
         </Field>
         <Field>
-          <FieldLabel htmlFor="password">비밀번호</FieldLabel>
+          <FieldLabel htmlFor="password">{t.auth.password}</FieldLabel>
           <Input
             id="password"
             name="password"
@@ -38,15 +40,15 @@ export function LoginForm() {
           />
         </Field>
         <Button type="submit" className="w-full" disabled={pending}>
-          로그인
+          {t.auth.submitSignIn}
         </Button>
-        <FieldSeparator>또는</FieldSeparator>
+        <FieldSeparator>{t.auth.or}</FieldSeparator>
         <GoogleSignInButton />
       </FieldGroup>
       <p className="mt-5 text-center text-sm text-muted-foreground">
-        계정이 없으신가요?{" "}
+        {t.auth.noAccount}{" "}
         <Link href="/signup" className="font-semibold text-foreground underline underline-offset-4">
-          가입하기
+          {t.auth.goSignUp}
         </Link>
       </p>
     </form>

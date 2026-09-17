@@ -18,23 +18,24 @@ import {
   applyCommand,
   applyFontSize,
 } from "@/lib/notes/rich-text";
+import { useMessages } from "@/components/i18n-provider";
 
 const TOGGLES = [
-  { command: "bold", label: "굵게", Icon: TextBIcon },
-  { command: "italic", label: "기울임", Icon: TextItalicIcon },
-  { command: "underline", label: "밑줄", Icon: TextUnderlineIcon },
-  { command: "strikeThrough", label: "취소선", Icon: TextStrikethroughIcon },
+  { command: "bold", key: "bold", Icon: TextBIcon },
+  { command: "italic", key: "italic", Icon: TextItalicIcon },
+  { command: "underline", key: "underline", Icon: TextUnderlineIcon },
+  { command: "strikeThrough", key: "strike", Icon: TextStrikethroughIcon },
 ] as const;
 
 const LISTS = [
-  { command: "insertUnorderedList", label: "글머리 목록", Icon: ListBulletsIcon },
-  { command: "insertOrderedList", label: "번호 목록", Icon: ListNumbersIcon },
+  { command: "insertUnorderedList", key: "bulletList", Icon: ListBulletsIcon },
+  { command: "insertOrderedList", key: "numberList", Icon: ListNumbersIcon },
 ] as const;
 
 const ALIGNMENTS = [
-  { command: "justifyLeft", label: "왼쪽 정렬", Icon: TextAlignLeftIcon },
-  { command: "justifyCenter", label: "가운데 정렬", Icon: TextAlignCenterIcon },
-  { command: "justifyRight", label: "오른쪽 정렬", Icon: TextAlignRightIcon },
+  { command: "justifyLeft", key: "alignLeft", Icon: TextAlignLeftIcon },
+  { command: "justifyCenter", key: "alignCenter", Icon: TextAlignCenterIcon },
+  { command: "justifyRight", key: "alignRight", Icon: TextAlignRightIcon },
 ] as const;
 
 const BUTTON_CLASS =
@@ -60,16 +61,17 @@ export function FormatBar({
     onChange();
   }
 
+  const t = useMessages();
   const keepSelection = (event: React.MouseEvent) => event.preventDefault();
 
   return (
     <div
       className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-2"
       role="toolbar"
-      aria-label="서식"
+      aria-label={t.formatBar.toolbar}
     >
       <select
-        aria-label="글꼴"
+        aria-label={t.formatBar.font}
         defaultValue={FONT_OPTIONS[0].value}
         className={SELECT_CLASS}
         onMouseDown={keepSelection}
@@ -85,7 +87,7 @@ export function FormatBar({
       </select>
 
       <select
-        aria-label="글자 크기"
+        aria-label={t.formatBar.size}
         defaultValue="15"
         className={SELECT_CLASS}
         onMouseDown={keepSelection}
@@ -104,11 +106,11 @@ export function FormatBar({
 
       <span className="mx-1 h-5 w-px bg-border" />
 
-      {TOGGLES.map(({ command, label, Icon }) => (
+      {TOGGLES.map(({ command, key, Icon }) => (
         <button
           key={command}
           type="button"
-          aria-label={label}
+          aria-label={t.formatBar[key]}
           className={BUTTON_CLASS}
           onMouseDown={keepSelection}
           onClick={() => run(() => applyCommand(command))}
@@ -119,7 +121,7 @@ export function FormatBar({
 
       <input
         type="color"
-        aria-label="글자 색"
+        aria-label={t.formatBar.color}
         defaultValue="#b3123f"
         className="size-8 cursor-pointer rounded-md border border-border bg-card p-1"
         onMouseDown={(event) => event.stopPropagation()}
@@ -128,11 +130,11 @@ export function FormatBar({
 
       <span className="mx-1 h-5 w-px bg-border" />
 
-      {LISTS.map(({ command, label, Icon }) => (
+      {LISTS.map(({ command, key, Icon }) => (
         <button
           key={command}
           type="button"
-          aria-label={label}
+          aria-label={t.formatBar[key]}
           className={BUTTON_CLASS}
           onMouseDown={keepSelection}
           onClick={() => run(() => applyCommand(command))}
@@ -143,11 +145,11 @@ export function FormatBar({
 
       <span className="mx-1 h-5 w-px bg-border" />
 
-      {ALIGNMENTS.map(({ command, label, Icon }) => (
+      {ALIGNMENTS.map(({ command, key, Icon }) => (
         <button
           key={command}
           type="button"
-          aria-label={label}
+          aria-label={t.formatBar[key]}
           className={BUTTON_CLASS}
           onMouseDown={keepSelection}
           onClick={() => run(() => applyCommand(command))}
