@@ -19,6 +19,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 4. 모듈은 공개 API로만 노출된다. 내부는 언제든 바꿀 수 있다.
 5. 공유 코드는 예상만으로 만들지 않는다. 구현에서 실제 중복이 확인되면 아래로 추출한다.
 
+# 결정 계약
+
+이미 정해진 것은 `docs/decisions/README.md`가 색인을 가진다. 바꾸려는 주제와 맞닿은 계약만 읽고, 그 계약이 정한 것과 다르게 가려면 먼저 계약을 고친다.
+
+승인된 화면 구성은 `docs/design/amu-note-screens.html`에 있다. 화면을 더하거나 고칠 때 대조한다.
+
 # 언어
 
 모든 대화는 한글로 한다. 답변, 질문, 커밋 메시지, PR 문안까지 해당된다.
