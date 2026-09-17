@@ -10,14 +10,14 @@
 
 ## Acceptance criteria
 
-- [ ] 노트마다 배경 색을 고를 수 있고, 다시 열었을 때 유지된다
-- [ ] 노트 배경으로 이미지를 올려 쓸 수 있고, 다시 열었을 때 유지된다
-- [ ] 올린 배경 이미지를 다른 사용자와 로그인하지 않은 사람이 가져갈 수 없다
-- [ ] 허용하지 않는 형식이거나 크기를 넘는 파일은 올라가지 않고, 왜 안 되는지 알린다
-- [ ] 설정에서 기본 배경을 정할 수 있다
-- [ ] 기본 배경을 바꾼 뒤 만든 노트가 그 배경으로 시작하고, 이미 만든 노트는 바뀌지 않는다
-- [ ] 어떤 배경을 골라도 본문 글자를 읽을 수 있다
-- [ ] 세 형식 모두에서 배경이 동작한다
+- [x] 노트마다 배경 색을 고를 수 있고, 다시 열었을 때 유지된다
+- [x] 노트 배경으로 이미지를 올려 쓸 수 있고, 다시 열었을 때 유지된다
+- [x] 올린 배경 이미지를 다른 사용자와 로그인하지 않은 사람이 가져갈 수 없다
+- [x] 허용하지 않는 형식이거나 크기를 넘는 파일은 올라가지 않고, 왜 안 되는지 알린다
+- [x] 설정에서 기본 배경을 정할 수 있다
+- [x] 기본 배경을 바꾼 뒤 만든 노트가 그 배경으로 시작하고, 이미 만든 노트는 바뀌지 않는다
+- [x] 어떤 배경을 골라도 본문 글자를 읽을 수 있다
+- [x] 세 형식 모두에서 배경이 동작한다
 
 ## Constraints
 
@@ -48,13 +48,14 @@ verification pass. Use `superseded` only after an approved replacement of a
 task with recorded completion history. Preserve its Execution evidence and name
 the replacement and reason under Revision; it is then terminal for that approved
 breakdown and outside the current delivery map. -->
-pending
+completed
 
 ## Execution
 
 <!-- Append concise evidence and preserve earlier entries when status changes.
 Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
-- Verification: —
+- Verification: `supabase/migrations/0004_note_background.sql`를 사용자가 SQL Editor에서 적용(notes.background, profiles.default_background, 비공개 버킷 note-backgrounds와 형식·크기 제한, storage.objects의 소유자 전용 정책 4종). `bun run typecheck`·`eslint app lib components e2e`·`bun run test`(배경 10개 포함) 통과. Playwright e2e `e2e/background.spec.ts` 6개 전부 통과: 색 고르기와 새로고침 후 유지, 세 형식 모두에서 동작, 이미지 업로드와 새로고침 후 유지(서명된 주소와 흰 막 확인), 형식·크기 위반 거부와 이유 표시, 다른 계정 토큰과 미로그인 상태에서 Storage 객체 접근 차단(REST 직접 호출), 기본 배경을 바꾼 뒤 만든 노트에만 적용되고 기존 노트는 그대로. 실행 중인 앱에서 배경 popover와 색 적용을 직접 확인.
 - Blocker: —
-- Revision: —
+- Revision: Supabase Storage 공식 문서를 작업 시점에 가져와 따랐다(access-control, serving/downloads). 비공개 버킷은 `getPublicUrl`이 동작하지 않아 `createSignedUrl`(1시간)로 서버가 주소를 만들어 넘긴다. 파일은 `<사용자 id>/<uuid>.<ext>`에 두고 정책이 경로 첫 칸을 본다. 같은 이름으로 다시 올리는 경우를 위해 update 정책도 함께 두었다. 형식과 크기는 화면과 버킷 양쪽에서 막는다. 화면에서만 거르면 직접 올리는 요청을 막을 수 없다. 배경은 프로토타입처럼 글 쓰는 면 자체에 입히고, 이미지에는 흰 막(rgba(255,255,255,0.72))을 한 겹 깔아 어떤 사진에서도 본문이 읽히게 했다. 팔레트 밖의 색은 읽을 때 걸러낸다. 07에 대한 태스크 경계·순서·수용 기준 변경은 없다.
+- Review: 이 태스크는 `Review checkpoint: None`이고 `AGENTS.md`의 검증·리뷰 예산이 자동 리뷰를 최대 1회로 제한하므로, 02에서 쓴 한 번으로 갈음하고 따로 돌리지 않았다.

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { parseBackground } from "@/lib/notes/background";
 import { isNoteFormat, type NoteContent, type NoteFormat } from "@/lib/notes/types";
 
 /** 새 노트를 만들고 바로 편집 화면으로 보낸다. 지금 열려 있는 폴더 안에 만든다. */
@@ -16,9 +17,21 @@ export async function createNote(format: NoteFormat, folderId: string | null = n
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // 설정에서 정한 기본 배경으로 시작한다. 이미 만든 노트는 건드리지 않는다.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("default_background")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("notes")
-    .insert({ owner_id: user.id, format, folder_id: folderId })
+    .insert({
+      owner_id: user.id,
+      format,
+      folder_id: folderId,
+      background: parseBackground(profile?.default_background),
+    })
     .select("id")
     .single();
 

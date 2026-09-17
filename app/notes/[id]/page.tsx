@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { backgroundStyle, parseBackground } from "@/lib/notes/background";
+import { signBackgroundUrl } from "@/lib/notes/background-actions";
 import { displayTitle } from "@/lib/notes/display";
 import { folderPath, listAllFolders, listFolders } from "@/lib/notes/folders";
 import { getNote, listNotes } from "@/lib/notes/queries";
@@ -58,8 +60,19 @@ export default async function NotePage({
     listAllFolders(),
   ]);
 
+  // 배경 이미지는 비공개 버킷에 있으므로 여기서 서명된 주소를 받아 넘긴다.
+  const background = parseBackground(note.background);
+  const imageUrl =
+    background.kind === "image" ? await signBackgroundUrl(background.path) : null;
+  const surface = backgroundStyle(background, imageUrl);
+
   const actions = (
-    <NoteActions noteId={note.id} folderId={folderId} folders={allFolders} />
+    <NoteActions
+      noteId={note.id}
+      folderId={folderId}
+      folders={allFolders}
+      background={background}
+    />
   );
 
   return (
@@ -71,9 +84,15 @@ export default async function NotePage({
       sort={sort}
       activeNoteId={note.id}
     >
-      {note.format === "markdown" && <MarkdownEditor note={note} actions={actions} />}
-      {note.format === "canvas" && <CanvasEditor note={note} actions={actions} />}
-      {note.format === "doc" && <DocEditor note={note} actions={actions} />}
+      {note.format === "markdown" && (
+        <MarkdownEditor note={note} actions={actions} surface={surface} />
+      )}
+      {note.format === "canvas" && (
+        <CanvasEditor note={note} actions={actions} surface={surface} />
+      )}
+      {note.format === "doc" && (
+        <DocEditor note={note} actions={actions} surface={surface} />
+      )}
     </LibraryShell>
   );
 }

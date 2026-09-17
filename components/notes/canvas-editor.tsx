@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import {
@@ -41,9 +41,11 @@ interface Draft {
 export function CanvasEditor({
   note,
   actions,
+  surface,
 }: {
   note: Note;
   actions?: ReactNode;
+  surface?: CSSProperties;
 }) {
   const [elements, setElements] = useState(() => elementsOf(note.content));
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -229,7 +231,7 @@ export function CanvasEditor({
             onPointerUp={finishDrawing}
             onPointerCancel={finishDrawing}
             className="touch-none rounded-md border border-border bg-[#fffdf8] shadow-sm"
-            style={{ cursor: tool === "eraser" ? "pointer" : "crosshair" }}
+            style={{ ...surface, cursor: tool === "eraser" ? "pointer" : "crosshair" }}
           >
             {elements.map((element) => (
               <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>

@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import { FolderOpenIcon, TrashIcon } from "@phosphor-icons/react";
 import { moveNote, trashNote } from "@/lib/notes/folder-actions";
+import { setNoteBackground } from "@/lib/notes/background-actions";
+import type { NoteBackground } from "@/lib/notes/background";
+import { BackgroundPicker } from "@/components/notes/background-picker";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,10 +38,12 @@ export function NoteActions({
   noteId,
   folderId,
   folders,
+  background,
 }: {
   noteId: string;
   folderId: string | null;
   folders: { id: string; label: string }[];
+  background: NoteBackground;
 }) {
   const [moving, setMoving] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -54,6 +59,11 @@ export function NoteActions({
 
   return (
     <>
+      <BackgroundPicker
+        background={background}
+        onChange={(next) => setNoteBackground(noteId, next)}
+      />
+
       <Button
         variant="outline"
         size="icon-sm"

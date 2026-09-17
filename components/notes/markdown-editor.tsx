@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -27,9 +27,11 @@ function read(content: NoteContent): MarkdownContent {
 export function MarkdownEditor({
   note,
   actions,
+  surface,
 }: {
   note: Note;
   actions?: ReactNode;
+  surface?: CSSProperties;
 }) {
   const initial = read(note.content);
   const [source, setSource] = useState(initial.source);
@@ -111,6 +113,7 @@ export function MarkdownEditor({
         )}
       >
         <textarea
+          style={surface}
           value={source}
           onChange={(event) => changeSource(event.target.value)}
           aria-label="Markdown 원문"
@@ -125,6 +128,7 @@ export function MarkdownEditor({
         {viewer && (
           <div
             data-testid="md-viewer"
+            style={surface}
             className="prose-md min-h-0 overflow-y-auto bg-card p-5 text-sm"
           >
             <Markdown remarkPlugins={[remarkGfm]}>{source}</Markdown>
