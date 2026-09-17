@@ -11,6 +11,9 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 export default defineConfig({
   testDir: "./e2e",
   testMatch: /.*\.spec\.ts$/,
+  // 자동 저장이 2초 기다린 뒤 Supabase Cloud까지 다녀오므로, 한 흐름에서 노트를
+  // 여러 번 저장하는 테스트는 기본 30초로는 빠듯하다.
+  timeout: 90_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
