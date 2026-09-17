@@ -128,3 +128,32 @@
     @apply font-sans;
   }
 }
+/* 일반 문서의 본문. contentEditable이 만들어 내는 제목·목록을 읽을 수 있게 되살린다.
+   Tailwind preflight가 기본 여백과 글머리 기호를 지우기 때문에 여기서 다시 준다. */
+.prose-note h1 {
+  @apply mt-4 mb-2 text-2xl font-bold first:mt-0;
+}
+.prose-note h2 {
+  @apply mt-4 mb-2 text-xl font-bold first:mt-0;
+}
+.prose-note h3 {
+  @apply mt-3 mb-1.5 text-lg font-semibold first:mt-0;
+}
+.prose-note p {
+  @apply my-2;
+}
+.prose-note ul {
+  @apply my-2 list-disc pl-6;
+}
+.prose-note ol {
+  @apply my-2 list-decimal pl-6;
+}
+.prose-note li {
+  @apply my-1;
+}
+.prose-note blockquote {
+  @apply my-2 border-l-2 border-border pl-3 text-muted-foreground;
+}
+.prose-note a {
+  @apply text-primary underline;
+}
