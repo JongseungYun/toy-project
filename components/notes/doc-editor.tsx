@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { previewFromHtml } from "@/lib/notes/display";
 import type { DocContent, Note, NoteContent } from "@/lib/notes/types";
@@ -14,7 +15,14 @@ function htmlOf(content: NoteContent): string {
 /**
  * 일반 문서 편집기. 서식은 브라우저의 편집 명령으로 넣고 인라인 style로 저장된다.
  */
-export function DocEditor({ note }: { note: Note }) {
+export function DocEditor({
+  note,
+  actions,
+}: {
+  note: Note;
+  /** 폴더·휴지통처럼 형식과 무관한 도구. 머리말 오른쪽에 함께 놓인다. */
+  actions?: ReactNode;
+}) {
   // 편집 영역은 React가 아니라 브라우저가 내용을 가진다. 처음 한 번만 심고
   // 그 뒤로는 손대지 않아야 새로 그려질 때 쓰던 내용이 날아가지 않는다.
   const [initialHtml] = useState(() => htmlOf(note.content));
@@ -43,6 +51,7 @@ export function DocEditor({ note }: { note: Note }) {
       remote={autosave.remote}
       onTakeRemote={autosave.takeRemote}
       onKeepMine={autosave.keepMine}
+      actions={actions}
     >
       <div className="min-h-0 flex-1 overflow-y-auto bg-muted/40 p-4 sm:p-6">
         <div

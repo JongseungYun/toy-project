@@ -10,18 +10,18 @@
 
 ## Acceptance criteria
 
-- [ ] 폴더를 만들 수 있고 폴더 안에 폴더를 둘 수 있다
-- [ ] 좌측 패널이 지금 열려 있는 폴더의 내용만 보여준다
-- [ ] 폴더도 노트와 같은 목록 항목으로 나오고, 누르면 그 안으로 들어간다
-- [ ] 상단 경로에서 상위 폴더로 돌아갈 수 있다
-- [ ] 노트를 폴더에 넣고 다른 폴더로 옮길 수 있다
-- [ ] 정렬 기준과 뒤집기가 폴더 안에서도 동작한다
-- [ ] 노트를 지우면 휴지통으로 간다
-- [ ] 폴더를 지우면 그 안의 하위 폴더와 노트가 함께 휴지통으로 간다
-- [ ] 휴지통에서 되돌리면 원래 있던 자리로 돌아간다
-- [ ] 영구 삭제는 사용자에게 확인받은 뒤에만 이루어지고, 그 뒤에는 되돌릴 수 없다
-- [ ] 휴지통에 있는 노트와 폴더는 보관함 목록에 나오지 않는다
-- [ ] 휴지통이 비었을 때 그 사실을 알린다
+- [x] 폴더를 만들 수 있고 폴더 안에 폴더를 둘 수 있다
+- [x] 좌측 패널이 지금 열려 있는 폴더의 내용만 보여준다
+- [x] 폴더도 노트와 같은 목록 항목으로 나오고, 누르면 그 안으로 들어간다
+- [x] 상단 경로에서 상위 폴더로 돌아갈 수 있다
+- [x] 노트를 폴더에 넣고 다른 폴더로 옮길 수 있다
+- [x] 정렬 기준과 뒤집기가 폴더 안에서도 동작한다
+- [x] 노트를 지우면 휴지통으로 간다
+- [x] 폴더를 지우면 그 안의 하위 폴더와 노트가 함께 휴지통으로 간다
+- [x] 휴지통에서 되돌리면 원래 있던 자리로 돌아간다
+- [x] 영구 삭제는 사용자에게 확인받은 뒤에만 이루어지고, 그 뒤에는 되돌릴 수 없다
+- [x] 휴지통에 있는 노트와 폴더는 보관함 목록에 나오지 않는다
+- [x] 휴지통이 비었을 때 그 사실을 알린다
 
 ## Constraints
 
@@ -50,13 +50,15 @@ verification pass. Use `superseded` only after an approved replacement of a
 task with recorded completion history. Preserve its Execution evidence and name
 the replacement and reason under Revision; it is then terminal for that approved
 breakdown and outside the current delivery map. -->
-pending
+completed
 
 ## Execution
 
 <!-- Append concise evidence and preserve earlier entries when status changes.
 Execution Blocker is the current impediment for an active task, not a declared
 task dependency. In a superseded task, preserved entries are historical. -->
-- Verification: —
+- Verification: `supabase/migrations/0003_folders_and_trash.sql`를 사용자가 SQL Editor에서 적용(folders 테이블, notes의 folder_id·deleted_at·trash_root_id, 소유자 전용 RLS 4종, 활성/휴지통용 부분 인덱스, 재귀로 하위를 훑는 trash_folder 함수). `bun run typecheck`·`eslint app lib components e2e`·`bun run test` 통과. Playwright e2e 26개 전부 통과(`e2e/folders.spec.ts` 8개 신규: 폴더 만들기·중첩·경로로 상위 복귀, 열린 폴더의 내용만 보여주기, 노트를 폴더에 넣고 다른 폴더로 옮기기, 폴더를 지우면 하위가 함께 휴지통으로 가고 되돌리면 원래 구조 복원, 노트 휴지통 보내기와 되돌리기, 영구 삭제의 확인과 취소, 빈 휴지통 안내, 폴더 안에서의 정렬과 뒤집기). 실행 중인 앱에서 직접 확인: 폴더 만들기와 목록 표시, 폴더 안 경로와 빈 폴더 안내, 폴더 안에서 만든 노트가 그 폴더에만 보이는 것, 폴더를 휴지통으로 보낼 때의 확인 창, 휴지통의 "폴더 · 1개 함께 들어옴" 표시, 되돌린 뒤 폴더와 그 안의 노트가 함께 돌아오는 것.
 - Blocker: —
-- Revision: —
+- Revision: 프로토타입에 폴더를 만드는 control과 지우는 control, 노트를 옮기는 control이 없다. 경로 줄 오른쪽에 "새 폴더"를 두고, 폴더 안에 있을 때만 "이 폴더를 휴지통으로"가 함께 나오게 했다. 노트 옮기기는 프로토타입이 정한 머리말 휴지통 버튼 옆에 붙였다. 휴지통 행은 좁은 폭에서 글자 칸이 눌려, 충돌 배너와 같은 방식(min-width + 줄바꿈)으로 버튼이 아래로 내려가게 했다. 휴지통에 들어간 노트는 주소로도 열리지 않게 `getNote`에서 제외했다. 되돌리기는 휴지통 화면에서 한다. 폴더 정렬은 "수정일"이 노트와 같은 뜻이 아니어서 제목 기준일 때만 이름순, 그 밖에는 만든 순으로 두고 방향만 사용자의 선택을 따른다. 06~07에 대한 태스크 경계·순서·수용 기준 변경은 없다.
+- Review: 이 태스크는 `Review checkpoint: None`이고 `AGENTS.md`의 검증·리뷰 예산이 자동 리뷰를 최대 1회로 제한하므로, 02에서 쓴 한 번으로 갈음하고 따로 돌리지 않았다.
+- Note: Supabase 무료 플랜의 가입 속도 제한 때문에 e2e를 높은 병렬도로 돌리면 가입이 막혀 실패한다. `--workers=2`로 전체 26개가 통과한다.

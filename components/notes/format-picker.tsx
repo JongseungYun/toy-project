@@ -73,13 +73,20 @@ function FormatCards({ onPick, pending }: { onPick: (format: NoteFormat) => void
  * 새 노트 만들기. 좌측 패널 맨 위의 빈 카드와 빈 보관함 안내가 같은 창을 연다.
  * variant는 여는 자리만 다르게 하고 창의 내용은 하나로 둔다.
  */
-export function FormatPicker({ variant }: { variant: "card" | "button" }) {
+export function FormatPicker({
+  variant,
+  folderId = null,
+}: {
+  variant: "card" | "button";
+  /** 지금 열려 있는 폴더. 새 노트는 이 안에 만들어진다. */
+  folderId?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function pick(format: NoteFormat) {
     startTransition(async () => {
-      await createNote(format);
+      await createNote(format, folderId);
     });
   }
 

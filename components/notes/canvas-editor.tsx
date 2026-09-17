@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import {
@@ -37,7 +38,13 @@ interface Draft {
  * 그림판 편집기. 그린 것은 요소 하나하나로 남아서 되돌리기가 요소 단위로
  * 동작하고, 다시 열어 이어 그릴 수 있다.
  */
-export function CanvasEditor({ note }: { note: Note }) {
+export function CanvasEditor({
+  note,
+  actions,
+}: {
+  note: Note;
+  actions?: ReactNode;
+}) {
   const [elements, setElements] = useState(() => elementsOf(note.content));
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tool, setTool] = useState<CanvasTool>("pen");
@@ -193,6 +200,7 @@ export function CanvasEditor({ note }: { note: Note }) {
       onTakeRemote={autosave.takeRemote}
       onKeepMine={autosave.keepMine}
       actions={
+        <>
         <button
           type="button"
           onClick={undo}
@@ -202,6 +210,8 @@ export function CanvasEditor({ note }: { note: Note }) {
         >
           <ArrowCounterClockwiseIcon className="size-4" />
         </button>
+        {actions}
+        </>
       }
     >
       <div className="relative flex min-h-0 flex-1 justify-start overflow-auto bg-muted p-5">
