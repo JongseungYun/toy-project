@@ -43,6 +43,8 @@ export interface Note {
   updatedAt: string;
   /** 담겨 있는 폴더. null이면 보관함 뿌리에 있다. */
   folderId?: string | null;
+  /** 노트마다 하나. { kind: 'color' } 또는 { kind: 'image' }. */
+  background?: unknown;
 }
 
 // 목록에 필요한 만큼만 담는다. 본문 전체는 노트를 열 때 읽는다.

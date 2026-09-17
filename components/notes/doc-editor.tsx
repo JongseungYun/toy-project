@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { previewFromHtml } from "@/lib/notes/display";
 import type { DocContent, Note, NoteContent } from "@/lib/notes/types";
@@ -18,10 +18,13 @@ function htmlOf(content: NoteContent): string {
 export function DocEditor({
   note,
   actions,
+  surface,
 }: {
   note: Note;
   /** 폴더·휴지통처럼 형식과 무관한 도구. 머리말 오른쪽에 함께 놓인다. */
   actions?: ReactNode;
+  /** 글 쓰는 면에 입힐 배경. */
+  surface?: CSSProperties;
 }) {
   // 편집 영역은 React가 아니라 브라우저가 내용을 가진다. 처음 한 번만 심고
   // 그 뒤로는 손대지 않아야 새로 그려질 때 쓰던 내용이 날아가지 않는다.
@@ -63,6 +66,7 @@ export function DocEditor({
           aria-label="노트 본문"
           data-testid="note-body"
           onInput={autosave.scheduleSave}
+          style={surface}
           className="prose-note mx-auto min-h-full max-w-3xl rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />

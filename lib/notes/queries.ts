@@ -5,6 +5,7 @@ import type { Note, NoteSummary } from "@/lib/notes/types";
 interface NoteRow {
   id: string;
   folder_id: string | null;
+  background: unknown;
   format: Note["format"];
   title: string;
   preview: string;
@@ -17,7 +18,9 @@ interface NoteRow {
 const SUMMARY_COLUMNS =
   "id, format, title, preview, version, created_at, updated_at";
 
-function toSummary(row: Omit<NoteRow, "content" | "folder_id">): NoteSummary {
+function toSummary(
+  row: Omit<NoteRow, "content" | "folder_id" | "background">,
+): NoteSummary {
   return {
     id: row.id,
     format: row.format,
@@ -68,7 +71,7 @@ export async function getNote(id: string): Promise<Note | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
-    .select(`${SUMMARY_COLUMNS}, content, folder_id`)
+    .select(`${SUMMARY_COLUMNS}, content, folder_id, background`)
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle<NoteRow>();
@@ -78,5 +81,6 @@ export async function getNote(id: string): Promise<Note | null> {
     ...toSummary(data),
     content: data.content ?? {},
     folderId: data.folder_id ?? null,
+    background: data.background,
   };
 }

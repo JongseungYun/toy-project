@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/lib/account/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { parseBackground } from "@/lib/notes/background";
+import { DefaultBackgroundRow } from "@/components/notes/default-background-row";
 
 export const metadata: Metadata = {
   title: "설정 — 아무노트",
@@ -22,7 +24,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("username")
+    .select("username, default_background")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -76,6 +78,17 @@ export default async function SettingsPage() {
               </Button>
             </form>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>기본 배경</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DefaultBackgroundRow
+            background={parseBackground(profile?.default_background)}
+          />
         </CardContent>
       </Card>
     </div>
