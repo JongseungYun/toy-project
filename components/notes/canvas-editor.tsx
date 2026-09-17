@@ -17,6 +17,7 @@ import type { CanvasContent, Note, NoteContent } from "@/lib/notes/types";
 import { CanvasShape } from "@/components/notes/canvas-figure";
 import { DrawBar } from "@/components/notes/draw-bar";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
 const SHAPE_TOOLS: ShapeKind[] = ["rect", "ellipse", "line", "arrow"];
@@ -75,6 +76,7 @@ export function CanvasEditor({
     [commit],
   );
 
+  const t = useMessages();
   const autosave = useNoteAutosave({ note, readDraft, applyRemote });
 
   /** 화면 좌표를 그림면 좌표로 옮긴다. 그림면은 스크롤될 수 있다. */
@@ -206,7 +208,7 @@ export function CanvasEditor({
         <button
           type="button"
           onClick={undo}
-          aria-label="되돌리기"
+          aria-label={t.draw.undo}
           disabled={elements.length === 0}
           className="flex size-8 flex-none items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
         >
@@ -222,7 +224,7 @@ export function CanvasEditor({
             ref={svgRef}
             data-testid="note-body"
             role="img"
-            aria-label="그림면"
+            aria-label={t.draw.surface}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
             viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
@@ -253,8 +255,8 @@ export function CanvasEditor({
           {typing && (
             <input
               autoFocus
-              aria-label="글상자 내용"
-              placeholder="글자를 쓰고 Enter"
+              aria-label={t.draw.textBoxLabel}
+              placeholder={t.draw.textBoxPlaceholder}
               style={{ left: typing.x, top: typing.y - TEXT_SIZE, color }}
               className="absolute min-w-40 rounded-sm border border-ring bg-card px-1 py-0.5 text-[17px] outline-none"
               onKeyDown={(event) => {

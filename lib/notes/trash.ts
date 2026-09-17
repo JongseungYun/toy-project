@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { displayTitle } from "@/lib/notes/display";
+import { getMessages } from "@/lib/i18n/server";
 import type { NoteFormat } from "@/lib/notes/types";
 
 export interface TrashEntry {
@@ -37,6 +38,7 @@ export async function listTrash(): Promise<TrashEntry[]> {
       .not("deleted_at", "is", null),
   ]);
 
+  const { t } = await getMessages();
   const folderRows = folders ?? [];
   const noteRows = notes ?? [];
 
@@ -62,11 +64,14 @@ export async function listTrash(): Promise<TrashEntry[]> {
       .map((row) => ({
         id: row.id as string,
         kind: "note" as const,
-        title: displayTitle({
-          title: row.title as string,
-          preview: row.preview as string,
-          format: row.format as NoteFormat,
-        }),
+        title: displayTitle(
+          {
+            title: row.title as string,
+            preview: row.preview as string,
+            format: row.format as NoteFormat,
+          },
+          t,
+        ),
         format: row.format as NoteFormat,
         deletedAt: row.deleted_at as string,
         sweptCount: 0,

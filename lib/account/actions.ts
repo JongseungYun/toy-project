@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getMessages } from "@/lib/i18n/server";
 import {
   isPasswordValid,
   isValidUsername,
@@ -21,24 +22,19 @@ export async function signUp(
   _prevState: SignUpState | undefined,
   formData: FormData,
 ): Promise<SignUpState> {
+  const { t } = await getMessages();
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
 
   if (!isValidUsername(username)) {
-    return {
-      errors: { username: "영문 소문자와 숫자 4-20자로 입력해 주세요." },
-    };
+    return { errors: { username: t.errors.usernameRule } };
   }
   if (!isPasswordValid(password)) {
-    return {
-      errors: { password: "비밀번호 조건을 모두 만족해야 합니다." },
-    };
+    return { errors: { password: t.errors.passwordRule } };
   }
   if (password !== passwordConfirm) {
-    return {
-      errors: { passwordConfirm: "비밀번호가 일치하지 않습니다." },
-    };
+    return { errors: { passwordConfirm: t.errors.passwordMismatch } };
   }
 
   const supabase = await createClient();
@@ -69,9 +65,9 @@ export async function signUp(
       ("code" in error && DUPLICATE_CODES.has(String(error.code))) ||
       /registered|exists/i.test(error.message);
     if (isDuplicate) {
-      return { errors: { username: "이미 사용 중인 아이디입니다." } };
+      return { errors: { username: t.auth.usernameTaken } };
     }
-    return { message: "가입에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return { message: t.errors.signUpFailed };
   }
 
   redirect("/");
@@ -85,6 +81,7 @@ export async function signIn(
   _prevState: SignInState | undefined,
   formData: FormData,
 ): Promise<SignInState> {
+  const { t } = await getMessages();
   const username = String(formData.get("username") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
@@ -95,7 +92,7 @@ export async function signIn(
   });
 
   if (error) {
-    return { message: "아이디 또는 비밀번호가 맞지 않습니다." };
+    return { message: t.errors.signInFailed };
   }
 
   redirect("/");

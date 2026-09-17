@@ -6,6 +6,7 @@ import { folderPath, listFolders } from "@/lib/notes/folders";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
 import { listTrash } from "@/lib/notes/trash";
+import { getMessages } from "@/lib/i18n/server";
 import { EmptyTrashButton } from "@/components/notes/empty-trash-button";
 import { LibraryShell } from "@/components/notes/library-shell";
 import { TrashRow } from "@/components/notes/trash-row";
@@ -18,15 +19,17 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 
-export const metadata: Metadata = {
-  title: "휴지통 — 아무노트",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getMessages();
+  return { title: `${t.trash.title} — ${t.app.name}` };
+}
 
 export default async function TrashPage({
   searchParams,
 }: {
   searchParams: Promise<{ sort?: string; dir?: string }>;
 }) {
+  const { locale, t } = await getMessages();
   const sort = resolveSort(await searchParams);
 
   const supabase = await createClient();
@@ -45,7 +48,7 @@ export default async function TrashPage({
     : null;
 
   const [crumbs, folders, notes, entries] = await Promise.all([
-    folderPath(null),
+    folderPath(null, t.library.root),
     listFolders(null, sort),
     listNotes(sort, null),
     listTrash(),
@@ -54,6 +57,8 @@ export default async function TrashPage({
   return (
     <LibraryShell
       displayName={profile?.username ?? user?.email ?? ""}
+      t={t}
+      locale={locale}
       crumbs={crumbs}
       folders={folders}
       notes={notes}
@@ -64,12 +69,12 @@ export default async function TrashPage({
           variant="ghost"
           size="icon-sm"
           className="sm:hidden"
-          render={<Link href="/" aria-label="목록으로" />}
+          render={<Link href="/" aria-label={t.library.backToList} />}
           nativeButton={false}
         >
           <ArrowLeftIcon />
         </Button>
-        <strong className="flex-1 pl-1 text-[15px]">휴지통</strong>
+        <strong className="flex-1 pl-1 text-[15px]">{t.trash.title}</strong>
         {entries.length > 0 && <EmptyTrashButton count={entries.length} />}
       </div>
 
@@ -80,9 +85,9 @@ export default async function TrashPage({
               <EmptyMedia variant="icon">
                 <TrashIcon />
               </EmptyMedia>
-              <EmptyTitle>휴지통이 비었습니다</EmptyTitle>
+              <EmptyTitle>{t.trash.empty}</EmptyTitle>
               <EmptyDescription>
-                지운 노트와 폴더가 여기 모입니다. 되돌리기 전까지는 사라지지 않습니다.
+                {t.trash.emptyBody}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -90,7 +95,7 @@ export default async function TrashPage({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
           <p className="mb-3.5 text-xs text-muted-foreground">
-            되돌리면 원래 있던 폴더로 돌아갑니다.
+            {t.trash.lead}
           </p>
           <div className="flex flex-col gap-2">
             {entries.map((entry) => (

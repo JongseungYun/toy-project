@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { FORMAT_LABEL, displayTitle, formatUpdatedAt } from "@/lib/notes/display";
+import { displayTitle, formatLabel, formatUpdatedAt } from "@/lib/notes/display";
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   parseCanvasElements,
 } from "@/lib/notes/canvas";
 import type { NoteSummary } from "@/lib/notes/types";
+import type { Messages } from "@/lib/i18n/messages";
 import { CanvasShape } from "@/components/notes/canvas-figure";
 
 /** 글로 쓰는 형식의 미리보기. 저장할 때 뽑아 둔 발췌를 작게 줄여 종이처럼 보인다. */
@@ -42,11 +43,15 @@ function CanvasThumb({ preview }: { preview: string }) {
 export function NoteListItem({
   note,
   active,
+  t,
+  locale,
 }: {
   note: NoteSummary;
   active: boolean;
+  t: Messages;
+  locale: string;
 }) {
-  const title = displayTitle(note);
+  const title = displayTitle(note, t);
 
   return (
     <Link
@@ -69,9 +74,12 @@ export function NoteListItem({
         <span className="block truncate text-[13px] font-semibold">{title}</span>
         <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <span className="rounded-full border border-border bg-muted px-1.5 py-px text-[10px] whitespace-nowrap">
-            {FORMAT_LABEL[note.format]}
+            {formatLabel(t, note.format)}
           </span>
-          {formatUpdatedAt(note.updatedAt)}
+          {formatUpdatedAt(note.updatedAt, {
+            locale,
+            yesterday: t.note.yesterday,
+          })}
         </span>
       </span>
     </Link>

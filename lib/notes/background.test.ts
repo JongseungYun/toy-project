@@ -61,16 +61,12 @@ describe("rejectBackgroundFile", () => {
     expect(rejectBackgroundFile(file("image/png", 1024))).toBeNull();
   });
 
-  it("다른 형식은 왜 안 되는지 알린다", () => {
-    expect(rejectBackgroundFile(file("image/gif", 1024))).toBe(
-      "JPG와 PNG만 올릴 수 있습니다.",
-    );
+  it("다른 형식이면 형식 때문이라고 알린다", () => {
+    expect(rejectBackgroundFile(file("image/gif", 1024))).toBe("type");
   });
 
-  it("5MB를 넘으면 왜 안 되는지 알린다", () => {
-    expect(rejectBackgroundFile(file("image/png", 5 * 1024 * 1024 + 1))).toBe(
-      "5MB까지 올릴 수 있습니다.",
-    );
+  it("5MB를 넘으면 크기 때문이라고 알린다", () => {
+    expect(rejectBackgroundFile(file("image/png", 5 * 1024 * 1024 + 1))).toBe("size");
   });
 });
 

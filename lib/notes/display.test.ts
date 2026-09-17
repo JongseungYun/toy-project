@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  FORMAT_LABEL,
   displayTitle,
+  formatLabel,
   formatUpdatedAt,
   previewFromHtml,
   previewFromMarkdown,
+  untitledTitle,
 } from "@/lib/notes/display";
+import { ko } from "@/lib/i18n/dictionaries/ko";
 
 describe("previewFromHtml", () => {
   it("태그를 걷어내고 본문 글만 남긴다", () => {
@@ -46,7 +48,7 @@ describe("previewFromMarkdown", () => {
 describe("displayTitle", () => {
   it("제목을 입력했으면 그대로 쓴다", () => {
     expect(
-      displayTitle({ title: "장보기", preview: "대파 2단", format: "doc" }),
+      displayTitle({ title: "장보기", preview: "대파 2단", format: "doc" }, ko),
     ).toBe("장보기");
   });
 
@@ -56,7 +58,7 @@ describe("displayTitle", () => {
         title: "   ",
         preview: "대파 2단\n달걀 한 판",
         format: "doc",
-      }),
+      }, ko),
     ).toBe("대파 2단");
   });
 
@@ -66,13 +68,16 @@ describe("displayTitle", () => {
         title: "",
         preview: "# React 19 Server Components 정리\n\n## 왜 쓰는가",
         format: "markdown",
-      }),
+      }, ko),
     ).toBe("React 19 Server Components 정리");
     expect(
-      displayTitle({ title: "", preview: "- 첫 항목\n- 둘째", format: "markdown" }),
+      displayTitle({ title: "", preview: "- 첫 항목\n- 둘째", format: "markdown" }, ko),
     ).toBe("첫 항목");
     expect(
-      displayTitle({ title: "", preview: "> 인용부터 시작", format: "markdown" }),
+      displayTitle(
+        { title: "", preview: "> 인용부터 시작", format: "markdown" },
+        ko,
+      ),
     ).toBe("인용부터 시작");
   });
 
@@ -81,7 +86,7 @@ describe("displayTitle", () => {
       { id: "a", kind: "pen", points: [0, 0, 5, 5], color: "#000", width: 2 },
       { id: "b", kind: "text", x: 10, y: 20, text: "제주공항 도착", color: "#000", size: 17 },
     ]);
-    expect(displayTitle({ title: "", preview, format: "canvas" })).toBe(
+    expect(displayTitle({ title: "", preview, format: "canvas" }, ko)).toBe(
       "제주공항 도착",
     );
   });
@@ -90,52 +95,75 @@ describe("displayTitle", () => {
     const preview = JSON.stringify([
       { id: "a", kind: "pen", points: [0, 0, 5, 5], color: "#000", width: 2 },
     ]);
-    expect(displayTitle({ title: "", preview, format: "canvas" })).toBe(
+    expect(displayTitle({ title: "", preview, format: "canvas" }, ko)).toBe(
       "제목 없는 그림판",
     );
   });
 
   it("본문 첫 줄이 길면 잘라서 쓴다", () => {
     expect(
-      displayTitle({ title: "", preview: "가".repeat(120), format: "doc" }),
+      displayTitle({ title: "", preview: "가".repeat(120), format: "doc" }, ko),
     ).toHaveLength(60);
   });
 
   it("뽑을 내용이 없으면 형식에 맞는 기본 이름을 쓴다", () => {
-    expect(displayTitle({ title: "", preview: "", format: "doc" })).toBe(
+    expect(displayTitle({ title: "", preview: "", format: "doc" }, ko)).toBe(
       "제목 없는 일반 문서",
     );
-    expect(displayTitle({ title: "", preview: "", format: "markdown" })).toBe(
+    expect(displayTitle({ title: "", preview: "", format: "markdown" }, ko)).toBe(
       "제목 없는 Markdown 문서",
     );
-    expect(displayTitle({ title: "", preview: "", format: "canvas" })).toBe(
+    expect(displayTitle({ title: "", preview: "", format: "canvas" }, ko)).toBe(
       "제목 없는 그림판",
     );
   });
 });
 
 describe("formatUpdatedAt", () => {
-  const now = new Date("2026-09-15T14:41:00+09:00");
+  const seoul = {
+    locale: "ko",
+    yesterday: ko.note.yesterday,
+    timeZone: "Asia/Seoul",
+    now: new Date("2026-09-15T14:41:00+09:00"),
+  };
 
   it("오늘이면 시각만 보여준다", () => {
-    expect(formatUpdatedAt("2026-09-15T05:41:00Z", now)).toBe("오후 2:41");
+    expect(formatUpdatedAt("2026-09-15T05:41:00Z", seoul)).toBe("오후 2:41");
   });
 
   it("어제면 어제라고 알린다", () => {
-    expect(formatUpdatedAt("2026-09-14T05:41:00Z", now)).toBe("어제");
+    expect(formatUpdatedAt("2026-09-14T05:41:00Z", seoul)).toBe("어제");
   });
 
   it("그보다 오래됐으면 날짜를 보여준다", () => {
-    expect(formatUpdatedAt("2026-09-12T05:41:00Z", now)).toBe("9월 12일");
+    expect(formatUpdatedAt("2026-09-12T05:41:00Z", seoul)).toBe("9월 12일");
+  });
+
+  it("고른 언어로 적는다", () => {
+    expect(
+      formatUpdatedAt("2026-09-12T05:41:00Z", { ...seoul, locale: "en" }),
+    ).toBe("September 12");
+    expect(
+      formatUpdatedAt("2026-09-14T05:41:00Z", {
+        ...seoul,
+        locale: "de",
+        yesterday: "Gestern",
+      }),
+    ).toBe("Gestern");
   });
 });
 
-describe("FORMAT_LABEL", () => {
-  it("용어집의 형식 이름을 그대로 쓴다", () => {
-    expect(FORMAT_LABEL).toEqual({
-      doc: "일반 문서",
-      markdown: "Markdown",
-      canvas: "그림판",
-    });
+describe("formatLabel", () => {
+  it("고른 언어의 형식 이름을 쓴다", () => {
+    expect(formatLabel(ko, "doc")).toBe("일반 문서");
+    expect(formatLabel(ko, "markdown")).toBe("Markdown");
+    expect(formatLabel(ko, "canvas")).toBe("그림판");
+  });
+});
+
+describe("untitledTitle", () => {
+  it("형식마다 다른 기본 이름을 쓴다", () => {
+    expect(untitledTitle(ko, "doc")).toBe("제목 없는 일반 문서");
+    expect(untitledTitle(ko, "canvas")).toBe("제목 없는 그림판");
   });
 });

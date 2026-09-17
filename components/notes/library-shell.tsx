@@ -9,6 +9,8 @@ import { FolderListItem } from "@/components/notes/folder-list-item";
 import { FormatPicker } from "@/components/notes/format-picker";
 import { NoteListItem } from "@/components/notes/note-list-item";
 import { SortControls } from "@/components/notes/sort-controls";
+import type { Locale } from "@/lib/i18n/locales";
+import { format, type Messages } from "@/lib/i18n/messages";
 
 /**
  * 보관함과 노트 편집이 함께 쓰는 두 칸 레이아웃.
@@ -22,9 +24,13 @@ export function LibraryShell({
   notes,
   sort,
   activeNoteId,
+  t,
+  locale,
   children,
 }: {
   displayName: string;
+  t: Messages;
+  locale: Locale;
   crumbs: Crumb[];
   folders: FolderSummary[];
   notes: NoteSummary[];
@@ -41,7 +47,7 @@ export function LibraryShell({
           <div className="flex flex-col gap-2.5 border-b border-sidebar-border p-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <NotePencilIcon className="size-4 text-sidebar-primary" />
-              아무노트
+              {t.app.name}
               <span className="ml-auto truncate text-xs font-medium text-muted-foreground">
                 {displayName}
               </span>
@@ -58,16 +64,16 @@ export function LibraryShell({
 
             {folders.length > 0 && (
               <p className="px-1 pt-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                폴더 {folders.length}
+                {format(t.library.folders, { count: folders.length })}
               </p>
             )}
             {folders.map((folder) => (
-              <FolderListItem key={folder.id} folder={folder} />
+              <FolderListItem key={folder.id} folder={folder} t={t} />
             ))}
 
             {notes.length > 0 && (
               <p className="px-1 pt-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                노트 {notes.length}
+                {format(t.library.notes, { count: notes.length })}
               </p>
             )}
             {notes.map((note) => (
@@ -75,6 +81,8 @@ export function LibraryShell({
                 key={note.id}
                 note={note}
                 active={note.id === activeNoteId}
+                t={t}
+                locale={locale}
               />
             ))}
           </div>
@@ -88,7 +96,7 @@ export function LibraryShell({
               nativeButton={false}
             >
               <TrashIcon data-icon="inline-start" />
-              휴지통
+              {t.trash.title}
             </Button>
             <Button
               variant="ghost"
@@ -98,7 +106,7 @@ export function LibraryShell({
               nativeButton={false}
             >
               <GearIcon data-icon="inline-start" />
-              설정
+              {t.settings.title}
             </Button>
           </div>
         </aside>

@@ -125,8 +125,11 @@ export async function listFolders(
  * 한 단계씩 조회하면 깊이만큼 왕복이 늘어나므로, 폴더 목록을 한 번 읽고
  * 메모리에서 올라간다. 고리가 생겨도 멈추도록 이미 지난 곳은 건너뛴다.
  */
-export async function folderPath(folderId: string | null): Promise<Crumb[]> {
-  const root: Crumb = { id: null, name: "내 노트" };
+export async function folderPath(
+  folderId: string | null,
+  rootLabel: string,
+): Promise<Crumb[]> {
+  const root: Crumb = { id: null, name: rootLabel };
   if (!folderId) return [root];
 
   const byId = await folderIndex();
@@ -165,5 +168,5 @@ export async function listAllFolders(): Promise<{ id: string; label: string }[]>
 
   return rows
     .map((row) => ({ id: row.id, label: label(row) }))
-    .sort((a, b) => a.label.localeCompare(b.label, "ko"));
+    .sort((a, b) => a.label.localeCompare(b.label));
 }

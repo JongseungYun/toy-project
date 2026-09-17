@@ -7,6 +7,7 @@ import { displayTitle } from "@/lib/notes/display";
 import { folderPath, listAllFolders, listFolders } from "@/lib/notes/folders";
 import { getNote, listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
+import { getMessages } from "@/lib/i18n/server";
 import { CanvasEditor } from "@/components/notes/canvas-editor";
 import { DocEditor } from "@/components/notes/doc-editor";
 import { LibraryShell } from "@/components/notes/library-shell";
@@ -18,8 +19,11 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
+  const { t } = await getMessages();
   const note = await getNote((await params).id);
-  return { title: note ? `${displayTitle(note)} — 아무노트` : "아무노트" };
+  return {
+    title: note ? `${displayTitle(note, t)} — ${t.app.name}` : t.app.name,
+  };
 }
 
 export default async function NotePage({
@@ -29,6 +33,7 @@ export default async function NotePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ sort?: string; dir?: string }>;
 }) {
+  const { locale, t } = await getMessages();
   const { id } = await params;
   const sort = resolveSort(await searchParams);
 
@@ -54,7 +59,7 @@ export default async function NotePage({
   // 좌측 목록은 이 노트가 담겨 있는 폴더의 내용을 보여준다.
   const folderId = note.folderId ?? null;
   const [crumbs, folders, notes, allFolders] = await Promise.all([
-    folderPath(folderId),
+    folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
     listAllFolders(),
@@ -78,6 +83,8 @@ export default async function NotePage({
   return (
     <LibraryShell
       displayName={profile?.username ?? user?.email ?? ""}
+      t={t}
+      locale={locale}
       crumbs={crumbs}
       folders={folders}
       notes={notes}
