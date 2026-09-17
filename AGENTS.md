@@ -32,6 +32,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `skills update`는 복사 방식을 보존하지 않으므로 사용하지 않는다. `update --copy`도 대안으로 사용하지 않는다.
 - 이 정책은 업데이트된 `update-project-skills` 본문이 symlink를 요구하더라도 우선한다. 스킬을 직접 수정할 때도 두 복사본을 함께 반영하고, 완료 시 symlink가 없는지와 두 복사본의 파일 내용이 같은지 확인한다.
 
+# Supabase 컨텍스트
+
+Supabase Cloud를 인증, 데이터베이스, 파일 보관에 사용한다.
+
+- Supabase 관련 작업을 시작하기 전에 설치된 공식 스킬 `supabase`를 읽는다. 테이블, 마이그레이션, 트리거, 권한, RLS를 바꾸기 전에는 `supabase-postgres-best-practices`도 함께 읽는다.
+- 두 스킬의 원본 소스는 `supabase/agent-skills`다. 갱신은 위의 프로젝트 스킬 설치 방식을 그대로 따른다.
+- Supabase 문서는 자주 바뀐다. 모델 기억으로 답하지 말고 작업 시점에 아래 공식 출처를 가져와 설치된 버전과 대조한다. 변경 요약은 <https://supabase.com/changelog.md>, 문서 색인은 <https://supabase.com/llms.txt>에 있다. 이 내용을 저장소에 복사해 두지 않는다.
+- 가져오기에 실패하면 캐시된 내용을 현재 것으로 취급하지 말고 실패했다는 사실을 보고한다.
+
 # 검증·리뷰 예산
 
 강의용 학습 템플릿이다. 동작하는 결과물이 코드 완결성보다 우선하고, 품질은 런타임 검증(스펙의 흐름이 실제로 도는지)으로 증명한다. 스킬 본문이 더 강한 리뷰를 요구해도 이 예산이 우선한다.
