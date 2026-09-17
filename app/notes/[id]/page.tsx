@@ -5,6 +5,7 @@ import { displayTitle } from "@/lib/notes/display";
 import { getNote, listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
 import { LibraryShell } from "@/components/notes/library-shell";
+import { CanvasEditor } from "@/components/notes/canvas-editor";
 import { DocEditor } from "@/components/notes/doc-editor";
 import { MarkdownEditor } from "@/components/notes/markdown-editor";
 
@@ -55,11 +56,9 @@ export default async function NotePage({
       sort={sort}
       activeNoteId={note.id}
     >
-      {note.format === "markdown" ? (
-        <MarkdownEditor note={note} />
-      ) : (
-        <DocEditor note={note} />
-      )}
+      {note.format === "markdown" && <MarkdownEditor note={note} />}
+      {note.format === "canvas" && <CanvasEditor note={note} />}
+      {note.format === "doc" && <DocEditor note={note} />}
     </LibraryShell>
   );
 }

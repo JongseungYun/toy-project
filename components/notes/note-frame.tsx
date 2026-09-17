@@ -11,10 +11,12 @@ import type { RemoteNote, SaveStatus } from "@/components/notes/use-note-autosav
 function SaveIndicator({
   status,
   savedAt,
+  savedCount,
   onRetry,
 }: {
   status: SaveStatus;
   savedAt: string;
+  savedCount: number;
   onRetry: () => void;
 }) {
   if (status === "saving") {
@@ -22,6 +24,7 @@ function SaveIndicator({
       <span
         data-testid="save-state"
         data-state="saving"
+        data-saved-count={savedCount}
         className="flex items-center gap-1.5 text-xs text-muted-foreground"
       >
         <CircleNotchIcon className="size-3.5 animate-spin" />
@@ -36,6 +39,7 @@ function SaveIndicator({
         type="button"
         data-testid="save-state"
         data-state="error"
+        data-saved-count={savedCount}
         onClick={onRetry}
         className="flex items-center gap-1.5 text-xs font-medium text-destructive"
       >
@@ -49,6 +53,7 @@ function SaveIndicator({
     <span
       data-testid="save-state"
       data-state="saved"
+      data-saved-count={savedCount}
       className="flex items-center gap-1.5 text-xs text-muted-foreground"
     >
       <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -68,6 +73,7 @@ export function NoteFrame({
   onTitleChange,
   status,
   savedAt,
+  savedCount,
   onRetry,
   remote,
   onTakeRemote,
@@ -80,6 +86,7 @@ export function NoteFrame({
   onTitleChange: (value: string) => void;
   status: SaveStatus;
   savedAt: string;
+  savedCount: number;
   onRetry: () => void;
   remote: RemoteNote | null;
   onTakeRemote: () => void;
@@ -106,7 +113,12 @@ export function NoteFrame({
           placeholder={DEFAULT_TITLE[format]}
           className="min-w-0 flex-1 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-[15px] font-semibold outline-none focus:border-border"
         />
-        <SaveIndicator status={status} savedAt={savedAt} onRetry={onRetry} />
+        <SaveIndicator
+          status={status}
+          savedAt={savedAt}
+          savedCount={savedCount}
+          onRetry={onRetry}
+        />
         {actions}
       </div>
 

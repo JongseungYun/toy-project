@@ -1,3 +1,4 @@
+import { firstTextOf, parseCanvasElements } from "@/lib/notes/canvas";
 import type { NoteFormat } from "@/lib/notes/types";
 
 // 용어집(GLOSSARY.md)이 정한 형식 이름. 화면 문구와 코드가 같은 말을 쓴다.
@@ -80,7 +81,11 @@ export function displayTitle(note: {
   const typed = note.title.trim();
   if (typed) return typed;
 
-  const fromBody = firstLine(note.preview, note.format);
+  // 그림판의 미리보기는 글이 아니라 그림 요소다. 그림에 적힌 글만 제목이 된다.
+  const fromBody =
+    note.format === "canvas"
+      ? firstTextOf(parseCanvasElements(note.preview)).slice(0, TITLE_LIMIT)
+      : firstLine(note.preview, note.format);
   if (fromBody) return fromBody;
 
   return DEFAULT_TITLE[note.format];

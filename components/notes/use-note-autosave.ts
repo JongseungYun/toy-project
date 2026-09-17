@@ -42,6 +42,9 @@ export function useNoteAutosave({
   const [title, setTitleState] = useState(note.title);
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [savedAt, setSavedAt] = useState(note.updatedAt);
+  // 저장에 성공할 때마다 하나씩 오른다. 화면에는 쓰지 않고, 저장이 실제로
+  // 끝났는지 밖에서 확인할 수 있게 둔다.
+  const [savedCount, setSavedCount] = useState(0);
   const [remote, setRemote] = useState<RemoteNote | null>(null);
 
   const versionRef = useRef(note.version);
@@ -99,6 +102,7 @@ export function useNoteAutosave({
 
         versionRef.current = result.version;
         setSavedAt(result.updatedAt);
+        setSavedCount((count) => count + 1);
         setStatus("saved");
         // 좌측 목록의 제목·미리보기·정렬 위치를 새 값으로 다시 그린다.
         router.refresh();
@@ -154,6 +158,7 @@ export function useNoteAutosave({
     setTitle,
     status,
     savedAt,
+    savedCount,
     remote,
     scheduleSave,
     saveNow: save,

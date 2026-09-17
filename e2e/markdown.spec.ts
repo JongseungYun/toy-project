@@ -25,15 +25,17 @@ const SOURCE = [
   "[Next.js 문서](https://nextjs.org)",
 ].join("\n");
 
-/**
- * 뷰어 토글은 누르는 순간 저장이 시작된다. 저장 표시가 "저장 중"을 거쳐
- * "저장됨"으로 돌아오는 것을 보고 다음으로 넘어간다.
- */
+/** 뷰어 토글은 누르는 순간 저장이 시작된다. 그 저장이 끝나기를 기다린다. */
 async function clickViewerAndWaitForSave(page: Page) {
   const saveState = page.getByTestId("save-state");
+  const before = await saveState.getAttribute("data-saved-count");
   await page.getByRole("button", { name: "뷰어" }).click();
-  await expect(saveState).toHaveAttribute("data-state", "saving");
-  await expect(saveState).toHaveAttribute("data-state", "saved", SAVED);
+  // 저장 횟수가 오를 때까지 기다린다. 이미 "저장됨"이던 상태를 완료로 읽지 않는다.
+  await expect(saveState).not.toHaveAttribute(
+    "data-saved-count",
+    before ?? "0",
+    SAVED,
+  );
 }
 
 async function expectSaved(page: Page, text: string) {

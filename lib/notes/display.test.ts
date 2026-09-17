@@ -76,6 +76,25 @@ describe("displayTitle", () => {
     ).toBe("인용부터 시작");
   });
 
+  it("그림판이면 그림에 적힌 첫 글을 쓴다", () => {
+    const preview = JSON.stringify([
+      { id: "a", kind: "pen", points: [0, 0, 5, 5], color: "#000", width: 2 },
+      { id: "b", kind: "text", x: 10, y: 20, text: "제주공항 도착", color: "#000", size: 17 },
+    ]);
+    expect(displayTitle({ title: "", preview, format: "canvas" })).toBe(
+      "제주공항 도착",
+    );
+  });
+
+  it("그림에 글이 없으면 기본 이름을 쓴다. 저장된 값을 제목에 흘리지 않는다", () => {
+    const preview = JSON.stringify([
+      { id: "a", kind: "pen", points: [0, 0, 5, 5], color: "#000", width: 2 },
+    ]);
+    expect(displayTitle({ title: "", preview, format: "canvas" })).toBe(
+      "제목 없는 그림판",
+    );
+  });
+
   it("본문 첫 줄이 길면 잘라서 쓴다", () => {
     expect(
       displayTitle({ title: "", preview: "가".repeat(120), format: "doc" }),
