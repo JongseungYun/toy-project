@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import "./e2e/support/load-env";
 
 const baseURL = "http://localhost:3000";
 
