@@ -14,7 +14,13 @@ export interface DocContent {
   html: string;
 }
 
-export type NoteContent = DocContent | Record<string, unknown>;
+export interface MarkdownContent {
+  source: string;
+  /** 뷰어를 켜 두었는지. 노트마다 기억한다. */
+  viewer: boolean;
+}
+
+export type NoteContent = DocContent | MarkdownContent | Record<string, unknown>;
 
 export interface Note {
   id: string;

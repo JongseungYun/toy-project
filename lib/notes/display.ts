@@ -26,20 +26,46 @@ const ENTITIES: Record<string, string> = {
   "&#39;": "'",
 };
 
+/** 줄 구조는 살리고 군더더기 공백만 줄인다. 목록 미리보기가 문단처럼 보인다. */
+function tidy(text: string): string {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, PREVIEW_LIMIT);
+}
+
 /**
  * 일반 문서의 본문 HTML에서 목록 미리보기에 쓸 글만 뽑는다.
  * 저장할 때 한 번 계산해 두므로 목록은 본문을 다시 훑지 않는다.
  */
 export function previewFromHtml(html: string): string {
   const text = html
-    // 블록이 끝나는 자리는 공백으로 바꿔야 단어가 서로 붙지 않는다.
-    .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr)[^>]*>/gi, " ")
+    // 블록이 끝나는 자리는 줄바꿈으로 바꿔야 문단이 서로 붙지 않는다.
+    .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr)[^>]*>/gi, "\n")
     .replace(/<[^>]*>/g, "")
-    .replace(/&[a-z]+;|&#\d+;/gi, (entity) => ENTITIES[entity.toLowerCase()] ?? " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&[a-z]+;|&#\d+;/gi, (entity) => ENTITIES[entity.toLowerCase()] ?? " ");
 
-  return text.slice(0, PREVIEW_LIMIT);
+  return tidy(text);
+}
+
+/**
+ * Markdown 노트의 미리보기는 원문 그대로다. 목록의 작은 썸네일에서
+ * `#`와 `-` 같은 기호가 보이는 편이 어떤 형식인지 알아보기 쉽다.
+ */
+export function previewFromMarkdown(source: string): string {
+  return tidy(source);
+}
+
+// Markdown 첫 줄에 붙는 기호. 제목 자리에는 글만 남긴다.
+const MARKDOWN_MARKERS = /^\s*(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s*)+/;
+
+function firstLine(preview: string, format: NoteFormat): string {
+  const line = preview.split("\n").find((candidate) => candidate.trim()) ?? "";
+  const stripped = format === "markdown" ? line.replace(MARKDOWN_MARKERS, "") : line;
+  return stripped.trim().slice(0, TITLE_LIMIT);
 }
 
 /**
@@ -54,7 +80,7 @@ export function displayTitle(note: {
   const typed = note.title.trim();
   if (typed) return typed;
 
-  const fromBody = note.preview.trim().slice(0, TITLE_LIMIT);
+  const fromBody = firstLine(note.preview, note.format);
   if (fromBody) return fromBody;
 
   return DEFAULT_TITLE[note.format];

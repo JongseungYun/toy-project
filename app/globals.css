@@ -157,3 +157,54 @@
 .prose-note a {
   @apply text-primary underline;
 }
+
+/* Markdown 뷰어. 프로토타입의 .md-view가 정한 크기와 간격을 따른다. */
+.prose-md {
+  line-height: 1.8;
+}
+.prose-md h1 {
+  @apply mt-0 mb-2.5 text-xl font-bold;
+}
+.prose-md h2 {
+  @apply mt-5 mb-2 text-base font-bold first:mt-0;
+}
+.prose-md h3 {
+  @apply mt-4 mb-1.5 text-sm font-semibold first:mt-0;
+}
+.prose-md p {
+  @apply mb-3;
+}
+.prose-md ul {
+  @apply mb-3 list-disc pl-5;
+}
+.prose-md ol {
+  @apply mb-3 list-decimal pl-5;
+}
+.prose-md li {
+  @apply my-0.5;
+}
+.prose-md code {
+  @apply rounded bg-muted px-1 py-px font-mono text-xs;
+}
+.prose-md pre {
+  @apply mb-3 overflow-auto rounded-lg bg-muted p-3;
+}
+.prose-md pre code {
+  @apply bg-transparent p-0 text-xs leading-relaxed;
+}
+.prose-md blockquote {
+  @apply mb-3 border-l-[3px] border-border py-1 pl-3 text-muted-foreground;
+}
+.prose-md table {
+  @apply mb-3 border-collapse text-[13px];
+}
+.prose-md th,
+.prose-md td {
+  @apply border border-border px-2.5 py-1 text-left;
+}
+.prose-md a {
+  @apply text-primary underline;
+}
+.prose-md hr {
+  @apply my-4 border-border;
+}

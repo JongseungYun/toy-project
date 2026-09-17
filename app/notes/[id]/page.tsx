@@ -5,7 +5,8 @@ import { displayTitle } from "@/lib/notes/display";
 import { getNote, listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
 import { LibraryShell } from "@/components/notes/library-shell";
-import { NoteEditor } from "@/components/notes/note-editor";
+import { DocEditor } from "@/components/notes/doc-editor";
+import { MarkdownEditor } from "@/components/notes/markdown-editor";
 
 export async function generateMetadata({
   params,
@@ -54,7 +55,11 @@ export default async function NotePage({
       sort={sort}
       activeNoteId={note.id}
     >
-      <NoteEditor note={note} />
+      {note.format === "markdown" ? (
+        <MarkdownEditor note={note} />
+      ) : (
+        <DocEditor note={note} />
+      )}
     </LibraryShell>
   );
 }

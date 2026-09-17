@@ -4,17 +4,18 @@ import {
   displayTitle,
   formatUpdatedAt,
   previewFromHtml,
+  previewFromMarkdown,
 } from "@/lib/notes/display";
 
 describe("previewFromHtml", () => {
   it("태그를 걷어내고 본문 글만 남긴다", () => {
     expect(previewFromHtml("<h2>회의록</h2><p>참석: 윤종승</p>")).toBe(
-      "회의록 참석: 윤종승",
+      "회의록\n참석: 윤종승",
     );
   });
 
-  it("블록 사이를 공백으로 띄워 단어가 붙지 않게 한다", () => {
-    expect(previewFromHtml("<li>대파</li><li>달걀</li>")).toBe("대파 달걀");
+  it("블록마다 줄을 바꿔 미리보기에서도 문단이 보이게 한다", () => {
+    expect(previewFromHtml("<li>대파</li><li>달걀</li>")).toBe("대파\n달걀");
   });
 
   it("HTML 엔티티를 원래 글자로 되돌린다", () => {
@@ -30,6 +31,18 @@ describe("previewFromHtml", () => {
   });
 });
 
+describe("previewFromMarkdown", () => {
+  it("원문을 그대로 두어 목록 미리보기가 Markdown처럼 보이게 한다", () => {
+    expect(previewFromMarkdown("# 제목\n\n- 하나\n- 둘")).toBe(
+      "# 제목\n\n- 하나\n- 둘",
+    );
+  });
+
+  it("너무 길면 앞부분만 남긴다", () => {
+    expect(previewFromMarkdown("가".repeat(500))).toHaveLength(200);
+  });
+});
+
 describe("displayTitle", () => {
   it("제목을 입력했으면 그대로 쓴다", () => {
     expect(
@@ -37,10 +50,30 @@ describe("displayTitle", () => {
     ).toBe("장보기");
   });
 
-  it("제목이 비어 있으면 본문 첫 줄을 쓴다", () => {
+  it("제목이 비어 있으면 본문 첫 줄만 쓴다", () => {
     expect(
-      displayTitle({ title: "   ", preview: "대파 2단 달걀 한 판", format: "doc" }),
-    ).toBe("대파 2단 달걀 한 판");
+      displayTitle({
+        title: "   ",
+        preview: "대파 2단\n달걀 한 판",
+        format: "doc",
+      }),
+    ).toBe("대파 2단");
+  });
+
+  it("Markdown이면 첫 줄의 기호를 떼고 쓴다", () => {
+    expect(
+      displayTitle({
+        title: "",
+        preview: "# React 19 Server Components 정리\n\n## 왜 쓰는가",
+        format: "markdown",
+      }),
+    ).toBe("React 19 Server Components 정리");
+    expect(
+      displayTitle({ title: "", preview: "- 첫 항목\n- 둘째", format: "markdown" }),
+    ).toBe("첫 항목");
+    expect(
+      displayTitle({ title: "", preview: "> 인용부터 시작", format: "markdown" }),
+    ).toBe("인용부터 시작");
   });
 
   it("본문 첫 줄이 길면 잘라서 쓴다", () => {

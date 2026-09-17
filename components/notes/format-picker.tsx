@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FileTextIcon, PlusIcon } from "@phosphor-icons/react";
+import { FileTextIcon, MarkdownLogoIcon, PlusIcon } from "@phosphor-icons/react";
 import { createNote } from "@/lib/notes/actions";
 import type { NoteFormat } from "@/lib/notes/types";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 
 // 지금 실제로 만들 수 있는 형식만 창에 올린다.
-// Markdown은 태스크 03이, 그림판은 태스크 04가 여기에 자기 항목을 더한다.
+// 그림판은 태스크 04가 여기에 자기 항목을 더한다.
 const CREATABLE_FORMATS: {
   format: NoteFormat;
   label: string;
@@ -28,6 +28,12 @@ const CREATABLE_FORMATS: {
     label: "일반 문서",
     description: "글꼴과 색을 바꿔 가며 쓰는 보통 노트",
     icon: FileTextIcon,
+  },
+  {
+    format: "markdown",
+    label: "Markdown",
+    description: "기호로 쓰고 옆에서 결과를 확인",
+    icon: MarkdownLogoIcon,
   },
 ];
 
