@@ -1,8 +1,8 @@
--- 아무노트 태스크 05: 폴더와 휴지통
+-- 폴더와 휴지통
 --
--- docs/specs/amu-note/spec.md: 폴더는 깊이 제한 없이 중첩된다. 모든 삭제는
--- 휴지통을 거친다. 폴더를 지우면 그 안의 하위 폴더와 노트가 함께 들어가고,
--- 되돌리면 원래 자리로 돌아간다.
+-- docs/decisions/note-safety.md: 모든 삭제는 휴지통을 거친다. 폴더를 지우면 그
+-- 안의 하위 폴더와 노트가 함께 들어가고, 되돌리면 원래 자리로 돌아간다.
+-- 폴더는 깊이 제한 없이 중첩된다.
 
 create table if not exists public.folders (
   id uuid primary key default gen_random_uuid(),

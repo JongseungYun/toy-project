@@ -1,7 +1,9 @@
--- 아무노트 태스크 02: 노트 저장소와 소유자 전용 접근, 충돌 감지용 버전
+-- 노트 저장소와 소유자 전용 접근, 충돌 감지용 버전
 --
--- docs/specs/amu-note/spec.md: 노트는 하나의 형식을 가지고, 만든 사람만 읽고 쓴다.
--- 다른 기기가 먼저 바꿔 둔 경우를 조용히 덮지 않기 위해 version으로 낙관적 잠금을 건다.
+-- docs/decisions/note-formats.md: 노트는 하나의 형식을 가지고, 그 형식은 만든
+-- 뒤에 바꾸지 않는다.
+-- docs/decisions/note-safety.md: 소유자 격리는 데이터베이스가 건다. 다른 기기가
+-- 먼저 바꿔 둔 경우를 조용히 덮지 않으려고 version으로 낙관적 잠금을 건다.
 
 create table if not exists public.notes (
   id uuid primary key default gen_random_uuid(),

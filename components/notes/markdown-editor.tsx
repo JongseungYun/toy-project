@@ -16,7 +16,7 @@ function read(content: NoteContent): MarkdownContent {
   const markdown = content as MarkdownContent;
   return {
     source: markdown.source ?? "",
-    // 되돌릴 수 있는 가정(spec.md): 뷰어는 처음 열 때 켜져 있다.
+    // 처음 열 때는 켜 둔다. 값이 싼 선택이라 더 나은 근거가 나오면 바꿔도 된다.
     viewer: markdown.viewer ?? true,
   };
 }

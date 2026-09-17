@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { saveNote } from "@/lib/notes/actions";
 import type { Note, NoteContent } from "@/lib/notes/types";
 
-// 되돌릴 수 있는 가정(spec.md): 입력이 멈추고 2초 뒤, 계속 쓰는 중이라면 최대 30초마다.
+// docs/decisions/note-safety.md: 간격 자체는 값이 싼 선택이라 바꿔도 된다.
+// 바꾸면 안 되는 것은 "사용자가 저장을 의식하지 않는다"는 쪽이다.
 const IDLE_DELAY_MS = 2_000;
 const MAX_DELAY_MS = 30_000;
 
