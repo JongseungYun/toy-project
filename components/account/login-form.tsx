@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { signIn, type SignInState } from "@/lib/account/actions";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldGroup, FieldSeparator } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -40,6 +41,7 @@ export function LoginForm() {
           />
         </Field>
         <Button type="submit" className="w-full" disabled={pending}>
+          {pending && <Spinner data-icon="inline-start" />}
           {t.auth.submitSignIn}
         </Button>
         <FieldSeparator>{t.auth.or}</FieldSeparator>

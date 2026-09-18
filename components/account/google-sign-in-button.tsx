@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useMessages } from "@/components/i18n-provider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -54,7 +55,11 @@ export function GoogleSignInButton() {
       onClick={handleClick}
       disabled={isPending}
     >
-      <GoogleMark data-icon="inline-start" />
+      {isPending ? (
+        <Spinner data-icon="inline-start" />
+      ) : (
+        <GoogleMark data-icon="inline-start" />
+      )}
       {t.auth.google}
     </Button>
   );

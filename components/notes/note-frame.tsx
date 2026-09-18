@@ -2,10 +2,11 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, CircleNotchIcon, WarningIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, WarningIcon } from "@phosphor-icons/react";
 import { formatUpdatedAt, untitledTitle } from "@/lib/notes/display";
 import type { NoteFormat } from "@/lib/notes/types";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import type { RemoteNote, SaveStatus } from "@/components/notes/use-note-autosave";
 import { useLocale, useMessages } from "@/components/i18n-provider";
 import { format, type Messages } from "@/lib/i18n/messages";
@@ -34,7 +35,7 @@ function SaveIndicator({
         data-saved-count={savedCount}
         className="flex items-center gap-1.5 text-xs text-muted-foreground"
       >
-        <CircleNotchIcon className="size-3.5 animate-spin" />
+        <Spinner className="size-3.5" />
         {t.note.saving}
       </span>
     );

@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 import { useMessages } from "@/components/i18n-provider";
 import type { Messages } from "@/lib/i18n/messages";
 
@@ -38,10 +39,13 @@ const DESCRIPTION = {
 function FormatCards({
   onPick,
   pending,
+  picked,
   t,
 }: {
   onPick: (format: NoteFormat) => void;
   pending: boolean;
+  /** 방금 고른 형식. 만들어지는 동안 그 카드에만 스피너를 둔다. */
+  picked: NoteFormat | null;
   t: Messages;
 }) {
   return (
@@ -55,7 +59,11 @@ function FormatCards({
           className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card p-4 text-center transition-colors hover:border-primary hover:bg-accent disabled:opacity-60"
         >
           <span className="flex h-16 w-full items-center justify-center rounded-xl bg-muted text-muted-foreground">
-            <Icon className="size-7" />
+            {picked === format ? (
+              <Spinner className="size-7" />
+            ) : (
+              <Icon className="size-7" />
+            )}
           </span>
           <span className="text-sm font-semibold">{t.format[format]}</span>
           <span className="text-xs text-muted-foreground">
@@ -81,9 +89,11 @@ export function FormatPicker({
 }) {
   const t = useMessages();
   const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<NoteFormat | null>(null);
   const [pending, startTransition] = useTransition();
 
   function pick(format: NoteFormat) {
+    setPicked(format);
     startTransition(async () => {
       await createNote(format, folderId);
     });
@@ -113,7 +123,13 @@ export function FormatPicker({
             {t.format.pickerLead}
           </DialogDescription>
         </DialogHeader>
-        <FormatCards onPick={pick} pending={pending} t={t} />
+        {/* 만드는 중일 때만 스피너를 둔다. 끝나거나 취소한 뒤에는 남기지 않는다. */}
+        <FormatCards
+          onPick={pick}
+          pending={pending}
+          picked={pending ? picked : null}
+          t={t}
+        />
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={pending}>
             {t.format.cancel}
