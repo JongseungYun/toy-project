@@ -78,6 +78,7 @@ export default async function NotePage({
       notes={notes}
       sort={sort}
       activeNoteId={note.id}
+      narrow="detail"
     >
       {note.format === "markdown" && (
         <MarkdownEditor note={note} actions={actions} surface={surface} />

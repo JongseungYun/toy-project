@@ -50,6 +50,7 @@ export default async function TrashPage({
       folders={folders}
       notes={notes}
       sort={sort}
+      narrow="detail"
     >
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Button

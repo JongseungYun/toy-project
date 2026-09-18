@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** 휴지통이 도착하기 전에 보여준다. */
 export default function Loading() {
   return (
-    <LibrarySkeleton>
+    <LibrarySkeleton narrow="detail">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <Skeleton className="h-7 w-32 rounded-md" />
       </div>
