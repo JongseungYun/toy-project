@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeftIcon, GlobeIcon, InfoIcon } from "@phosphor-icons/react/ssr";
-import { createClient } from "@/lib/supabase/server";
+import { currentUser } from "@/lib/supabase/server";
+import { currentProfile } from "@/lib/account/profile";
 import { signOut } from "@/lib/account/actions";
 import { parseBackground } from "@/lib/notes/background";
 import { getMessages } from "@/lib/i18n/server";
@@ -20,22 +21,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SettingsPage() {
   const { locale, t } = await getMessages();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, profile] = await Promise.all([currentUser(), currentProfile()]);
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, default_background, locale")
-    .eq("id", user.id)
-    .maybeSingle();
-
   // 아직 고르지 않았으면 이번 요청의 언어를 고른 것처럼 보여준다.
-  const saved = isLocale(profile?.locale) ? profile.locale : locale;
+  const savedLocale = profile?.locale;
+  const saved = isLocale(savedLocale) ? savedLocale : locale;
 
   return (
     <div className="mx-auto flex min-h-svh max-w-2xl flex-col gap-6 p-6">

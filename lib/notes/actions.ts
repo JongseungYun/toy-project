@@ -1,7 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, currentUser } from "@/lib/supabase/server";
+import { currentProfile } from "@/lib/account/profile";
 import { parseBackground } from "@/lib/notes/background";
 import { isNoteFormat, type NoteContent, type NoteFormat } from "@/lib/notes/types";
 
@@ -11,18 +12,14 @@ export async function createNote(format: NoteFormat, folderId: string | null = n
     throw new Error(`알 수 없는 형식입니다: ${format}`);
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) redirect("/login");
 
   // 설정에서 정한 기본 배경으로 시작한다. 이미 만든 노트는 건드리지 않는다.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_background")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [profile, supabase] = await Promise.all([
+    currentProfile(),
+    createClient(),
+  ]);
 
   const { data, error } = await supabase
     .from("notes")
@@ -70,10 +67,7 @@ export type SaveNoteResult =
  * 남길지는 사용자가 고른다(components/notes/note-editor.tsx).
  */
 export async function saveNote(input: SaveNoteInput): Promise<SaveNoteResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, supabase] = await Promise.all([currentUser(), createClient()]);
   if (!user) {
     return { status: "error", message: "로그인이 풀렸습니다." };
   }

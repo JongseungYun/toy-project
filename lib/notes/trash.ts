@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, currentUser } from "@/lib/supabase/server";
 import { displayTitle } from "@/lib/notes/display";
 import { getMessages } from "@/lib/i18n/server";
 import type { NoteFormat } from "@/lib/notes/types";
@@ -19,12 +19,10 @@ export interface TrashEntry {
  * 그때 함께 딸려 들어온 것들은 개수로만 알린다.
  */
 export async function listTrash(): Promise<TrashEntry[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return [];
 
+  const supabase = await createClient();
   const [{ data: folders }, { data: notes }] = await Promise.all([
     supabase
       .from("folders")
