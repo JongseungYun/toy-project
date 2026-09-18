@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+import type { NarrowPane } from "@/components/notes/library-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** 좌측 목록의 노트 한 줄 자리. NoteListItem과 같은 크기로 둔다. */
@@ -17,12 +19,24 @@ function RowSkeleton() {
  * 보관함과 노트 화면이 도착하기 전에 보여주는 뼈대.
  * LibraryShell과 같은 칸 구조를 써서 내용이 채워질 때 자리가 흔들리지 않는다.
  * 우측 칸에 무엇을 놓을지는 각 화면이 정한다.
+ * 좁은 화면에서 어느 칸을 세울지도 LibraryShell과 같은 값을 받는다.
  */
-export function LibrarySkeleton({ children }: { children?: React.ReactNode }) {
+export function LibrarySkeleton({
+  narrow = "list",
+  children,
+}: {
+  narrow?: NarrowPane;
+  children?: React.ReactNode;
+}) {
   return (
     <div aria-busy="true" className="flex h-svh flex-col bg-muted p-4 sm:p-6">
-      <div className="mx-auto grid h-full w-full max-w-5xl grid-cols-1 overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr]">
-        <aside className="flex min-h-0 flex-col border-b border-sidebar-border bg-sidebar sm:border-r sm:border-b-0">
+      <div className="mx-auto grid h-full w-full max-w-5xl grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none">
+        <aside
+          className={cn(
+            "flex min-h-0 flex-col bg-sidebar sm:flex sm:border-r sm:border-sidebar-border",
+            narrow === "detail" && "hidden",
+          )}
+        >
           <div className="flex flex-col gap-2.5 border-b border-sidebar-border p-3">
             <Skeleton className="h-4 w-full rounded-md" />
             <Skeleton className="h-6 w-2/3 rounded-md" />
@@ -42,7 +56,14 @@ export function LibrarySkeleton({ children }: { children?: React.ReactNode }) {
           </div>
         </aside>
 
-        <main className="flex min-h-0 min-w-0 flex-col">{children}</main>
+        <main
+          className={cn(
+            "flex min-h-0 min-w-0 flex-col sm:flex",
+            narrow === "list" && "hidden",
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
