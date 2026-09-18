@@ -8,6 +8,7 @@ import { checkPasswordRules, isValidUsername } from "@/lib/account/validation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel, FieldGroup, FieldDescription, FieldError } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -134,6 +135,7 @@ export function SignupForm() {
         </FieldDescription>
 
         <Button type="submit" className="w-full" disabled={pending}>
+          {pending && <Spinner data-icon="inline-start" />}
           {t.auth.submitSignUp}
         </Button>
       </FieldGroup>
