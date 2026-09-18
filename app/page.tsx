@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { FolderIcon, NotePencilIcon, PlusIcon } from "@phosphor-icons/react/ssr";
-import { createClient } from "@/lib/supabase/server";
+import { displayName } from "@/lib/account/profile";
 import { folderPath, listFolders } from "@/lib/notes/folders";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
@@ -31,22 +31,9 @@ export default async function LibraryPage({
   const sort = resolveSort(params);
   const folderId = params.folder ?? null;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const profile = user
-    ? (
-        await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", user.id)
-          .maybeSingle()
-      ).data
-    : null;
-
-  const [crumbs, folders, notes] = await Promise.all([
+  // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
+  const [name, crumbs, folders, notes] = await Promise.all([
+    displayName(),
     folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
@@ -58,7 +45,7 @@ export default async function LibraryPage({
 
   return (
     <LibraryShell
-      displayName={profile?.username ?? user?.email ?? ""}
+      displayName={name}
       t={t}
       locale={locale}
       crumbs={crumbs}

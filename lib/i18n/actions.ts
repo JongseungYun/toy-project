@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, currentUser } from "@/lib/supabase/server";
 import { isLocale } from "@/lib/i18n/locales";
 
 /**
@@ -14,10 +14,7 @@ export async function setDisplayLocale(locale: string) {
     throw new Error(`지원하지 않는 언어입니다: ${locale}`);
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, supabase] = await Promise.all([currentUser(), createClient()]);
   if (!user) redirect("/login");
 
   const { error } = await supabase

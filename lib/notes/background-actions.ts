@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, currentUser } from "@/lib/supabase/server";
 import {
   BACKGROUND_BUCKET,
   parseBackground,
@@ -10,10 +10,7 @@ import {
 } from "@/lib/notes/background";
 
 async function session() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, supabase] = await Promise.all([currentUser(), createClient()]);
   if (!user) redirect("/login");
   return { supabase, userId: user.id };
 }

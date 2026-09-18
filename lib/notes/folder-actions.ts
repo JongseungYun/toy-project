@@ -2,16 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, currentUser } from "@/lib/supabase/server";
 import { getMessages } from "@/lib/i18n/server";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 async function ownerId() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, supabase] = await Promise.all([currentUser(), createClient()]);
   if (!user) redirect("/login");
   return { supabase, userId: user.id };
 }

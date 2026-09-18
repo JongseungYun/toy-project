@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { createClient, currentUser } from "@/lib/supabase/server";
 import { sortColumn, type ResolvedSort } from "@/lib/notes/sort";
 import type { Note, NoteSummary } from "@/lib/notes/types";
 
@@ -40,12 +41,10 @@ export async function listNotes(
   sort: ResolvedSort,
   folderId: string | null = null,
 ): Promise<NoteSummary[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return [];
 
+  const supabase = await createClient();
   let query = supabase
     .from("notes")
     .select(SUMMARY_COLUMNS)
@@ -66,8 +65,11 @@ export async function listNotes(
 /**
  * 노트 하나를 본문까지 읽는다. 내 노트가 아니면 RLS가 걸러 null이 된다.
  * 휴지통에 있는 노트도 열리지 않는다. 되돌리기는 휴지통 화면에서 한다.
+ *
+ * 제목을 지을 때와 화면을 그릴 때 같은 노트를 각각 부르므로, 같은 요청 안에서는
+ * 한 번만 읽는다.
  */
-export async function getNote(id: string): Promise<Note | null> {
+export const getNote = cache(async (id: string): Promise<Note | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
@@ -83,4 +85,4 @@ export async function getNote(id: string): Promise<Note | null> {
     folderId: data.folder_id ?? null,
     background: data.background,
   };
-}
+});

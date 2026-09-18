@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { displayName } from "@/lib/account/profile";
 import { backgroundStyle, parseBackground } from "@/lib/notes/background";
 import { signBackgroundUrl } from "@/lib/notes/background-actions";
 import { displayTitle } from "@/lib/notes/display";
@@ -42,33 +42,21 @@ export default async function NotePage({
   // 휴지통에 있는 노트를 같은 결과로 돌려주어 존재 여부도 알리지 않는다.
   if (!note) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const profile = user
-    ? (
-        await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", user.id)
-          .maybeSingle()
-      ).data
-    : null;
-
   // 좌측 목록은 이 노트가 담겨 있는 폴더의 내용을 보여준다.
   const folderId = note.folderId ?? null;
-  const [crumbs, folders, notes, allFolders] = await Promise.all([
+  // 배경 이미지는 비공개 버킷에 있으므로 여기서 서명된 주소를 받아 넘긴다.
+  const background = parseBackground(note.background);
+
+  // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
+  const [name, crumbs, folders, notes, allFolders, imageUrl] = await Promise.all([
+    displayName(),
     folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
     listAllFolders(),
+    background.kind === "image" ? signBackgroundUrl(background.path) : null,
   ]);
 
-  // 배경 이미지는 비공개 버킷에 있으므로 여기서 서명된 주소를 받아 넘긴다.
-  const background = parseBackground(note.background);
-  const imageUrl =
-    background.kind === "image" ? await signBackgroundUrl(background.path) : null;
   const surface = backgroundStyle(background, imageUrl);
 
   const actions = (
@@ -82,7 +70,7 @@ export default async function NotePage({
 
   return (
     <LibraryShell
-      displayName={profile?.username ?? user?.email ?? ""}
+      displayName={name}
       t={t}
       locale={locale}
       crumbs={crumbs}

@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { createClient, currentUser } from "@/lib/supabase/server";
 import type { ResolvedSort } from "@/lib/notes/sort";
 
 export interface FolderSummary {
@@ -28,14 +29,15 @@ const COLUMNS = "id, name, parent_id, created_at, updated_at";
 
 type Ancestor = Pick<FolderRow, "id" | "name" | "parent_id">;
 
-/** 지우지 않은 내 폴더 전체를 id로 찾을 수 있게 담아 둔다. */
-async function folderIndex(): Promise<Map<string, Ancestor>> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+/**
+ * 지우지 않은 내 폴더 전체를 id로 찾을 수 있게 담아 둔다.
+ * 상단 경로와 옮길 곳 목록이 같은 목록을 쓰므로, 같은 요청 안에서는 한 번만 읽는다.
+ */
+const folderIndex = cache(async (): Promise<Map<string, Ancestor>> => {
+  const user = await currentUser();
   if (!user) return new Map();
 
+  const supabase = await createClient();
   const { data } = await supabase
     .from("folders")
     .select("id, name, parent_id")
@@ -43,7 +45,7 @@ async function folderIndex(): Promise<Map<string, Ancestor>> {
     .is("deleted_at", null);
 
   return new Map(((data ?? []) as Ancestor[]).map((row) => [row.id, row]));
-}
+});
 
 /**
  * 지금 열려 있는 폴더의 하위 폴더. 각 폴더가 무엇을 담고 있는지 알려주려고
@@ -53,12 +55,10 @@ export async function listFolders(
   parentId: string | null,
   sort: ResolvedSort,
 ): Promise<FolderSummary[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return [];
 
+  const supabase = await createClient();
   let query = supabase
     .from("folders")
     .select(COLUMNS)
