@@ -195,3 +195,77 @@ test("내 내용으로 덮기를 고르면 내가 쓴 내용이 남는다", asyn
   await first.close();
   await second.close();
 });
+
+/**
+ * 본문의 [from, to) 글자를 고른다. 사람이 끌어 고르는 것과 같은 자리를
+ * 만들고, 서식 메뉴가 듣고 있는 selectionchange를 깨운다.
+ */
+async function selectRange(page: Page, from: number, to: number) {
+  await page.evaluate(
+    ([start, end]) => {
+      const editor = document.querySelector(
+        '[data-testid="note-body"]',
+      ) as HTMLElement;
+      const walk = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+      const texts: Text[] = [];
+      for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+        texts.push(node as Text);
+      }
+
+      const range = document.createRange();
+      let seen = 0;
+      let started = false;
+      for (const text of texts) {
+        const length = text.data.length;
+        if (!started && seen + length >= start) {
+          range.setStart(text, start - seen);
+          started = true;
+        }
+        if (started && seen + length >= end) {
+          range.setEnd(text, end - seen);
+          break;
+        }
+        seen += length;
+      }
+
+      const selection = window.getSelection()!;
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.dispatchEvent(new Event("selectionchange"));
+    },
+    [from, to],
+  );
+}
+
+test("서식 메뉴가 고른 글에 걸린 서식을 그대로 비춘다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  await writeBody(page, "굵은 앞부분과 보통인 뒷부분이 한 줄에 있습니다.");
+
+  const bold = page.getByRole("button", { name: "굵게" });
+  const size = page.getByLabel("글자 크기");
+
+  await selectRange(page, 0, 6);
+  await bold.click();
+  await expect(bold).toHaveAttribute("aria-pressed", "true");
+
+  // 서식이 걸리지 않은 자리로 옮기면 눌림이 풀린다.
+  await selectRange(page, 20, 26);
+  await expect(bold).toHaveAttribute("aria-pressed", "false");
+
+  // 굵은 자리로 돌아오면 다시 눌려 있다.
+  await selectRange(page, 1, 5);
+  await expect(bold).toHaveAttribute("aria-pressed", "true");
+
+  // 크기 칸도 마찬가지다. 드롭다운을 거쳐도 고른 자리를 잃지 않아야
+  // 고른 글에만 크기가 걸린다.
+  await expect(size).toContainText("15");
+  await selectRange(page, 0, 6);
+  await size.click();
+  await page.getByRole("option", { name: "24", exact: true }).click();
+  await expect(size).toContainText("24");
+  await expect(page.getByTestId("note-body")).toContainText("굵은 앞부분");
+
+  await selectRange(page, 20, 26);
+  await expect(size).toContainText("15");
+});

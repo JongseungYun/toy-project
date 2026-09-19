@@ -31,3 +31,83 @@ export function applyFontSize(editor: HTMLElement, px: string) {
     node.replaceWith(span);
   });
 }
+
+/** 지금 고른 자리에 걸려 있는 서식. 도구 막대가 이것을 그대로 비춘다. */
+export type FormatState = {
+  /** 켜져 있는 명령. queryCommandState가 참을 준 것만 담는다. */
+  on: Record<string, boolean>;
+  font: string;
+  size: string;
+};
+
+/** 눌림 여부를 물어볼 수 있는 명령들. */
+export const STATE_COMMANDS = [
+  "bold",
+  "italic",
+  "underline",
+  "strikeThrough",
+  "insertUnorderedList",
+  "insertOrderedList",
+  "justifyLeft",
+  "justifyCenter",
+  "justifyRight",
+] as const;
+
+/** 본문이 아무 서식도 걸치지 않았을 때의 모습. 편집 영역의 기본값과 같다. */
+export const DEFAULT_FONT = FONT_OPTIONS[0].value;
+export const DEFAULT_SIZE = "15";
+
+/** 글꼴 이름은 따옴표와 띄어쓰기가 브라우저마다 달라, 견줄 수 있게 다듬는다. */
+function normalize(value: string) {
+  return value.replace(/['"]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/**
+ * 고른 자리에서 위로 올라가며 인라인 style에 적힌 값을 찾는다.
+ * 서식을 넣을 때 우리가 직접 적어 둔 값이라, 계산된 값보다 되읽기가 정확하다.
+ */
+function inlineValue(
+  editor: HTMLElement,
+  node: Node | null,
+  prop: "fontFamily" | "fontSize",
+): string | null {
+  let el =
+    node?.nodeType === Node.TEXT_NODE
+      ? node.parentElement
+      : (node as HTMLElement | null);
+
+  while (el && editor.contains(el)) {
+    const value = el.style?.[prop];
+    if (value) return value;
+    if (el === editor) break;
+    el = el.parentElement;
+  }
+  return null;
+}
+
+export function readFormatState(editor: HTMLElement): FormatState {
+  const on: Record<string, boolean> = {};
+  for (const command of STATE_COMMANDS) {
+    try {
+      on[command] = document.queryCommandState(command);
+    } catch {
+      // 브라우저가 모르는 명령이면 꺼진 것으로 둔다.
+      on[command] = false;
+    }
+  }
+
+  const node = window.getSelection()?.anchorNode ?? null;
+
+  const family = inlineValue(editor, node, "fontFamily");
+  const font =
+    FONT_OPTIONS.find(
+      (option) => family && normalize(option.value) === normalize(family),
+    )?.value ?? DEFAULT_FONT;
+
+  const px = inlineValue(editor, node, "fontSize")?.replace("px", "").trim();
+  // 서식 메뉴가 넣은 크기는 언제나 목록 안에 있다. 붙여넣기로 들어온 낯선
+  // 값이면 기본 크기로 보여 준다.
+  const size = px && SIZE_OPTIONS.includes(px as never) ? px : DEFAULT_SIZE;
+
+  return { on, font, size };
+}
