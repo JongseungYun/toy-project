@@ -155,8 +155,13 @@ export function FormatBar({
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
+            {/* 이름만으로는 고르기 어렵다. 각 줄을 그 글꼴로 보여 준다. */}
             {FONT_OPTIONS.map((font) => (
-              <SelectItem key={font.label} value={font.value}>
+              <SelectItem
+                key={font.label}
+                value={font.value}
+                style={{ fontFamily: font.value }}
+              >
                 {font.label}
               </SelectItem>
             ))}
