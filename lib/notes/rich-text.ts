@@ -1,14 +1,40 @@
 // 일반 문서의 서식. contentEditable 위에서 브라우저가 제공하는 편집 명령을 쓰고,
 // 결과는 인라인 style로 남아 그대로 저장된다.
 
+/**
+ * 고를 수 있는 글꼴. 값은 브라우저가 실제로 쓸 글꼴 차례다.
+ *
+ * 이미 쓴 노트에는 이 값이 그대로 박혀 있다. 되읽을 때 견주는 것도 이 값이라,
+ * 한 번 내보낸 value는 바꾸지 않고 새 줄만 더한다.
+ *
+ * 웹폰트를 새로 받아오지 않고 기기에 있는 글꼴에 기댄다. 한 벌 더 받는 값이
+ * 글꼴 넷을 더하는 값보다 크고, 기기마다 조금씩 달라 보이는 것은 문서 글꼴을
+ * 고르는 일에서 받아들일 만하다.
+ */
 export const FONT_OPTIONS = [
   { label: "본고딕", value: "'Noto Sans KR', 'Malgun Gothic', sans-serif" },
+  { label: "나눔고딕", value: "'Nanum Gothic', 'Apple SD Gothic Neo', sans-serif" },
   { label: "나눔명조", value: "'Nanum Myeongjo', 'Batang', serif" },
+  { label: "궁서", value: "Gungsuh, 'AppleMyungjo', serif" },
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
   { label: "Georgia", value: "Georgia, serif" },
+  { label: "Times", value: "'Times New Roman', Times, serif" },
   { label: "코드용 고정폭", value: "var(--font-geist-mono), monospace" },
 ] as const;
 
-export const SIZE_OPTIONS = ["14", "15", "17", "20", "24"] as const;
+/** 작은 주석부터 표지 제목까지 한 줄에서 고를 수 있게 둔다. 기본은 15다. */
+export const SIZE_OPTIONS = [
+  "11",
+  "12",
+  "14",
+  "15",
+  "17",
+  "20",
+  "24",
+  "30",
+  "36",
+  "48",
+] as const;
 
 /** 굵게·기울임·목록·정렬처럼 값이 없거나 단순한 명령. */
 export function applyCommand(command: string, value?: string) {
