@@ -45,6 +45,8 @@ export interface Note {
   folderId?: string | null;
   /** 노트마다 하나. { kind: 'color' } 또는 { kind: 'image' }. */
   background?: unknown;
+  /** 읽기 전용 공유 링크의 열쇠. null이면 지금 공유하고 있지 않다. */
+  shareToken?: string | null;
 }
 
 // 목록에 필요한 만큼만 담는다. 본문 전체는 노트를 열 때 읽는다.

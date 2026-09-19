@@ -138,6 +138,7 @@ export interface Messages {
     currentPlace: string;
     noteCount: string;
     childFolderCount: string;
+    dropHere: string;
   };
   trash: {
     title: string;
@@ -181,6 +182,31 @@ export interface Messages {
     defaultPick: string;
     currentDefault: string;
     uploadedImage: string;
+  };
+  share: {
+    action: string;
+    title: string;
+    body: string;
+    start: string;
+    stop: string;
+    close: string;
+    copy: string;
+    copied: string;
+    copyFailed: string;
+    linkLabel: string;
+    on: string;
+    onHint: string;
+    offHint: string;
+    failed: string;
+    readOnly: string;
+    missingTitle: string;
+    missingBody: string;
+    madeWith: string;
+    tryApp: string;
+  };
+  export: {
+    action: string;
+    failed: string;
   };
   settings: {
     title: string;

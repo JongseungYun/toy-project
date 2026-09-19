@@ -1,7 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+// 로그인하지 않아도 열리는 곳. 공유 링크는 받은 사람이 계정 없이 여는 화면이다.
+const OPEN_PATHS = ["/login", "/signup", "/auth", "/share"];
+
+// 이미 로그인한 사람이 다시 볼 이유가 없는 곳. 들어오면 보관함으로 보낸다.
+// 공유 링크는 여기 없다. 내 계정으로 로그인한 채 남의 링크를 열 수 있어야 한다.
+const ENTRY_PATHS = ["/login", "/signup"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -42,18 +47,18 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
 
-  const isPublicPath = PUBLIC_PATHS.some((path) =>
-    request.nextUrl.pathname.startsWith(path),
-  );
+  const { pathname } = request.nextUrl;
+  const isOpen = OPEN_PATHS.some((path) => pathname.startsWith(path));
+  const isEntry = ENTRY_PATHS.some((path) => pathname.startsWith(path));
 
-  if (!user && !isPublicPath) {
+  if (!user && !isOpen) {
     // no user, redirect to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublicPath && !request.nextUrl.pathname.startsWith("/auth")) {
+  if (user && isEntry) {
     // already signed in, no reason to see the login/signup screens again
     const url = request.nextUrl.clone();
     url.pathname = "/";

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { FolderIcon, NotePencilIcon, PlusIcon } from "@phosphor-icons/react/ssr";
 import { displayName } from "@/lib/account/profile";
+import { imagePathsOf } from "@/lib/notes/background";
+import { signBackgroundUrls } from "@/lib/notes/background-actions";
 import { folderPath, listFolders } from "@/lib/notes/folders";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
@@ -39,6 +41,10 @@ export default async function LibraryPage({
     listNotes(sort, folderId),
   ]);
 
+  // 썸네일도 노트와 같은 배경을 입는다. 이미지 배경은 비공개 버킷에 있어
+  // 서명된 주소가 필요하므로, 목록에 나온 것을 한 번에 받는다.
+  const backgroundUrls = await signBackgroundUrls(imagePathsOf(notes));
+
   // 경로를 되짚지 못하면 사라졌거나 휴지통에 들어간 폴더다. 뿌리로 본다.
   const here = crumbs[crumbs.length - 1].id;
   const empty = folders.length === 0 && notes.length === 0;
@@ -52,6 +58,7 @@ export default async function LibraryPage({
       folders={folders}
       notes={notes}
       sort={sort}
+      backgroundUrls={backgroundUrls}
     >
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         {empty ? (

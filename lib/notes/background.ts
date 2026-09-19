@@ -67,6 +67,27 @@ export function backgroundStyle(
   };
 }
 
+/**
+ * 목록에 있는 배경들 중 이미지 경로만 골라낸다. 서명된 주소를 한 번에 받아
+ * 목록이 이미지 수만큼 왕복하지 않게 하려는 것이다.
+ */
+export function imagePathsOf(items: { background?: unknown }[]): string[] {
+  const paths = new Set<string>();
+  for (const item of items) {
+    const background = parseBackground(item.background);
+    if (background.kind === "image") paths.add(background.path);
+  }
+  return [...paths];
+}
+
+/** 한꺼번에 받아 둔 주소 중 이 배경의 것. 색 배경이면 주소가 필요 없다. */
+export function imageUrlOf(
+  background: NoteBackground,
+  urls: Record<string, string>,
+): string | null {
+  return background.kind === "image" ? (urls[background.path] ?? null) : null;
+}
+
 export type RejectReason = "type" | "size";
 
 /**

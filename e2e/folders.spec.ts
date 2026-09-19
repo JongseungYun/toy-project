@@ -287,3 +287,35 @@ test("정렬 기준과 뒤집기가 폴더 안에서도 동작한다", async ({ 
   await expect(items.first()).toContainText("다 노트");
   await expect(items.nth(2)).toContainText("가 노트");
 });
+
+test("노트를 끌어다 폴더로 옮기고, 경로로 끌어 다시 꺼낸다", async ({ page }) => {
+  await signUpAndEnter(page);
+
+  await makeFolder(page, "옮길 곳");
+  await createDocNote(page);
+  await writeNote(page, "끌어 옮길 노트");
+
+  await page.goto("/");
+  const note = page.getByTestId("note-item").filter({ hasText: "끌어 옮길 노트" });
+  await note.dragTo(page.getByTestId("folder-item").filter({ hasText: "옮길 곳" }));
+
+  // 보관함 뿌리에서 사라지고 폴더 안에 들어가 있다
+  await expect(page.getByTestId("note-item")).toHaveCount(0, SAVED);
+  await openFolder(page, "옮길 곳");
+  await expect(
+    page.getByTestId("note-item").filter({ hasText: "끌어 옮길 노트" }),
+  ).toBeVisible();
+
+  // 상단 경로로 끌어 놓으면 다시 뿌리로 나온다
+  const crumbs = page.getByRole("navigation", { name: "폴더 경로" });
+  await page
+    .getByTestId("note-item")
+    .filter({ hasText: "끌어 옮길 노트" })
+    .dragTo(crumbs.getByRole("link", { name: "내 노트" }));
+
+  await expect(page.getByTestId("note-item")).toHaveCount(0, SAVED);
+  await page.goto("/");
+  await expect(
+    page.getByTestId("note-item").filter({ hasText: "끌어 옮길 노트" }),
+  ).toBeVisible();
+});

@@ -31,6 +31,7 @@ export function LibraryShell({
   folders,
   notes,
   sort,
+  backgroundUrls,
   activeNoteId,
   narrow = "list",
   t,
@@ -44,6 +45,8 @@ export function LibraryShell({
   folders: FolderSummary[];
   notes: NoteSummary[];
   sort: ResolvedSort;
+  /** 이미지 배경의 서명된 주소. 목록 썸네일이 노트와 같은 배경을 입는 데 쓴다. */
+  backgroundUrls: Record<string, string>;
   activeNoteId?: string;
   narrow?: NarrowPane;
   children: React.ReactNode;
@@ -109,6 +112,7 @@ export function LibraryShell({
                 key={note.id}
                 note={note}
                 active={note.id === activeNoteId}
+                backgroundUrls={backgroundUrls}
                 t={t}
                 locale={locale}
               />

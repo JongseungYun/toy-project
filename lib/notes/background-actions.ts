@@ -63,13 +63,23 @@ export async function setDefaultBackground(raw: unknown) {
 /**
  * 비공개 버킷의 이미지를 화면에 띄우려면 서명된 주소가 필요하다.
  * 만료되면 다음 렌더에서 새로 받는다.
+ *
+ * 한 화면이 여러 장을 쓴다. 노트 본문의 배경 하나와 좌측 목록의 썸네일들이
+ * 모두 이미지일 수 있어, 경로를 모아 한 번에 서명받는다.
  */
-export async function signBackgroundUrl(path: string): Promise<string | null> {
-  const { supabase } = await session();
+export async function signBackgroundUrls(
+  paths: string[],
+): Promise<Record<string, string>> {
+  if (paths.length === 0) return {};
 
+  const { supabase } = await session();
   const { data } = await supabase.storage
     .from(BACKGROUND_BUCKET)
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrls(paths, 60 * 60);
 
-  return data?.signedUrl ?? null;
+  const urls: Record<string, string> = {};
+  for (const entry of data ?? []) {
+    if (entry.path && entry.signedUrl) urls[entry.path] = entry.signedUrl;
+  }
+  return urls;
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeftIcon, TrashIcon } from "@phosphor-icons/react/ssr";
 import { displayName } from "@/lib/account/profile";
+import { imagePathsOf } from "@/lib/notes/background";
+import { signBackgroundUrls } from "@/lib/notes/background-actions";
 import { folderPath, listFolders } from "@/lib/notes/folders";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
@@ -41,6 +43,9 @@ export default async function TrashPage({
     listTrash(),
   ]);
 
+  // 좌측 목록은 보관함과 같은 것을 보여준다. 썸네일의 배경도 같아야 한다.
+  const backgroundUrls = await signBackgroundUrls(imagePathsOf(notes));
+
   return (
     <LibraryShell
       displayName={name}
@@ -50,6 +55,7 @@ export default async function TrashPage({
       folders={folders}
       notes={notes}
       sort={sort}
+      backgroundUrls={backgroundUrls}
       narrow="detail"
     >
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">

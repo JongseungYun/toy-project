@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { displayName } from "@/lib/account/profile";
-import { backgroundStyle, parseBackground } from "@/lib/notes/background";
-import { signBackgroundUrl } from "@/lib/notes/background-actions";
+import {
+  backgroundStyle,
+  imagePathsOf,
+  imageUrlOf,
+  parseBackground,
+} from "@/lib/notes/background";
+import { signBackgroundUrls } from "@/lib/notes/background-actions";
 import { displayTitle } from "@/lib/notes/display";
 import { folderPath, listAllFolders, listFolders } from "@/lib/notes/folders";
 import { getNote, listNotes } from "@/lib/notes/queries";
@@ -44,20 +49,24 @@ export default async function NotePage({
 
   // 좌측 목록은 이 노트가 담겨 있는 폴더의 내용을 보여준다.
   const folderId = note.folderId ?? null;
-  // 배경 이미지는 비공개 버킷에 있으므로 여기서 서명된 주소를 받아 넘긴다.
   const background = parseBackground(note.background);
 
   // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
-  const [name, crumbs, folders, notes, allFolders, imageUrl] = await Promise.all([
+  const [name, crumbs, folders, notes, allFolders] = await Promise.all([
     displayName(),
     folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
     listAllFolders(),
-    background.kind === "image" ? signBackgroundUrl(background.path) : null,
   ]);
 
-  const surface = backgroundStyle(background, imageUrl);
+  // 배경 이미지는 비공개 버킷에 있어 서명된 주소가 필요하다. 여는 노트와
+  // 좌측 목록의 썸네일이 쓰는 것을 한 번에 받는다.
+  const backgroundUrls = await signBackgroundUrls(
+    imagePathsOf([...notes, { background: note.background }]),
+  );
+
+  const surface = backgroundStyle(background, imageUrlOf(background, backgroundUrls));
 
   const actions = (
     <NoteActions
@@ -65,6 +74,7 @@ export default async function NotePage({
       folderId={folderId}
       folders={allFolders}
       background={background}
+      shareToken={note.shareToken ?? null}
     />
   );
 
@@ -77,6 +87,7 @@ export default async function NotePage({
       folders={folders}
       notes={notes}
       sort={sort}
+      backgroundUrls={backgroundUrls}
       activeNoteId={note.id}
       narrow="detail"
     >

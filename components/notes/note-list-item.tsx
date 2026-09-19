@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { displayTitle, formatLabel, formatUpdatedAt } from "@/lib/notes/display";
@@ -6,6 +8,12 @@ import {
   CANVAS_WIDTH,
   parseCanvasElements,
 } from "@/lib/notes/canvas";
+import {
+  backgroundStyle,
+  imageUrlOf,
+  parseBackground,
+} from "@/lib/notes/background";
+import { NOTE_DRAG_TYPE } from "@/lib/notes/drag";
 import type { NoteSummary } from "@/lib/notes/types";
 import type { Messages } from "@/lib/i18n/messages";
 import { CanvasShape } from "@/components/notes/canvas-figure";
@@ -39,31 +47,51 @@ function CanvasThumb({ preview }: { preview: string }) {
 
 /**
  * 좌측 목록의 노트 한 줄. 제목, 형식, 마지막 수정 시점, 내용 미리보기를 함께 보여준다.
+ *
+ * 썸네일은 노트가 쓰고 있는 배경을 그대로 입는다. 배경을 바꾸면 여는 화면과
+ * 목록이 같은 것을 보여주어야 어느 노트를 고르는지 눈으로 찾을 수 있다.
+ *
+ * 폴더로 끌어다 놓아 옮길 수 있다. 끌기를 쓸 수 없는 기기에서는 머리말의
+ * 옮기기 창이 같은 일을 한다.
  */
 export function NoteListItem({
   note,
   active,
+  backgroundUrls,
   t,
   locale,
 }: {
   note: NoteSummary;
   active: boolean;
+  /** 이미지 배경의 서명된 주소. 경로를 열쇠로 한 화면이 한 번에 받아 둔 것이다. */
+  backgroundUrls: Record<string, string>;
   t: Messages;
   locale: string;
 }) {
   const title = displayTitle(note, t);
+  const background = parseBackground(note.background);
+  const surface = backgroundStyle(background, imageUrlOf(background, backgroundUrls));
 
   return (
     <Link
       href={`/notes/${note.id}`}
       data-testid="note-item"
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.setData(NOTE_DRAG_TYPE, note.id);
+        event.dataTransfer.effectAllowed = "move";
+      }}
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex w-full items-center gap-2.5 rounded-xl border border-transparent p-1.5 text-left transition-colors hover:bg-sidebar-accent",
         active && "border-sidebar-border bg-sidebar-accent",
       )}
     >
-      <span className="flex size-14 flex-none overflow-hidden rounded-md border border-sidebar-border bg-card">
+      <span
+        style={surface}
+        data-testid="note-thumb"
+        className="flex size-14 flex-none overflow-hidden rounded-md border border-sidebar-border bg-card"
+      >
         {note.format === "canvas" ? (
           <CanvasThumb preview={note.preview} />
         ) : (

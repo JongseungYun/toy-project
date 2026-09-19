@@ -25,8 +25,35 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useNoteDrop } from "@/components/notes/use-note-drop";
 import { useMessages } from "@/components/i18n-provider";
+import { cn } from "@/lib/utils";
 import { format } from "@/lib/i18n/messages";
+
+/**
+ * 지나온 폴더 한 칸. 누르면 그리로 올라가고, 노트를 끌어다 놓으면 그 폴더로
+ * 옮긴다. 폴더 줄로는 안으로만 넣을 수 있어, 꺼내는 자리를 여기에 둔다.
+ */
+function CrumbLink({ crumb }: { crumb: Crumb }) {
+  const t = useMessages();
+  const { over, pending, dropProps } = useNoteDrop(crumb.id);
+
+  return (
+    <Link
+      href={crumb.id ? `/?folder=${crumb.id}` : "/"}
+      title={t.folder.dropHere}
+      data-dropping={over || undefined}
+      {...dropProps}
+      className={cn(
+        "truncate rounded-sm border border-transparent px-1.5 py-0.5 text-muted-foreground hover:bg-sidebar-accent",
+        over && "border-ring bg-sidebar-accent text-foreground",
+        pending && "opacity-60",
+      )}
+    >
+      {crumb.name}
+    </Link>
+  );
+}
 
 /**
  * 상단 경로와 폴더 도구. 프로토타입이 정한 경로 표시에, 폴더를 만들고 지우는
@@ -62,12 +89,7 @@ export function FolderBar({ crumbs }: { crumbs: Crumb[] }) {
               {last ? (
                 <span className="truncate px-1.5 py-0.5 font-semibold">{crumb.name}</span>
               ) : (
-                <Link
-                  href={crumb.id ? `/?folder=${crumb.id}` : "/"}
-                  className="truncate rounded-sm px-1.5 py-0.5 text-muted-foreground hover:bg-sidebar-accent"
-                >
-                  {crumb.name}
-                </Link>
+                <CrumbLink crumb={crumb} />
               )}
             </span>
           );

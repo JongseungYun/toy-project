@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { previewFromMarkdown } from "@/lib/notes/display";
 import type { MarkdownContent, Note, NoteContent } from "@/lib/notes/types";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
@@ -102,6 +103,7 @@ export function MarkdownEditor({
           <EyeIcon className="size-4" />
           {t.markdown.viewer}
         </button>
+        <ExportButton format={note.format} title={autosave.title} read={readDraft} />
         {actions}
         </>
       }

@@ -194,3 +194,23 @@ async function signUpViaApi(request: APIRequestContext, username: string) {
   const body = await response.json();
   return { accessToken: body.access_token as string };
 }
+
+test("배경을 바꾸면 좌측 목록의 썸네일도 같은 배경이 된다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createNote(page, "일반 문서");
+
+  const thumb = page.getByTestId("note-thumb").first();
+  await expect(thumb).toHaveCSS("background-color", "rgb(255, 255, 255)", {
+    timeout: 20_000,
+  });
+
+  await pickColor(page, "크림", CREAM);
+  await expect(thumb).toHaveCSS("background-color", CREAM, { timeout: 20_000 });
+
+  // 보관함으로 나가도 같은 배경이다
+  await page.goto("/");
+  await expect(page.getByTestId("note-thumb").first()).toHaveCSS(
+    "background-color",
+    CREAM,
+  );
+});

@@ -17,6 +17,7 @@ import type { CanvasContent, Note, NoteContent } from "@/lib/notes/types";
 import { CanvasShape } from "@/components/notes/canvas-figure";
 import { DrawBar } from "@/components/notes/draw-bar";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
@@ -214,6 +215,7 @@ export function CanvasEditor({
         >
           <ArrowCounterClockwiseIcon className="size-4" />
         </button>
+        <ExportButton format={note.format} title={autosave.title} read={readDraft} />
         {actions}
         </>
       }

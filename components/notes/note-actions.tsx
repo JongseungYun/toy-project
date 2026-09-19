@@ -6,6 +6,7 @@ import { moveNote, trashNote } from "@/lib/notes/folder-actions";
 import { setNoteBackground } from "@/lib/notes/background-actions";
 import type { NoteBackground } from "@/lib/notes/background";
 import { BackgroundPicker } from "@/components/notes/background-picker";
+import { ShareButton } from "@/components/notes/share-button";
 import { useMessages } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,19 +31,22 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * 노트 머리말의 폴더·휴지통 도구. 프로토타입의 머리말에 있는 휴지통 버튼에,
- * 노트를 다른 폴더로 옮기는 자리를 함께 둔다.
+ * 노트 머리말의 배경·공유·폴더·휴지통 도구. 프로토타입의 머리말에 있는 휴지통
+ * 버튼에, 노트를 다른 폴더로 옮기는 자리와 읽기 전용 링크를 함께 둔다.
  */
 export function NoteActions({
   noteId,
   folderId,
   folders,
   background,
+  shareToken,
 }: {
   noteId: string;
   folderId: string | null;
   folders: { id: string; label: string }[];
   background: NoteBackground;
+  /** 지금 공유 중이면 그 열쇠. 없으면 아직 링크를 열지 않은 노트다. */
+  shareToken: string | null;
 }) {
   const t = useMessages();
   const [moving, setMoving] = useState(false);
@@ -66,6 +70,8 @@ export function NoteActions({
         background={background}
         onChange={(next) => setNoteBackground(noteId, next)}
       />
+
+      <ShareButton noteId={noteId} shareToken={shareToken} />
 
       <Button
         variant="outline"

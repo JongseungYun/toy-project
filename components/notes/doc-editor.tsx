@@ -6,6 +6,7 @@ import { previewFromHtml } from "@/lib/notes/display";
 import type { DocContent, Note, NoteContent } from "@/lib/notes/types";
 import { FormatBar } from "@/components/notes/format-bar";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
@@ -56,7 +57,12 @@ export function DocEditor({
       remote={autosave.remote}
       onTakeRemote={autosave.takeRemote}
       onKeepMine={autosave.keepMine}
-      actions={actions}
+      actions={
+        <>
+          <ExportButton format={note.format} title={autosave.title} read={readDraft} />
+          {actions}
+        </>
+      }
     >
       <div className="min-h-0 flex-1 overflow-y-auto bg-muted/40 p-4 sm:p-6">
         <div
