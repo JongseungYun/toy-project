@@ -8,11 +8,9 @@ const SAVED = { timeout: 20_000 };
 async function writeAndSave(page: Page, text: string) {
   await page.getByTestId("note-body").click();
   await page.keyboard.type(text);
-  await expect(page.getByTestId("save-state")).toHaveAttribute(
-    "data-state",
-    "saved",
-    SAVED,
-  );
+  await expect(page.getByTestId("note-body")).toContainText(text);
+  // 초기에도 saved이므로, 저장 성공 후 새로 그려지는 목록으로 확인한다.
+  await expect(page.getByTestId("note-item").filter({ hasText: text })).toBeVisible(SAVED);
 }
 
 test("읽기 전용 링크로 공유하고, 끄면 그 링크가 닫힌다", async ({ page, browser }) => {
@@ -27,7 +25,7 @@ test("읽기 전용 링크로 공유하고, 끄면 그 링크가 닫힌다", asy
   expect(link).toContain("/share/");
 
   // 로그인하지 않은 다른 브라우저에서 열린다
-  const guest = await browser.newContext();
+  const guest = await browser.newContext({ locale: "ko-KR" });
   const guestPage = await guest.newPage();
   await guestPage.goto(link);
 
@@ -50,7 +48,7 @@ test("읽기 전용 링크로 공유하고, 끄면 그 링크가 닫힌다", asy
 });
 
 test("없는 링크는 존재 여부를 알리지 않고 같은 화면을 보여준다", async ({ browser }) => {
-  const guest = await browser.newContext();
+  const guest = await browser.newContext({ locale: "ko-KR" });
   const guestPage = await guest.newPage();
 
   // 열쇠 모양이지만 없는 것, 열쇠 모양도 아닌 것 모두 같은 화면이다
@@ -77,6 +75,20 @@ test("일반 문서를 서식이 살아 있는 HTML 파일로 내보낸다", asy
   const file = readFileSync((await download.path())!, "utf-8");
   expect(file).toContain("내보낼 회의록");
   expect(file).toContain("<!doctype html>");
+});
+
+test("Markdown은 저장 전의 원문도 MD 파일로 내보낸다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await page.getByRole("button", { name: "새 노트 만들기" }).first().click();
+  await page.getByRole("button", { name: "Markdown" }).click();
+  await page.waitForURL(/\/notes\//);
+  const source = "# 내보낼 Markdown\n\n- 저장 전 원문";
+  await page.getByTestId("note-body").fill(source);
+  const downloading = page.waitForEvent("download");
+  await page.getByTestId("export-note").click();
+  const download = await downloading;
+  expect(download.suggestedFilename()).toBe("내보낼 Markdown.md");
+  expect(readFileSync((await download.path())!, "utf-8")).toBe(source);
 });
 
 test("그림판은 그린 도형을 그대로 담은 SVG 파일로 내보낸다", async ({ page }) => {
