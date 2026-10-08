@@ -9,6 +9,7 @@ import { NoteFrame } from "@/components/notes/note-frame";
 import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
+import { normalizeDocHtml, plainTextHtml, restoreDocFormatting } from "@/lib/notes/doc-formatting";
 
 function htmlOf(content: NoteContent): string {
   return (content as DocContent).html ?? "";
@@ -32,6 +33,7 @@ export function DocEditor({
   // 그 뒤로는 손대지 않아야 새로 그려질 때 쓰던 내용이 날아가지 않는다.
   const [initialHtml] = useState(() => htmlOf(note.content));
   const editorRef = useRef<HTMLDivElement>(null);
+  const plainPaste = useRef(false);
 
   const readDraft = useCallback(() => {
     const html = editorRef.current?.innerHTML ?? "";
@@ -74,6 +76,33 @@ export function DocEditor({
           aria-label={t.note.bodyLabel}
           data-testid="note-body"
           onInput={autosave.scheduleSave}
+          onKeyDown={(event) => {
+            plainPaste.current = (event.ctrlKey || event.metaKey) && event.shiftKey;
+            if (event.ctrlKey || event.metaKey) {
+              const key = event.key.toLowerCase();
+              if ((key === "z" || key === "y") && restoreDocFormatting(event.currentTarget, key === "y" || event.shiftKey)) {
+                event.preventDefault();
+                autosave.scheduleSave();
+              }
+            }
+          }}
+          onKeyUp={() => { plainPaste.current = false; }}
+          onBeforeInput={(event) => {
+            const inputType = (event.nativeEvent as InputEvent).inputType;
+            if ((inputType === "historyUndo" || inputType === "historyRedo") && restoreDocFormatting(event.currentTarget, inputType === "historyRedo")) {
+              event.preventDefault();
+              autosave.scheduleSave();
+            }
+          }}
+          onPaste={(event) => {
+            event.preventDefault();
+            const html = event.clipboardData.getData("text/html");
+            const text = event.clipboardData.getData("text/plain");
+            const content = html && !plainPaste.current ? normalizeDocHtml(html) : plainTextHtml(text);
+            plainPaste.current = false;
+            document.execCommand("insertHTML", false, content);
+            autosave.scheduleSave();
+          }}
           style={surface}
           className="prose-note mx-auto min-h-full max-w-3xl rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
           dangerouslySetInnerHTML={{ __html: initialHtml }}

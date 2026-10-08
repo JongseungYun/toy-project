@@ -86,6 +86,10 @@ export interface Messages {
     font: string;
     size: string;
     color: string;
+    highlight: string;
+    clear: string;
+    clearHint: string;
+    plainPaste: string;
     bold: string;
     italic: string;
     underline: string;

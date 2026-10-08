@@ -237,6 +237,105 @@ async function selectRange(page: Page, from: number, to: number) {
   );
 }
 
+test("글자 배경색은 고른 글에 적용되고 다시 열어도 남는다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  await writeBody(page, "강조할 글과 보통 글");
+
+  const body = page.getByTestId("note-body");
+  await selectRange(page, 0, 5);
+  await page.getByLabel("글자 색", { exact: true }).fill("#0055aa");
+  await selectRange(page, 0, 5);
+  await page.getByLabel("글자 배경색", { exact: true }).fill("#ffeb3b");
+
+  async function expectHighlight() {
+    const highlighted = body.locator('span[style*="background-color"]');
+    await expect(highlighted).toHaveText("강조할 글");
+    await expect(highlighted).toHaveCSS("background-color", "rgb(255, 235, 59)");
+    await expect(highlighted).toHaveCSS("color", "rgb(0, 85, 170)");
+    await expect(body).toContainText("강조할 글과 보통 글");
+  }
+
+  await expectHighlight();
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-saved-count", /[1-9]\d*/, SAVED);
+  await page.reload();
+  await expectHighlight();
+});
+
+async function pasteDoc(page: Page, html: string, text: string) {
+  await page.getByTestId("note-body").evaluate((editor, content) => {
+    const clipboard = new DataTransfer();
+    clipboard.setData("text/html", content.html);
+    clipboard.setData("text/plain", content.text);
+    editor.dispatchEvent(new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }));
+  }, { html, text });
+}
+
+test("붙여넣은 목록은 외부 문단 배경 없이 들어오고 글자 서식을 다시 바꿀 수 있다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  const body = page.getByTestId("note-body");
+  await body.click();
+  await pasteDoc(page, '<ul style="background:#181818;padding:40px;color:#ccc"><li><strong>첫 항목</strong></li><li>다음 항목</li></ul>', "첫 항목\n다음 항목");
+  await expect(body.locator("li")).toHaveCount(2);
+  await expect(body.locator("strong")).toHaveText("첫 항목");
+  await expect(body.locator("ul")).not.toHaveAttribute("style", /background|padding/);
+  await selectRange(page, 0, 4);
+  await page.getByLabel("글자 색", { exact: true }).fill("#0055aa");
+  await expect(body.locator("li").first()).toContainText("첫 항목");
+  await expect(body.locator("strong")).toHaveCSS("color", "rgb(0, 85, 170)");
+});
+
+test("서식 없이 붙여넣기는 글과 개행만 가져온다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  const body = page.getByTestId("note-body");
+  await body.click();
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.evaluate(async () => {
+    await navigator.clipboard.write([new ClipboardItem({
+      "text/html": new Blob(['<b style="color:red">첫 줄</b><p>다음 줄</p>'], { type: "text/html" }),
+      "text/plain": new Blob(["첫 줄\n다음 줄"], { type: "text/plain" }),
+    })]);
+  });
+  await body.press("Control+Shift+V");
+  await expect(body).toContainText("첫 줄");
+  await expect(body).toContainText("다음 줄");
+  await expect(body.locator("b,strong,[style]")).toHaveCount(0);
+  await expect(body.locator("br")).toHaveCount(1);
+});
+
+test("기존 목록의 서식을 지워도 다른 항목과 개행은 보존되고 되돌리기와 저장이 된다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  const body = page.getByTestId("note-body");
+  await body.click();
+  // 붙여넣기 정책 이전에 저장한 외부 HTML을 재현한다.
+  await page.evaluate(() => document.execCommand("insertHTML", false, '<ul style="background-color:rgb(24,24,24);color:white;font-size:20px"><li><strong>첫 항목</strong><br>이어짐</li><li><em>다음 항목</em></li></ul>'));
+  await selectRange(page, 0, 4);
+  await page.getByRole("button", { name: "서식 지우기", exact: true }).click();
+  await expect(body.locator("li")).toHaveCount(2);
+  await expect(body.locator("li").first().locator("strong,[style]")).toHaveCount(0);
+  await expect(body.locator("li").first()).not.toHaveAttribute("style", /background|color|font/);
+  await expect(body.locator("li").first().locator("br")).toHaveCount(1);
+  await expect(body.locator("li").nth(1)).toHaveCSS("background-color", "rgb(24, 24, 24)");
+  await expect(body.locator("li").nth(1).locator("em")).toHaveText("다음 항목");
+  await body.press("Control+z");
+  await expect(body.locator("ul")).toHaveCSS("background-color", "rgb(24, 24, 24)");
+  await body.press("Control+Shift+z");
+  await expect(body.locator("li").first().locator("strong,[style]")).toHaveCount(0);
+  await body.press("Control+z");
+  await selectRange(page, 0, 4);
+  await page.getByRole("button", { name: "서식 지우기", exact: true }).click();
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-saved-count", /[1-9]\d*/, SAVED);
+  await page.reload();
+  await expect(body.locator("li")).toHaveCount(2);
+  await expect(body.locator("li").first().locator("strong,[style]")).toHaveCount(0);
+  await expect(body.locator("li").nth(1)).toHaveCSS("background-color", "rgb(24, 24, 24)");
+});
+
 test("서식 메뉴가 고른 글에 걸린 서식을 그대로 비춘다", async ({ page }) => {
   await signUpAndEnter(page);
   await createDocNote(page);

@@ -1,0 +1,1 @@
+일반 문서 화면의 Next.js `get_errors`에서 `Each child in a list should have a unique "key" prop` 경고가 확인됨(`DocEditor`, `NotePage`, `app/notes/[id]/page.tsx:72`); 색상 변경 테스트는 통과했으며, 별도 작업에서 머리말 actions 조합의 key 경고를 재현하고 확인할 것.

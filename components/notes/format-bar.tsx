@@ -12,6 +12,8 @@ import {
   TextItalicIcon,
   TextStrikethroughIcon,
   TextUnderlineIcon,
+  HighlighterIcon,
+  CaretDownIcon,
 } from "@phosphor-icons/react";
 import {
   DEFAULT_FONT,
@@ -24,7 +26,7 @@ import {
   type FormatState,
 } from "@/lib/notes/rich-text";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -34,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useMessages } from "@/components/i18n-provider";
+import { clearDocFormatting } from "@/lib/notes/doc-formatting";
 
 const TOGGLES = [
   { command: "bold", key: "bold", Icon: TextBIcon },
@@ -54,6 +57,40 @@ const ALIGNMENTS = [
 ] as const;
 
 const IDLE: FormatState = { on: {}, font: DEFAULT_FONT, size: DEFAULT_SIZE };
+
+/** 색상 입력은 그대로 쓰고, 선택한 색을 아이콘 아래의 띠로 보여 준다. */
+function ColorButton({ label, initialColor, highlight = false, onColorChange }: {
+  label: string;
+  initialColor: string;
+  highlight?: boolean;
+  onColorChange: (color: string) => void;
+}) {
+  const [color, setColor] = useState(initialColor);
+  return (
+    <label
+      title={label}
+      className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "relative cursor-pointer gap-1 px-2 focus-within:ring-2 focus-within:ring-ring")}
+    >
+      <span aria-hidden="true" className="pointer-events-none flex flex-col items-center gap-0.5">
+        {highlight ? <HighlighterIcon className="size-4" /> : <span className="text-sm leading-4 font-semibold">A</span>}
+        <span className="h-1 w-5 rounded-sm" style={{ backgroundColor: color }} />
+      </span>
+      <CaretDownIcon aria-hidden="true" className="pointer-events-none size-3" />
+      <input
+        type="color"
+        aria-label={label}
+        title={label}
+        value={color}
+        className="absolute inset-0 size-full cursor-pointer opacity-0"
+        onMouseDown={(event) => event.stopPropagation()}
+        onChange={(event) => {
+          setColor(event.target.value);
+          onColorChange(event.target.value);
+        }}
+      />
+    </label>
+  );
+}
 
 /** 누르면 켜고 끄는 서식 하나. 지금 걸려 있으면 눌린 채로 보인다. */
 function ToggleButton({
@@ -204,13 +241,16 @@ export function FormatBar({
         />
       ))}
 
-      <input
-        type="color"
-        aria-label={t.formatBar.color}
-        defaultValue="#b3123f"
-        className="size-8 cursor-pointer rounded-md border border-border bg-card p-1"
-        onMouseDown={(event) => event.stopPropagation()}
-        onChange={(event) => run(() => applyCommand("foreColor", event.target.value))}
+      <ColorButton
+        label={t.formatBar.color}
+        initialColor="#b3123f"
+        onColorChange={(color) => run(() => applyCommand("foreColor", color))}
+      />
+      <ColorButton
+        label={t.formatBar.highlight}
+        initialColor="#fff59d"
+        highlight
+        onColorChange={(color) => run(() => applyCommand("hiliteColor", color))}
       />
 
       <span className="mx-1 h-5 w-px bg-border" />
@@ -236,6 +276,20 @@ export function FormatBar({
           onRun={() => run(() => applyCommand(command))}
         />
       ))}
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        title={t.formatBar.clearHint}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => run(() => {
+          if (editorRef.current) clearDocFormatting(editorRef.current);
+        })}
+      >
+        {t.formatBar.clear}
+      </Button>
+      <span className="text-xs text-muted-foreground">{t.formatBar.plainPaste}</span>
     </div>
   );
 }
