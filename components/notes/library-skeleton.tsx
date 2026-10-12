@@ -30,7 +30,7 @@ export function LibrarySkeleton({
 }) {
   return (
     <div aria-busy="true" className="flex h-svh flex-col bg-muted p-4 sm:p-6">
-      <div className="mx-auto grid h-full w-full max-w-5xl grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none">
+      <div className="mx-auto grid h-full w-full grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none">
         <aside
           className={cn(
             "flex min-h-0 flex-col bg-sidebar sm:flex sm:border-r sm:border-sidebar-border",

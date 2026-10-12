@@ -62,7 +62,7 @@ export function LibraryShell({
     <div className="flex h-svh flex-col bg-muted p-4 sm:p-6">
       <div
         className={cn(
-          "mx-auto grid h-full w-full max-w-5xl grid-cols-1 overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none",
+          "mx-auto grid h-full w-full grid-cols-1 overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none",
           stacked ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
         )}
       >
