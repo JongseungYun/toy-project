@@ -72,7 +72,7 @@ export function NoteReader({
     <div
       data-testid="shared-body"
       style={surface}
-      className="p-5 text-[15px] leading-7 sm:p-8"
+      className="doc-list-markers p-5 text-[15px] leading-7 sm:p-8"
       dangerouslySetInnerHTML={{
         __html: sanitizeHtml((content as DocContent).html ?? ""),
       }}

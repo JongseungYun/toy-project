@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useRef, useState } from "react";
 import { previewFromHtml } from "@/lib/notes/display";
+import { applyCommand } from "@/lib/notes/rich-text";
 import type { DocContent, Note, NoteContent } from "@/lib/notes/types";
 import { FormatBar } from "@/components/notes/format-bar";
 import { NoteFrame } from "@/components/notes/note-frame";
@@ -78,6 +79,23 @@ export function DocEditor({
           onInput={autosave.scheduleSave}
           onKeyDown={(event) => {
             plainPaste.current = (event.ctrlKey || event.metaKey) && event.shiftKey;
+            if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing) {
+              const selection = window.getSelection();
+              const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+              const inListItem = (node: Node) => {
+                const element = node instanceof Element ? node : node.parentElement;
+                const item = element?.closest("li");
+                return item && event.currentTarget.contains(item);
+              };
+              // 목록 안에서만 Tab을 편집 명령으로 쓴다. 일반 문단에서는
+              // 브라우저의 다음/이전 컨트롤로 이동하는 동작을 그대로 둔다.
+              if (range && inListItem(range.startContainer) && inListItem(range.endContainer)) {
+                event.preventDefault();
+                applyCommand(event.shiftKey ? "outdent" : "indent");
+                autosave.scheduleSave();
+                return;
+              }
+            }
             if (event.ctrlKey || event.metaKey) {
               const key = event.key.toLowerCase();
               if ((key === "z" || key === "y") && restoreDocFormatting(event.currentTarget, key === "y" || event.shiftKey)) {
@@ -104,7 +122,7 @@ export function DocEditor({
             autosave.scheduleSave();
           }}
           style={surface}
-          className="prose-note mx-auto min-h-full max-w-3xl rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
+          className="prose-note doc-list-markers mx-auto min-h-full max-w-3xl rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
       </div>

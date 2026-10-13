@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { getMessages } from "@/lib/i18n/server";
 import { I18nProvider } from "@/components/i18n-provider";
+import { DOC_LIST_STYLES } from "@/lib/notes/doc-list-styles";
 
 const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       )}
     >
       <body className="flex min-h-full flex-col">
+        <style href="doc-list-markers" precedence="default">{DOC_LIST_STYLES}</style>
         <I18nProvider locale={locale} messages={t}>
           {children}
         </I18nProvider>

@@ -143,7 +143,7 @@
   @apply my-2;
 }
 .prose-note ul {
-  @apply my-2 list-disc pl-6;
+  @apply my-2 pl-6;
 }
 .prose-note ol {
   @apply my-2 list-decimal pl-6;
