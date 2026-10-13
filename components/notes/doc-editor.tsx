@@ -122,7 +122,7 @@ export function DocEditor({
             autosave.scheduleSave();
           }}
           style={surface}
-          className="prose-note doc-list-markers mx-auto min-h-full max-w-3xl rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
+          className="prose-note doc-list-markers min-h-full w-full rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
       </div>
