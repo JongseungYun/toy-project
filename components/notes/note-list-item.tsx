@@ -4,8 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { displayTitle, formatLabel, formatUpdatedAt } from "@/lib/notes/display";
 import {
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
+  canvasSize,
   parseCanvasElements,
 } from "@/lib/notes/canvas";
 import {
@@ -31,10 +30,11 @@ function TextThumb({ title, preview }: { title: string; preview: string }) {
 /** 그림판의 미리보기. 같은 renderer로 같은 그림을 그림면 비율 그대로 줄여 그린다. */
 function CanvasThumb({ preview }: { preview: string }) {
   const elements = parseCanvasElements(preview);
+  const size = canvasSize(elements);
 
   return (
     <svg
-      viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+      viewBox={`0 0 ${size.width} ${size.height}`}
       className="h-full w-full"
       aria-hidden
     >

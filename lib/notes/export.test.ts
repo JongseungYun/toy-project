@@ -51,6 +51,15 @@ describe("canvasDocument", () => {
 });
 
 describe("buildExport", () => {
+  it("기존 그림면 밖에 그린 선도 SVG에 잘리지 않고 남긴다", () => {
+    const file = buildExport("canvas", "넓은 그림", {
+      elements: [{ id: "wide", kind: "pen", points: [20, 20, 1400, 900], color: "black", width: 2 }],
+    });
+    expect(file.body).toContain('viewBox="0 0 1417 917"');
+    expect(file.body).toContain('points="20,20 1400,900"');
+    expect(file.body).toContain('stroke-width="2"');
+  });
+
   it("Markdown은 원문 그대로 담는다", () => {
     const file = buildExport("markdown", "메모", { source: "# 제목", viewer: true });
 

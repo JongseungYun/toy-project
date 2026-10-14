@@ -1,11 +1,11 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import {
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
+  canvasScale,
+  canvasSize,
   STROKE_COLORS,
   parseCanvasElements,
   previewFromCanvas,
@@ -57,7 +57,26 @@ export function CanvasEditor({
   const [typing, setTyping] = useState<{ x: number; y: number } | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const elementsRef = useRef(elements);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setViewport({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  const scale = canvasScale(viewport);
+  const bounds = canvasSize(elements);
+  const paper = {
+    width: Math.max(bounds.width, viewport.width / scale),
+    height: Math.max(bounds.height, viewport.height / scale),
+  };
 
   const commit = useCallback((next: CanvasElement[]) => {
     elementsRef.current = next;
@@ -80,12 +99,13 @@ export function CanvasEditor({
   const t = useMessages();
   const autosave = useNoteAutosave({ note, readDraft, applyRemote });
 
-  /** 화면 좌표를 그림면 좌표로 옮긴다. 그림면은 스크롤될 수 있다. */
+  /** 배율과 스크롤을 함께 반영해 포인터를 원본 좌표로 옮긴다. */
   function pointOf(event: React.PointerEvent): { x: number; y: number } {
-    const box = svgRef.current!.getBoundingClientRect();
+    const point = new DOMPoint(event.clientX, event.clientY)
+      .matrixTransform(svgRef.current!.getScreenCTM()!.inverse());
     return {
-      x: Math.round(event.clientX - box.left),
-      y: Math.round(event.clientY - box.top),
+      x: Math.round(Math.max(0, Math.min(paper.width, point.x))),
+      y: Math.round(Math.max(0, Math.min(paper.height, point.y))),
     };
   }
 
@@ -220,54 +240,64 @@ export function CanvasEditor({
         </>
       }
     >
-      <div className="relative flex min-h-0 flex-1 justify-start overflow-auto bg-muted p-5">
-        <div className="relative">
-          <svg
-            ref={svgRef}
-            data-testid="note-body"
-            role="img"
-            aria-label={t.draw.surface}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
-            viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-            onPointerDown={startDrawing}
-            onPointerMove={keepDrawing}
-            onPointerUp={finishDrawing}
-            onPointerCancel={finishDrawing}
-            className="touch-none rounded-md border border-border bg-[#fffdf8] shadow-sm"
-            style={{ ...surface, cursor: tool === "eraser" ? "pointer" : "crosshair" }}
-          >
-            {elements.map((element) => (
-              <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>
-                <CanvasShape element={element} />
-                {tool === "eraser" && (
-                  // 눈에 보이지 않지만 집기 쉬운 겹침. 지우개일 때만 깐다.
-                  <g
-                    onPointerDown={() => erase(element.id)}
-                    style={{ pointerEvents: "all", cursor: "pointer" }}
-                  >
-                    <CanvasShape element={element} hitArea />
+      <div className="flex min-h-0 flex-1 flex-col bg-muted p-3">
+        <div ref={viewportRef} className="relative min-h-0 flex-1" data-testid="canvas-viewport">
+          <div className="absolute inset-0 overflow-auto" data-testid="canvas-scroll">
+            <div className="relative" style={{ width: paper.width * scale, height: paper.height * scale }}>
+              <svg
+                ref={svgRef}
+                data-testid="note-body"
+                role="img"
+                aria-label={t.draw.surface}
+                width={paper.width * scale}
+                height={paper.height * scale}
+                viewBox={`0 0 ${paper.width} ${paper.height}`}
+                onPointerDown={startDrawing}
+                onPointerMove={keepDrawing}
+                onPointerUp={finishDrawing}
+                onPointerCancel={finishDrawing}
+                className="block max-w-none touch-none rounded-md bg-[#fffdf8] shadow-sm ring-1 ring-border"
+                style={{ ...surface, cursor: tool === "eraser" ? "pointer" : "crosshair" }}
+              >
+                {elements.map((element) => (
+                  <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>
+                    <CanvasShape element={element} />
+                    {tool === "eraser" && (
+                      // 눈에 보이지 않지만 집기 쉬운 겹침. 지우개일 때만 깐다.
+                      <g
+                        onPointerDown={() => erase(element.id)}
+                        style={{ pointerEvents: "all", cursor: "pointer" }}
+                      >
+                        <CanvasShape element={element} hitArea />
+                      </g>
+                    )}
                   </g>
-                )}
-              </g>
-            ))}
-            {draft && <CanvasShape element={draft.element} />}
-          </svg>
+                ))}
+                {draft && <CanvasShape element={draft.element} />}
+              </svg>
 
-          {typing && (
-            <input
-              autoFocus
-              aria-label={t.draw.textBoxLabel}
-              placeholder={t.draw.textBoxPlaceholder}
-              style={{ left: typing.x, top: typing.y - TEXT_SIZE, color }}
-              className="absolute min-w-40 rounded-sm border border-ring bg-card px-1 py-0.5 text-[17px] outline-none"
-              onKeyDown={(event) => {
-                if (event.key === "Enter") addText(event.currentTarget.value);
-                if (event.key === "Escape") setTyping(null);
-              }}
-              onBlur={(event) => addText(event.currentTarget.value)}
-            />
-          )}
+              {typing && (
+                <input
+                  autoFocus
+                  aria-label={t.draw.textBoxLabel}
+                  placeholder={t.draw.textBoxPlaceholder}
+                  style={{
+                    left: typing.x * scale,
+                    top: Math.max(0, typing.y - TEXT_SIZE) * scale,
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top left",
+                    color,
+                  }}
+                  className="absolute min-w-40 rounded-sm border border-ring bg-card px-1 py-0.5 text-[17px] outline-none"
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") addText(event.currentTarget.value);
+                    if (event.key === "Escape") setTyping(null);
+                  }}
+                  onBlur={(event) => addText(event.currentTarget.value)}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

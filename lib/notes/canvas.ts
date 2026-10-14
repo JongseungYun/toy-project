@@ -2,9 +2,24 @@
 // docs/decisions/note-formats.md: 그렇지 않으면 이어 그리기와 요소 단위
 // 되돌리기가 성립하지 않는다.
 
-/** 노트 한 장에 해당하는 고정 크기 그림면. 무한 캔버스와 확대·축소는 범위 밖이다. */
+/** 기존 노트의 최소 그림면. 이 밖에 그린 요소가 있으면 범위를 늘린다. */
 export const CANVAS_WIDTH = 620;
 export const CANVAS_HEIGHT = 400;
+
+export interface CanvasSize {
+  width: number;
+  height: number;
+}
+
+/** FHD 창의 작업 영역에 가까운 표시 기준. 저장 좌표와는 독립적이다. */
+const REFERENCE_VIEWPORT: CanvasSize = { width: 1536, height: 864 };
+
+export function canvasScale(viewport: CanvasSize): number {
+  return Math.max(0.5, Math.min(
+    viewport.width / REFERENCE_VIEWPORT.width,
+    viewport.height / REFERENCE_VIEWPORT.height,
+  ));
+}
 
 export const CANVAS_TOOLS = [
   "pen",
@@ -55,6 +70,31 @@ export type CanvasElement = PenElement | ShapeElement | TextElement;
 
 export interface CanvasContent {
   elements: CanvasElement[];
+}
+
+/** 편집·목록·공유·내보내기에서 같은 원본 범위를 사용한다. */
+export function canvasSize(elements: CanvasElement[]): CanvasSize {
+  let width = CANVAS_WIDTH;
+  let height = CANVAS_HEIGHT;
+  const include = (x: number, y: number, padding: number) => {
+    width = Math.max(width, x + padding);
+    height = Math.max(height, y + padding);
+  };
+
+  for (const element of elements) {
+    if (element.kind === "text") {
+      // 글꼴을 가져오지 않는 서버에서도 글이 잘리지 않도록 한 글자당 1em을 확보한다.
+      include(element.x + [...element.text].length * element.size, element.y + element.size, 16);
+    } else if (element.kind === "pen") {
+      for (let i = 0; i + 1 < element.points.length; i += 2) {
+        include(element.points[i], element.points[i + 1], element.width / 2 + 16);
+      }
+    } else {
+      // 선 끝의 둥근 획과 화살촉도 그림면 안에 들어오게 한다.
+      include(Math.max(element.x1, element.x2), Math.max(element.y1, element.y2), element.width / 2 + 16);
+    }
+  }
+  return { width: Math.ceil(width), height: Math.ceil(height) };
 }
 
 // 이름은 사전이 가진다. 여기에는 값만 둔다.

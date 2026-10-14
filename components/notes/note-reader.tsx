@@ -2,8 +2,7 @@ import type { CSSProperties } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-  CANVAS_HEIGHT,
-  CANVAS_WIDTH,
+  canvasSize,
   parseCanvasElements,
 } from "@/lib/notes/canvas";
 import { sanitizeHtml } from "@/lib/notes/sanitize";
@@ -32,17 +31,18 @@ export function NoteReader({
 }) {
   if (format === "canvas") {
     const elements = parseCanvasElements((content as { elements?: unknown }).elements);
+    const size = canvasSize(elements);
 
     return (
-      <div className="flex justify-center overflow-auto p-5">
+      <div className="overflow-auto p-5">
         <svg
           data-testid="shared-body"
           role="img"
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+          width={size.width}
+          height={size.height}
+          viewBox={`0 0 ${size.width} ${size.height}`}
           style={surface}
-          className="rounded-md border border-border bg-[#fffdf8] shadow-sm"
+          className="block h-auto w-full rounded-md border border-border bg-[#fffdf8] shadow-sm"
         >
           {elements.map((element) => (
             <CanvasShape key={element.id} element={element} />

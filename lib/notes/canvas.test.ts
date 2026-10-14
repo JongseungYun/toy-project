@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   arrowHeadPath,
+  canvasScale,
+  canvasSize,
   parseCanvasElements,
   penPoints,
   previewFromCanvas,
@@ -24,6 +26,29 @@ const label: CanvasElement = {
   color: "#2b2b2b",
   size: 17,
 };
+
+describe("확장된 그림면", () => {
+  it("기존 그림은 좌표를 바꾸지 않고 기존 최소 크기로 읽는다", () => {
+    const original = JSON.stringify([pen, label]);
+    expect(canvasSize([pen, label])).toEqual({ width: 620, height: 400 });
+    expect(JSON.stringify([pen, label])).toBe(original);
+  });
+
+  it("기존 영역 밖의 선 끝·화살촉·글자까지 포함한다", () => {
+    const widePen: CanvasElement = { ...pen, points: [30, 30, 1500, 920], width: 8 };
+    const arrow: CanvasElement = { id: "arrow", kind: "arrow", x1: 1500, y1: 950, x2: 1600, y2: 950, color: "black", width: 4 };
+    const wideText: CanvasElement = { ...label, x: 1600, y: 1000, text: "가나다라", size: 20 };
+    const size = canvasSize([widePen, arrow, wideText]);
+    expect(size.width).toBeGreaterThan(1680);
+    expect(size.height).toBeGreaterThan(1020);
+  });
+
+  it("기준 화면의 두 배에서는 선도 두 배로 보이고 작은 창은 최소 배율을 유지한다", () => {
+    expect(canvasScale({ width: 1536, height: 864 })).toBe(1);
+    expect(canvasScale({ width: 3072, height: 1728 })).toBe(2);
+    expect(canvasScale({ width: 320, height: 640 })).toBe(0.5);
+  });
+});
 
 describe("previewFromCanvas", () => {
   it("요소를 그대로 담아 목록이 같은 그림을 작게 그릴 수 있게 한다", () => {
