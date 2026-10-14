@@ -94,8 +94,8 @@ export function shapeParts(element: CanvasElement, hitArea = false): SvgPart[] {
     },
   ];
 
-  // 촉은 겨냥할 자리를 넓히는 데 보탬이 되지 않는다. 획만 굵게 깔면 된다.
-  if (element.kind === "arrow" && !hitArea) {
+  // 지우개가 화살촉을 지나도 같은 화살표 요소를 지운다.
+  if (element.kind === "arrow") {
     parts.push({
       tag: "path",
       attrs: {

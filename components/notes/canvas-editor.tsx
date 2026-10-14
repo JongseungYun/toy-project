@@ -10,6 +10,7 @@ import {
   parseCanvasElements,
   previewFromCanvas,
   type CanvasElement,
+  type CanvasSize,
   type CanvasTool,
   type ShapeKind,
 } from "@/lib/notes/canvas";
@@ -23,6 +24,39 @@ import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 
 const SHAPE_TOOLS: ShapeKind[] = ["rect", "ellipse", "line", "arrow"];
 const TEXT_SIZE = 17;
+const PEN_CURSOR = "url('/cursors/pen.svg') 5 27, crosshair";
+const ERASER_CURSOR = "url('/cursors/eraser.svg') 9 26, crosshair";
+
+type Point = { x: number; y: number };
+
+/** 이벤트 사이의 경로도 훑는다. 도형은 브라우저가 실제로 그린 획으로 판정한다. */
+function erasedIdsBetween(svg: SVGSVGElement, from: Point, to: Point): Set<string> {
+  const ids = new Set<string>();
+  // 집기 위한 획은 최소 16 원본 단위다. 그보다 촘촘히 경로를 확인한다.
+  const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 4));
+  for (const group of svg.querySelectorAll<SVGGElement>("[data-eraser-hit]")) {
+    for (const part of Array.from(group.children) as SVGGraphicsElement[]) {
+      const geometry = part instanceof SVGGeometryElement ? part : null;
+      const box = geometry ? null : part.getBBox();
+      for (let step = 0; step <= steps; step++) {
+        const point = {
+          x: from.x + (to.x - from.x) * step / steps,
+          y: from.y + (to.y - from.y) * step / steps,
+        };
+        const hit = geometry
+          ? geometry.isPointInStroke(point)
+          : box && point.x >= box.x && point.x <= box.x + box.width
+            && point.y >= box.y && point.y <= box.y + box.height;
+        if (hit) {
+          ids.add(group.dataset.eraserHit!);
+          break;
+        }
+      }
+      if (ids.has(group.dataset.eraserHit!)) break;
+    }
+  }
+  return ids;
+}
 
 function newId() {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -55,6 +89,8 @@ export function CanvasEditor({
   const [width, setWidth] = useState(2);
   const [color, setColor] = useState<string>(STROKE_COLORS[0].value);
   const [typing, setTyping] = useState<{ x: number; y: number } | null>(null);
+  const erasing = useRef<{ pointerId: number; last: Point } | null>(null);
+  const [erasePaper, setErasePaper] = useState<CanvasSize | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -74,8 +110,8 @@ export function CanvasEditor({
   const scale = canvasScale(viewport);
   const bounds = canvasSize(elements);
   const paper = {
-    width: Math.max(bounds.width, viewport.width / scale),
-    height: Math.max(bounds.height, viewport.height / scale),
+    width: Math.max(bounds.width, erasePaper?.width ?? 0, viewport.width / scale),
+    height: Math.max(bounds.height, erasePaper?.height ?? 0, viewport.height / scale),
   };
 
   const commit = useCallback((next: CanvasElement[]) => {
@@ -100,9 +136,13 @@ export function CanvasEditor({
   const autosave = useNoteAutosave({ note, readDraft, applyRemote });
 
   /** 배율과 스크롤을 함께 반영해 포인터를 원본 좌표로 옮긴다. */
-  function pointOf(event: React.PointerEvent): { x: number; y: number } {
-    const point = new DOMPoint(event.clientX, event.clientY)
+  function originalPoint(event: React.PointerEvent): DOMPoint {
+    return new DOMPoint(event.clientX, event.clientY)
       .matrixTransform(svgRef.current!.getScreenCTM()!.inverse());
+  }
+
+  function pointOf(event: React.PointerEvent): Point {
+    const point = originalPoint(event);
     return {
       x: Math.round(Math.max(0, Math.min(paper.width, point.x))),
       y: Math.round(Math.max(0, Math.min(paper.height, point.y))),
@@ -110,7 +150,17 @@ export function CanvasEditor({
   }
 
   function startDrawing(event: React.PointerEvent<SVGSVGElement>) {
-    if (tool === "eraser") return;
+    if (event.button !== 0) return;
+    if (tool === "eraser") {
+      if (erasing.current) return;
+      const point = originalPoint(event);
+      erasing.current = { pointerId: event.pointerId, last: point };
+      // 지운 직후 그림면이 줄면서 스크롤과 포인터 위치가 튀지 않게 한다.
+      setErasePaper(paper);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      eraseBetween(point, point);
+      return;
+    }
     const { x, y } = pointOf(event);
 
     // 글상자는 누른 자리에 입력칸을 띄운다. 뗀 뒤에 띄워야 뒤따라오는 click이
@@ -141,6 +191,18 @@ export function CanvasEditor({
   }
 
   function keepDrawing(event: React.PointerEvent<SVGSVGElement>) {
+    if (tool === "eraser") {
+      const gesture = erasing.current;
+      if (!gesture || gesture.pointerId !== event.pointerId) return;
+      if (!(event.buttons & 1)) {
+        stopErasing();
+        return;
+      }
+      const point = originalPoint(event);
+      eraseBetween(gesture.last, point);
+      gesture.last = point;
+      return;
+    }
     if (!draft) return;
     const { x, y } = pointOf(event);
 
@@ -156,6 +218,14 @@ export function CanvasEditor({
   }
 
   function finishDrawing(event: React.PointerEvent<SVGSVGElement>) {
+    if (tool === "eraser") {
+      const gesture = erasing.current;
+      if (gesture?.pointerId === event.pointerId) {
+        if (event.type === "pointerup") eraseBetween(gesture.last, originalPoint(event));
+        stopErasing();
+      }
+      return;
+    }
     if (tool === "text") {
       setTyping(pointOf(event));
       return;
@@ -200,10 +270,17 @@ export function CanvasEditor({
     autosave.scheduleSave();
   }
 
-  function erase(id: string) {
-    if (tool !== "eraser") return;
-    commit(elementsRef.current.filter((element) => element.id !== id));
+  function eraseBetween(from: Point, to: Point) {
+    const ids = erasedIdsBetween(svgRef.current!, from, to);
+    const next = elementsRef.current.filter((element) => !ids.has(element.id));
+    if (next.length === elementsRef.current.length) return;
+    commit(next);
     autosave.scheduleSave();
+  }
+
+  function stopErasing() {
+    erasing.current = null;
+    setErasePaper(null);
   }
 
   function undo() {
@@ -256,17 +333,21 @@ export function CanvasEditor({
                 onPointerMove={keepDrawing}
                 onPointerUp={finishDrawing}
                 onPointerCancel={finishDrawing}
+                onLostPointerCapture={stopErasing}
                 className="block max-w-none touch-none rounded-md bg-[#fffdf8] shadow-sm ring-1 ring-border"
-                style={{ ...surface, cursor: tool === "eraser" ? "pointer" : "crosshair" }}
+                style={{
+                  ...surface,
+                  cursor: tool === "eraser" ? ERASER_CURSOR : tool === "pen" ? PEN_CURSOR : "crosshair",
+                }}
               >
                 {elements.map((element) => (
                   <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>
                     <CanvasShape element={element} />
                     {tool === "eraser" && (
-                      // 눈에 보이지 않지만 집기 쉬운 겹침. 지우개일 때만 깐다.
+                      // 눈에 보이지 않는 굵은 획으로 경로 접촉을 판정한다.
                       <g
-                        onPointerDown={() => erase(element.id)}
-                        style={{ pointerEvents: "all", cursor: "pointer" }}
+                        data-eraser-hit={element.id}
+                        style={{ pointerEvents: "none" }}
                       >
                         <CanvasShape element={element} hitArea />
                       </g>

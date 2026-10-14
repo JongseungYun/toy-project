@@ -147,6 +147,58 @@ test("지우개로 고른 요소만 지운다", async ({ page }) => {
   await expect(page.locator('[data-kind="rect"]')).toHaveCount(0);
 });
 
+test("지우개로 빠르게 드래그하면 경로의 요소만 지워지고 저장된다", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signUpAndEnter(page);
+  await createCanvasNote(page);
+
+  const paper = page.getByTestId("note-body");
+  const elements = page.getByTestId("canvas-element");
+  // 실제 작업 영역 측정과 자동 배율 적용이 끝난 뒤에 좌표를 읽는다.
+  await expect.poll(async () => (await paper.boundingBox())?.width ?? 0)
+    .toBeGreaterThan(900);
+
+  await pickTool(page, "사각형");
+  await drag(page, paper, { x: 80, y: 70 }, { x: 180, y: 150 });
+  await drag(page, paper, { x: 700, y: 350 }, { x: 800, y: 430 });
+  await pickTool(page, "원");
+  await drag(page, paper, { x: 300, y: 70 }, { x: 400, y: 150 });
+  await pickTool(page, "글상자");
+  const box = (await paper.boundingBox())!;
+  await page.mouse.click(box.x + 500, box.y + 115);
+  await page.getByLabel("글상자 내용").fill("지우기");
+  await page.getByLabel("글상자 내용").press("Enter");
+  await expect(elements).toHaveCount(4);
+  await waitForSave(page, "0");
+
+  await pickTool(page, "지우개");
+  await expect(paper).toHaveCSS("cursor", /eraser\.svg/);
+  // 누르지 않고 지나가는 것만으로는 지우지 않는다.
+  await page.mouse.move(box.x + 40, box.y + 110);
+  await page.mouse.move(box.x + 650, box.y + 110);
+  await expect(elements).toHaveCount(4);
+
+  const before = await savedCount(page);
+  await page.mouse.move(box.x + 40, box.y + 110);
+  await page.mouse.down();
+  // 중간 포인터 이벤트 없이 한 번에 건너도 사각형·원·글상자를 모두 지운다.
+  await page.mouse.move(box.x + 650, box.y + 110);
+  await page.mouse.up();
+  await expect(elements).toHaveCount(1);
+  await expect(page.locator('[data-kind="rect"]')).toHaveCount(1);
+  await expect(page.locator('[data-kind="ellipse"]')).toHaveCount(0);
+  await expect(page.locator('[data-kind="text"]')).toHaveCount(0);
+  await waitForSave(page, before);
+
+  await page.reload();
+  await expect(elements).toHaveCount(1);
+  // 남은 요소는 클릭으로도 지울 수 있다.
+  await pickTool(page, "지우개");
+  const reopened = (await paper.boundingBox())!;
+  await page.mouse.click(reopened.x + 750, reopened.y + 350);
+  await expect(elements).toHaveCount(0);
+});
+
 test("목록에서 그림판 노트가 그림을 줄인 미리보기로 보인다", async ({ page }) => {
   await signUpAndEnter(page);
   await createCanvasNote(page);
