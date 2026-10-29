@@ -89,6 +89,7 @@ export const fr: Messages = {
     yesterday: "Hier",
   },
   formatBar: {
+    more: "Plus",
     toolbar: "Mise en forme",
     font: "Police",
     size: "Taille du texte",

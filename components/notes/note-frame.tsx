@@ -11,6 +11,7 @@ import type { RemoteNote, SaveStatus } from "@/components/notes/use-note-autosav
 import { useLocale, useMessages } from "@/components/i18n-provider";
 import { format, type Messages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
+import { cn } from "@/lib/utils";
 
 function SaveIndicator({
   t,
@@ -67,7 +68,7 @@ function SaveIndicator({
         data-state={status}
         data-saved-count={savedCount}
         role="status"
-        className="flex min-w-0 flex-col items-end gap-0.5 text-right text-xs"
+        className="flex min-w-0 flex-col items-start gap-0.5 text-left text-xs @lg/note:items-end @lg/note:text-right"
       >
         {status === "conflict" ? (
           <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
@@ -152,10 +153,17 @@ export function NoteFrame({
 }) {
   const t = useMessages();
   const locale = useLocale();
+  const needsAttention = status === "error" || status === "offline" || status === "conflict" || status === "unprotected";
 
   return (
     <>
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+      <div
+        data-testid="note-header"
+        className={cn(
+          "grid shrink-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 border-b border-border px-3 py-2",
+          !needsAttention && "@lg/note:flex",
+        )}
+      >
         <Button
           variant="ghost"
           size="icon-sm"
@@ -170,18 +178,24 @@ export function NoteFrame({
           onChange={(event) => onTitleChange(event.target.value)}
           aria-label={t.note.titleLabel}
           placeholder={untitledTitle(t, format)}
-          className="min-w-0 flex-1 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-[15px] font-semibold outline-none focus:border-border"
+          className="col-start-2 min-w-0 w-full flex-1 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-base font-semibold outline-none focus:border-border sm:col-span-2 sm:col-start-1 @lg/note:text-[15px]"
         />
-        <SaveIndicator
-          t={t}
-          locale={locale}
-          status={status}
-          draftProtected={draftProtected}
-          savedAt={savedAt}
-          savedCount={savedCount}
-          onRetry={onRetry}
-        />
-        {actions}
+        <div className={cn("col-span-2 flex min-w-0 flex-wrap items-center gap-2", !needsAttention && "@lg/note:contents")}>
+          <div className={cn("min-w-0 flex-1 @lg/note:flex-none", needsAttention && "basis-full")}>
+            <SaveIndicator
+              t={t}
+              locale={locale}
+              status={status}
+              draftProtected={draftProtected}
+              savedAt={savedAt}
+              savedCount={savedCount}
+              onRetry={onRetry}
+            />
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="note-actions">
+            {actions}
+          </div>
+        </div>
       </div>
 
       {remote && (

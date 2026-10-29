@@ -89,6 +89,7 @@ export const zhHant: Messages = {
     yesterday: "昨天",
   },
   formatBar: {
+    more: "更多",
     toolbar: "格式",
     font: "字型",
     size: "字級",

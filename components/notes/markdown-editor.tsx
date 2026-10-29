@@ -94,6 +94,7 @@ export function MarkdownEditor({
           type="button"
           onClick={toggleViewer}
           aria-pressed={viewer}
+          aria-label={t.markdown.viewer}
           className={cn(
             "flex flex-none items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
             viewer
@@ -102,7 +103,7 @@ export function MarkdownEditor({
           )}
         >
           <EyeIcon className="size-4" />
-          {t.markdown.viewer}
+          <span className="hidden @lg/note:inline">{t.markdown.viewer}</span>
         </button>
         <ExportButton format={note.format} title={autosave.title} read={readDraft} />
         {actions}
@@ -126,7 +127,7 @@ export function MarkdownEditor({
           spellCheck={false}
           placeholder={t.markdown.placeholder}
           className={cn(
-            "min-h-0 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none",
+            "min-h-0 min-w-0 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none",
             viewer && "border-b border-border sm:border-r sm:border-b-0",
           )}
         />
@@ -134,7 +135,7 @@ export function MarkdownEditor({
           <div
             data-testid="md-viewer"
             style={surface}
-            className="prose-md min-h-0 overflow-y-auto bg-card p-5 text-sm"
+            className="prose-md min-h-0 min-w-0 overflow-y-auto bg-card p-5 text-sm"
           >
             <Markdown remarkPlugins={[remarkGfm]}>{source}</Markdown>
           </div>

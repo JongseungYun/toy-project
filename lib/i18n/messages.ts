@@ -92,6 +92,7 @@ export interface Messages {
     yesterday: string;
   };
   formatBar: {
+    more: string;
     toolbar: string;
     font: string;
     size: string;

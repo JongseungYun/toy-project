@@ -89,6 +89,7 @@ export const ja: Messages = {
     yesterday: "昨日",
   },
   formatBar: {
+    more: "その他",
     toolbar: "書式",
     font: "フォント",
     size: "文字サイズ",

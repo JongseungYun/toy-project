@@ -1,7 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   ListBulletsIcon,
   ListNumbersIcon,
@@ -137,6 +137,9 @@ export function FormatBar({
 }) {
   const t = useMessages();
   const [state, setState] = useState<FormatState>(IDLE);
+  const [expanded, setExpanded] = useState(false);
+  const id = useId();
+  const extraClass = expanded ? "contents" : "hidden @lg/note:contents";
 
   // 고른 자리. 드롭다운을 열면 편집 영역에서 포커스가 떠나므로, 명령을
   // 실행하기 직전에 이 자리를 되돌려 놓는다.
@@ -176,98 +179,91 @@ export function FormatBar({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1 border-t border-border px-3 py-2"
+      className="flex max-h-[40%] shrink-0 flex-wrap items-center gap-1 overflow-y-auto border-t border-border px-3 py-2"
       role="toolbar"
       aria-label={t.formatBar.toolbar}
     >
-      <Select
-        items={FONT_OPTIONS.map(({ value, label }) => ({ value, label }))}
-        value={state.font}
-        onValueChange={(value) =>
-          run(() => applyCommand("fontName", String(value)))
-        }
-      >
-        <SelectTrigger size="sm" className="w-32 text-xs" aria-label={t.formatBar.font}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {/* 이름만으로는 고르기 어렵다. 각 줄을 그 글꼴로 보여 준다. */}
-            {FONT_OPTIONS.map((font) => (
-              <SelectItem
-                key={font.label}
-                value={font.value}
-                style={{ fontFamily: font.value }}
-              >
-                {font.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <div id={`${id}-font`} className={extraClass}>
+        <Select
+          items={FONT_OPTIONS.map(({ value, label }) => ({ value, label }))}
+          value={state.font}
+          onValueChange={(value) =>
+            run(() => applyCommand("fontName", String(value)))
+          }
+        >
+          <SelectTrigger size="sm" className="w-32 text-xs" aria-label={t.formatBar.font}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {/* 이름만으로는 고르기 어렵다. 각 줄을 그 글꼴로 보여 준다. */}
+              {FONT_OPTIONS.map((font) => (
+                <SelectItem
+                  key={font.label}
+                  value={font.value}
+                  style={{ fontFamily: font.value }}
+                >
+                  {font.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
 
-      <Select
-        items={SIZE_OPTIONS.map((size) => ({ value: size, label: size }))}
-        value={state.size}
-        onValueChange={(value) =>
-          run(() => {
-            if (editorRef.current) applyFontSize(editorRef.current, String(value));
-          })
-        }
-      >
-        <SelectTrigger size="sm" className="w-18 text-xs" aria-label={t.formatBar.size}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {SIZE_OPTIONS.map((size) => (
-              <SelectItem key={size} value={size}>
-                {size}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+        <Select
+          items={SIZE_OPTIONS.map((size) => ({ value: size, label: size }))}
+          value={state.size}
+          onValueChange={(value) =>
+            run(() => {
+              if (editorRef.current) applyFontSize(editorRef.current, String(value));
+            })
+          }
+        >
+          <SelectTrigger size="sm" className="w-18 text-xs" aria-label={t.formatBar.size}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
 
-      <span className="mx-1 h-5 w-px bg-border" />
+        <span className="mx-1 h-5 w-px bg-border" />
+      </div>
 
       {TOGGLES.map(({ command, key, Icon }) => (
-        <ToggleButton
-          key={command}
-          label={t.formatBar[key]}
-          active={state.on[command] ?? false}
-          Icon={Icon}
-          onRun={() => run(() => applyCommand(command))}
-        />
+        <div key={command} id={key === "strike" ? `${id}-strike` : undefined} className={key === "strike" ? extraClass : "contents"}>
+          <ToggleButton
+            label={t.formatBar[key]}
+            active={state.on[command] ?? false}
+            Icon={Icon}
+            onRun={() => run(() => applyCommand(command))}
+          />
+        </div>
       ))}
 
-      <ColorButton
-        label={t.formatBar.color}
-        initialColor="#b3123f"
-        onColorChange={(color) => run(() => applyCommand("foreColor", color))}
-      />
-      <ColorButton
-        label={t.formatBar.highlight}
-        initialColor="#fff59d"
-        highlight
-        onColorChange={(color) => run(() => applyCommand("hiliteColor", color))}
-      />
+      <div id={`${id}-color`} className={extraClass}>
+        <ColorButton
+          label={t.formatBar.color}
+          initialColor="#b3123f"
+          onColorChange={(color) => run(() => applyCommand("foreColor", color))}
+        />
+        <ColorButton
+          label={t.formatBar.highlight}
+          initialColor="#fff59d"
+          highlight
+          onColorChange={(color) => run(() => applyCommand("hiliteColor", color))}
+        />
 
-      <span className="mx-1 h-5 w-px bg-border" />
+        <span className="mx-1 h-5 w-px bg-border" />
+      </div>
 
       {LISTS.map(({ command, key, Icon }) => (
-        <ToggleButton
-          key={command}
-          label={t.formatBar[key]}
-          active={state.on[command] ?? false}
-          Icon={Icon}
-          onRun={() => run(() => applyCommand(command))}
-        />
-      ))}
-
-      <span className="mx-1 h-5 w-px bg-border" />
-
-      {ALIGNMENTS.map(({ command, key, Icon }) => (
         <ToggleButton
           key={command}
           label={t.formatBar[key]}
@@ -281,15 +277,42 @@ export function FormatBar({
         type="button"
         variant="ghost"
         size="sm"
-        title={t.formatBar.clearHint}
+        className="ml-auto @lg/note:hidden"
+        aria-expanded={expanded}
+        aria-controls={`${id}-font ${id}-color ${id}-strike ${id}-other`}
         onMouseDown={(event) => event.preventDefault()}
-        onClick={() => run(() => {
-          if (editorRef.current) clearDocFormatting(editorRef.current);
-        })}
+        onClick={() => setExpanded((value) => !value)}
       >
-        {t.formatBar.clear}
+        {t.formatBar.more}
       </Button>
-      <span className="text-xs text-muted-foreground">{t.formatBar.plainPaste}</span>
+
+      <div id={`${id}-other`} className={extraClass}>
+        <span className="mx-1 h-5 w-px bg-border" />
+
+        {ALIGNMENTS.map(({ command, key, Icon }) => (
+          <ToggleButton
+            key={command}
+            label={t.formatBar[key]}
+            active={state.on[command] ?? false}
+            Icon={Icon}
+            onRun={() => run(() => applyCommand(command))}
+          />
+        ))}
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          title={t.formatBar.clearHint}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => run(() => {
+            if (editorRef.current) clearDocFormatting(editorRef.current);
+          })}
+        >
+          {t.formatBar.clear}
+        </Button>
+        <span className="text-xs text-muted-foreground">{t.formatBar.plainPaste}</span>
+      </div>
     </div>
   );
 }

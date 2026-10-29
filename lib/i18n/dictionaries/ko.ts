@@ -89,6 +89,7 @@ export const ko: Messages = {
     yesterday: "어제",
   },
   formatBar: {
+    more: "더보기",
     toolbar: "서식",
     font: "글꼴",
     size: "글자 크기",

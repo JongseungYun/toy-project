@@ -130,6 +130,28 @@
 }
 /* 일반 문서의 본문. contentEditable이 만들어 내는 제목·목록을 읽을 수 있게 되살린다.
    Tailwind preflight가 기본 여백과 글머리 기호를 지우기 때문에 여기서 다시 준다. */
+.prose-note,
+.prose-md {
+  overflow-wrap: anywhere;
+}
+/* 예전에 붙여넣은 고정 너비·줄바꿈 금지 스타일도 화면 안에서 읽는다.
+   저장된 HTML은 유지하고 코드 블록은 자체 가로 스크롤을 둔다. */
+.prose-note :where(p, div, span, a, li, blockquote, h1, h2, h3):not(pre *, code *) {
+  max-inline-size: 100%;
+  white-space: pre-wrap !important;
+}
+.prose-note pre,
+.prose-md pre {
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overflow-wrap: normal;
+  white-space: pre;
+}
+.prose-md table {
+  display: block;
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
 .prose-note h1 {
   @apply mt-4 mb-2 text-2xl font-bold first:mt-0;
 }

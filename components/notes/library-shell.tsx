@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FolderBar } from "@/components/notes/folder-bar";
 import { FolderListItem } from "@/components/notes/folder-list-item";
 import { FormatPicker } from "@/components/notes/format-picker";
+import { LibraryViewport } from "@/components/notes/library-viewport";
 import { NoteListItem } from "@/components/notes/note-list-item";
 import { SortControls } from "@/components/notes/sort-controls";
 import type { Locale } from "@/lib/i18n/locales";
@@ -59,7 +60,7 @@ export function LibraryShell({
   const stacked = narrow === "list" && listEmpty;
 
   return (
-    <div className="flex h-svh flex-col bg-muted p-4 sm:p-6">
+    <LibraryViewport>
       <div
         className={cn(
           "mx-auto grid h-full w-full grid-cols-1 overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none",
@@ -145,13 +146,13 @@ export function LibraryShell({
 
         <main
           className={cn(
-            "flex min-h-0 min-w-0 flex-col sm:flex",
+            "@container/note flex min-h-0 min-w-0 flex-col sm:flex",
             narrow === "list" && !listEmpty && "hidden",
           )}
         >
           {children}
         </main>
       </div>
-    </div>
+    </LibraryViewport>
   );
 }
