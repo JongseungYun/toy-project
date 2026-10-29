@@ -3,14 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNote } from "@/lib/notes/actions";
+import {
+  clearLocalDraft,
+  localDraftKey,
+  readLocalDraft,
+  sameDraftContent,
+  writeLocalDraft,
+  type LocalNoteDraft,
+} from "@/lib/notes/local-draft";
 import type { Note, NoteContent } from "@/lib/notes/types";
 
-// docs/decisions/note-safety.md: 간격 자체는 값이 싼 선택이라 바꿔도 된다.
-// 바꾸면 안 되는 것은 "사용자가 저장을 의식하지 않는다"는 쪽이다.
 const IDLE_DELAY_MS = 2_000;
 const MAX_DELAY_MS = 30_000;
 
-export type SaveStatus = "saving" | "saved" | "error";
+export type SaveStatus = "pending" | "unprotected" | "saving" | "saved" | "error";
 
 export interface RemoteNote {
   title: string;
@@ -24,36 +30,31 @@ export interface NoteDraft {
   preview: string;
 }
 
-/**
- * 형식과 무관한 저장 규칙 한 벌. 세 형식이 같은 자동 저장과 같은 충돌 처리를
- * 쓰도록 여기 한 곳에 둔다. 형식마다 다른 것은 "지금 내용이 무엇인지"(readDraft)와
- * "가져온 내용을 어떻게 되돌려 놓는지"(applyRemote)뿐이다.
- */
-export function useNoteAutosave({
-  note,
-  readDraft,
-  applyRemote,
-}: {
+/** 세 형식이 같은 초안 보호·자동 저장·버전 충돌 처리를 사용한다. */
+export function useNoteAutosave({ note, readDraft, applyRemote }: {
   note: Note;
   readDraft: () => NoteDraft;
   applyRemote: (content: NoteContent) => void;
 }) {
   const router = useRouter();
-
+  // 서버 목록 갱신으로 props가 바뀌어도 복구는 편집기를 처음 열 때만 한다.
+  const [openedNote] = useState(note);
+  const draftKey = openedNote.ownerId ? localDraftKey(openedNote.ownerId, openedNote.id) : null;
   const [title, setTitleState] = useState(note.title);
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [savedAt, setSavedAt] = useState(note.updatedAt);
-  // 저장에 성공할 때마다 하나씩 오른다. 화면에는 쓰지 않고, 저장이 실제로
-  // 끝났는지 밖에서 확인할 수 있게 둔다.
   const [savedCount, setSavedCount] = useState(0);
   const [remote, setRemote] = useState<RemoteNote | null>(null);
 
   const versionRef = useRef(note.version);
   const titleRef = useRef(note.title);
+  const dirty = useRef<LocalNoteDraft | null>(null);
+  const protectedDraft = useRef(true);
+  const lastStoredId = useRef<string | null>(null);
+  const remoteRef = useRef<RemoteNote | null>(null);
+  const mounted = useRef(false);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 저장은 한 번에 하나씩만 보낸다. 겹쳐 보내면 뒤에 보낸 쪽이 낡은 버전을 들고
-  // 가서, 혼자 쓰고 있는데도 충돌로 잘못 판정된다.
   const saving = useRef(false);
   const pending = useRef(false);
 
@@ -64,38 +65,55 @@ export function useNoteAutosave({
     maxTimer.current = null;
   }, []);
 
-  const save = useCallback(async () => {
-    clearTimers();
+  const persist = useCallback((draft: LocalNoteDraft) => {
+    const stored = writeLocalDraft(draftKey, draft);
+    protectedDraft.current = stored;
+    if (stored) lastStoredId.current = draft.id;
+    return stored;
+  }, [draftKey]);
 
-    // 이미 보내는 중이면 끝난 뒤에 한 번 더 보내도록 표시만 남긴다.
+  const capture = useCallback(() => {
+    const snapshot: LocalNoteDraft = {
+      ...readDraft(),
+      id: crypto.randomUUID(),
+      format: openedNote.format,
+      title: titleRef.current,
+      baseVersion: versionRef.current,
+    };
+    dirty.current = snapshot;
+    persist(snapshot);
+    return snapshot;
+  }, [openedNote.format, persist, readDraft]);
+
+  const save = useCallback(async () => {
+    if (!mounted.current) return;
+    clearTimers();
+    capture();
+    if (remoteRef.current) return;
     if (saving.current) {
       pending.current = true;
       return;
     }
     saving.current = true;
-
     try {
       do {
+        clearTimers();
         pending.current = false;
-        const draft = readDraft();
+        const sent = dirty.current!;
         setStatus("saving");
-
         const result = await saveNote({
-          id: note.id,
-          title: titleRef.current,
-          content: draft.content,
-          preview: draft.preview,
-          baseVersion: versionRef.current,
+          id: openedNote.id,
+          title: sent.title,
+          content: sent.content,
+          preview: sent.preview,
+          baseVersion: sent.baseVersion,
         });
-
         if (result.status === "conflict") {
-          // 내 내용은 편집 영역에, 저장소의 내용은 여기에. 고르기 전에는 둘 다 남는다.
-          // 머리말은 마지막으로 저장에 성공했던 표시를 그대로 둔다.
-          setRemote(result.latest as RemoteNote);
-          setStatus("saved");
+          remoteRef.current = result.latest;
+          setRemote(result.latest);
+          setStatus(protectedDraft.current ? "pending" : "unprotected");
           return;
         }
-
         if (result.status === "error") {
           setStatus("error");
           return;
@@ -104,66 +122,111 @@ export function useNoteAutosave({
         versionRef.current = result.version;
         setSavedAt(result.updatedAt);
         setSavedCount((count) => count + 1);
-        setStatus("saved");
-        // 좌측 목록의 제목·미리보기·정렬 위치를 새 값으로 다시 그린다.
-        router.refresh();
-        // 보내는 동안 더 쓴 내용이 있으면 새 버전으로 이어서 보낸다.
-      } while (pending.current);
+        if (dirty.current?.id === sent.id) {
+          dirty.current = null;
+          clearLocalDraft(draftKey, lastStoredId.current);
+          lastStoredId.current = null;
+          setStatus("saved");
+        } else if (dirty.current) {
+          // 요청 중에 더 쓴 내용은 지우지 않고, 성공한 새 버전에서 이어 저장한다.
+          dirty.current = { ...dirty.current, baseVersion: result.version };
+          if (readLocalDraft(draftKey)?.id === lastStoredId.current) persist(dirty.current);
+          setStatus(protectedDraft.current ? "pending" : "unprotected");
+        }
+        if (mounted.current) router.refresh();
+      } while (mounted.current && pending.current && dirty.current);
+    } catch {
+      // 연결 예외도 초안을 지우지 않는다. 기존 재시도 버튼으로 이어 저장한다.
+      setStatus("error");
     } finally {
       saving.current = false;
     }
-  }, [clearTimers, note.id, readDraft, router]);
+  }, [capture, clearTimers, draftKey, openedNote.id, persist, router]);
 
   const scheduleSave = useCallback(() => {
+    capture();
+    setStatus(protectedDraft.current ? "pending" : "unprotected");
+    if (remoteRef.current) return;
+    if (saving.current) pending.current = true;
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => void save(), IDLE_DELAY_MS);
-    // 계속 입력해서 유예가 끝없이 밀리더라도 30초에 한 번은 저장한다.
-    if (!maxTimer.current) {
-      maxTimer.current = setTimeout(() => void save(), MAX_DELAY_MS);
-    }
-  }, [save]);
+    if (!maxTimer.current) maxTimer.current = setTimeout(() => void save(), MAX_DELAY_MS);
+  }, [capture, save]);
 
-  useEffect(() => clearTimers, [clearTimers]);
+  useEffect(() => {
+    let active = true;
+    mounted.current = true;
+    // hydration 후 편집기 DOM/ref가 준비된 상태에서 외부 저장소의 초안을 적용한다.
+    queueMicrotask(() => {
+      if (!active) return;
+      const cached = readLocalDraft(draftKey);
+      if (!cached || cached.format !== openedNote.format) return;
+      lastStoredId.current = cached.id;
+      if (sameDraftContent(cached, openedNote)) {
+        clearLocalDraft(draftKey, cached.id);
+        lastStoredId.current = null;
+        return;
+      }
+      dirty.current = cached;
+      titleRef.current = cached.title;
+      versionRef.current = cached.baseVersion;
+      setTitleState(cached.title);
+      applyRemote(cached.content);
+      setStatus("pending");
+      if (cached.baseVersion !== openedNote.version) {
+        remoteRef.current = openedNote;
+        setRemote(openedNote);
+      } else {
+        idleTimer.current = setTimeout(() => void save(), IDLE_DELAY_MS);
+      }
+    });
+    const warnIfUnprotected = (event: BeforeUnloadEvent) => {
+      if (!dirty.current || protectedDraft.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnIfUnprotected);
+    return () => {
+      active = false;
+      mounted.current = false;
+      clearTimers();
+      window.removeEventListener("beforeunload", warnIfUnprotected);
+      // 초안은 입력 시 이미 보관했다. 해제된 편집기 DOM을 다시 읽지 않는다.
+    };
+  }, [applyRemote, clearTimers, draftKey, openedNote, save]);
 
-  const setTitle = useCallback(
-    (value: string) => {
-      setTitleState(value);
-      titleRef.current = value;
-      scheduleSave();
-    },
-    [scheduleSave],
-  );
+  const setTitle = useCallback((value: string) => {
+    setTitleState(value);
+    titleRef.current = value;
+    scheduleSave();
+  }, [scheduleSave]);
 
   const takeRemote = useCallback(() => {
     if (!remote) return;
+    clearTimers();
+    clearLocalDraft(draftKey, lastStoredId.current);
+    lastStoredId.current = null;
+    dirty.current = null;
+    pending.current = false;
     applyRemote(remote.content);
     setTitleState(remote.title);
     titleRef.current = remote.title;
     versionRef.current = remote.version;
     setSavedAt(remote.updatedAt);
     setStatus("saved");
+    remoteRef.current = null;
     setRemote(null);
     router.refresh();
-  }, [applyRemote, remote, router]);
+  }, [applyRemote, clearTimers, draftKey, remote, router]);
 
   const keepMine = useCallback(() => {
     if (!remote) return;
-    // 최신 버전을 기준으로 다시 저장해 내 내용이 이기게 한다.
     versionRef.current = remote.version;
+    remoteRef.current = null;
     setRemote(null);
     void save();
   }, [remote, save]);
 
-  return {
-    title,
-    setTitle,
-    status,
-    savedAt,
-    savedCount,
-    remote,
-    scheduleSave,
-    saveNow: save,
-    takeRemote,
-    keepMine,
-  };
+  return { title, setTitle, status, savedAt, savedCount, remote,
+    scheduleSave, saveNow: save, takeRemote, keepMine };
 }

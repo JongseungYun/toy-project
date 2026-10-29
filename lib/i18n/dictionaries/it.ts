@@ -70,6 +70,8 @@ export const it: Messages = {
   note: {
     titleLabel: "Titolo della nota",
     bodyLabel: "Corpo della nota",
+    pending: "In attesa di salvare…",
+    draftUnavailable: "Impossibile conservare una bozza sul dispositivo · tocca per salvare",
     saving: "Salvataggio…",
     saved: "Salvato · {time}",
     saveFailed: "Salvataggio non riuscito · tocca per riprovare",

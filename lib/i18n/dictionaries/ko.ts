@@ -70,6 +70,8 @@ export const ko: Messages = {
   note: {
     titleLabel: "노트 제목",
     bodyLabel: "노트 본문",
+    pending: "저장 대기 중…",
+    draftUnavailable: "이 기기에 임시 보관할 수 없습니다 · 눌러서 저장",
     saving: "저장 중…",
     saved: "저장됨 · {time}",
     saveFailed: "저장하지 못했습니다 · 눌러서 다시 시도",

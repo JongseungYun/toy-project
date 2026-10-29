@@ -70,6 +70,8 @@ export const ja: Messages = {
   note: {
     titleLabel: "ノートのタイトル",
     bodyLabel: "ノートの本文",
+    pending: "保存待ち…",
+    draftUnavailable: "この端末に下書きを保存できません · タップして保存",
     saving: "保存中…",
     saved: "保存済み · {time}",
     saveFailed: "保存できませんでした · 押して再試行",

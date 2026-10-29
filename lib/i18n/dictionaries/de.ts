@@ -70,6 +70,8 @@ export const de: Messages = {
   note: {
     titleLabel: "Notiztitel",
     bodyLabel: "Notiztext",
+    pending: "Speichern ausstehend…",
+    draftUnavailable: "Kein Entwurf auf diesem Gerät möglich · zum Speichern tippen",
     saving: "Wird gespeichert…",
     saved: "Gespeichert · {time}",
     saveFailed: "Speichern fehlgeschlagen · zum Wiederholen tippen",

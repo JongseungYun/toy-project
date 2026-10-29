@@ -70,6 +70,8 @@ export const zhHant: Messages = {
   note: {
     titleLabel: "筆記標題",
     bodyLabel: "筆記內文",
+    pending: "等待儲存…",
+    draftUnavailable: "無法在此裝置保留草稿 · 點擊儲存",
     saving: "正在儲存…",
     saved: "已儲存 · {time}",
     saveFailed: "儲存失敗 · 點擊重試",

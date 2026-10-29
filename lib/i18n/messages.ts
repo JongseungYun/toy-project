@@ -73,6 +73,8 @@ export interface Messages {
   note: {
     titleLabel: string;
     bodyLabel: string;
+    pending: string;
+    draftUnavailable: string;
     saving: string;
     saved: string;
     saveFailed: string;

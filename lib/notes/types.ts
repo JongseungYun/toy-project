@@ -34,6 +34,8 @@ export type NoteContent =
 
 export interface Note {
   id: string;
+  /** 개인 편집 화면의 브라우저 초안을 계정별로 나누는 식별자. */
+  ownerId?: string;
   format: NoteFormat;
   title: string;
   preview: string;

@@ -70,6 +70,8 @@ export const fr: Messages = {
   note: {
     titleLabel: "Titre de la note",
     bodyLabel: "Corps de la note",
+    pending: "En attente de sauvegarde…",
+    draftUnavailable: "Brouillon indisponible sur cet appareil · toucher pour enregistrer",
     saving: "Enregistrement…",
     saved: "Enregistré · {time}",
     saveFailed: "Échec de l'enregistrement · appuyez pour réessayer",

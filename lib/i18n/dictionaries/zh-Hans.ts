@@ -70,6 +70,8 @@ export const zhHans: Messages = {
   note: {
     titleLabel: "笔记标题",
     bodyLabel: "笔记正文",
+    pending: "等待保存…",
+    draftUnavailable: "无法在此设备保留草稿 · 点击保存",
     saving: "正在保存…",
     saved: "已保存 · {time}",
     saveFailed: "保存失败 · 点击重试",

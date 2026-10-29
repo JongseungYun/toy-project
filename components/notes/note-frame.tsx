@@ -27,6 +27,21 @@ function SaveIndicator({
   savedCount: number;
   onRetry: () => void;
 }) {
+  if (status === "pending") {
+    return (
+      <span
+        data-testid="save-state"
+        data-state="pending"
+        data-saved-count={savedCount}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground"
+        role="status"
+      >
+        <span className="size-1.5 rounded-full bg-muted-foreground" />
+        {t.note.pending}
+      </span>
+    );
+  }
+
   if (status === "saving") {
     return (
       <span
@@ -41,18 +56,18 @@ function SaveIndicator({
     );
   }
 
-  if (status === "error") {
+  if (status === "error" || status === "unprotected") {
     return (
       <button
         type="button"
         data-testid="save-state"
-        data-state="error"
+        data-state={status}
         data-saved-count={savedCount}
         onClick={onRetry}
         className="flex items-center gap-1.5 text-xs font-medium text-destructive"
       >
         <WarningIcon className="size-3.5" />
-        {t.note.saveFailed}
+        {status === "unprotected" ? t.note.draftUnavailable : t.note.saveFailed}
       </button>
     );
   }

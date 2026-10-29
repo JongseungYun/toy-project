@@ -70,6 +70,8 @@ export const en: Messages = {
   note: {
     titleLabel: "Note title",
     bodyLabel: "Note body",
+    pending: "Waiting to save…",
+    draftUnavailable: "Cannot keep a draft on this device · tap to save",
     saving: "Saving…",
     saved: "Saved · {time}",
     saveFailed: "Could not save · tap to retry",

@@ -77,14 +77,15 @@ export const getNote = cache(async (id: string): Promise<Note | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
-    .select(`${SUMMARY_COLUMNS}, content, folder_id, share_token`)
+    .select(`${SUMMARY_COLUMNS}, content, folder_id, share_token, owner_id`)
     .eq("id", id)
     .is("deleted_at", null)
-    .maybeSingle<NoteRow>();
+    .maybeSingle<NoteRow & { owner_id: string }>();
 
   if (error || !data) return null;
   return {
     ...toSummary(data),
+    ownerId: data.owner_id,
     content: data.content ?? {},
     folderId: data.folder_id ?? null,
     shareToken: data.share_token ?? null,

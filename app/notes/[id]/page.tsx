@@ -92,13 +92,13 @@ export default async function NotePage({
       narrow="detail"
     >
       {note.format === "markdown" && (
-        <MarkdownEditor note={note} actions={actions} surface={surface} />
+        <MarkdownEditor key={note.id} note={note} actions={actions} surface={surface} />
       )}
       {note.format === "canvas" && (
-        <CanvasEditor note={note} actions={actions} surface={surface} />
+        <CanvasEditor key={note.id} note={note} actions={actions} surface={surface} />
       )}
       {note.format === "doc" && (
-        <DocEditor note={note} actions={actions} surface={surface} />
+        <DocEditor key={note.id} note={note} actions={actions} surface={surface} />
       )}
     </LibraryShell>
   );

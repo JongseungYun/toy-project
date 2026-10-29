@@ -70,6 +70,8 @@ export const es: Messages = {
   note: {
     titleLabel: "Título de la nota",
     bodyLabel: "Cuerpo de la nota",
+    pending: "Pendiente de guardar…",
+    draftUnavailable: "No se puede conservar un borrador en este dispositivo · toca para guardar",
     saving: "Guardando…",
     saved: "Guardado · {time}",
     saveFailed: "No se pudo guardar · pulsa para reintentar",
