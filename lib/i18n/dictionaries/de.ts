@@ -33,6 +33,10 @@ export const de: Messages = {
     goSignIn: "Anmelden",
   },
   library: {
+    readErrorTitle: "Notizen konnten nicht geladen werden",
+    readErrorBody: "Versuche es gleich noch einmal. Prüfe deine Verbindung, wenn das Problem weiterhin besteht.",
+    readRetry: "Erneut versuchen",
+    readRetrying: "Wird geladen…",
     title: "Meine Ablage",
     root: "Meine Notizen",
     folderPath: "Ordnerpfad",

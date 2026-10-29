@@ -12,6 +12,7 @@ export default defineConfig({
     exclude: [
       "node_modules/**",
       ".next/**",
+      ".next-test-proxy/**",
       "e2e/**",
       ".claude/worktrees/**",
     ],

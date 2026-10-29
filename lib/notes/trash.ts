@@ -2,6 +2,7 @@ import { createClient, currentUser } from "@/lib/supabase/server";
 import { displayTitle } from "@/lib/notes/display";
 import { getMessages } from "@/lib/i18n/server";
 import type { NoteFormat } from "@/lib/notes/types";
+import type { ReadResult } from "@/lib/notes/read-result";
 
 export interface TrashEntry {
   id: string;
@@ -18,12 +19,12 @@ export interface TrashEntry {
  * 휴지통 목록. 사용자가 직접 지운 것(trash_root_id = id)만 한 줄로 보여주고,
  * 그때 함께 딸려 들어온 것들은 개수로만 알린다.
  */
-export async function listTrash(): Promise<TrashEntry[]> {
+export async function listTrash(): Promise<ReadResult<TrashEntry[]>> {
   const user = await currentUser();
-  if (!user) return [];
+  if (!user) return { ok: false };
 
   const supabase = await createClient();
-  const [{ data: folders }, { data: notes }] = await Promise.all([
+  const [{ data: folders, error: foldersError }, { data: notes, error: notesError }] = await Promise.all([
     supabase
       .from("folders")
       .select("id, name, deleted_at, trash_root_id")
@@ -35,6 +36,7 @@ export async function listTrash(): Promise<TrashEntry[]> {
       .eq("owner_id", user.id)
       .not("deleted_at", "is", null),
   ]);
+  if (foldersError || notesError || !folders || !notes) return { ok: false };
 
   const { t } = await getMessages();
   const folderRows = folders ?? [];
@@ -77,5 +79,5 @@ export async function listTrash(): Promise<TrashEntry[]> {
   ];
 
   // 최근에 지운 것이 위로 온다.
-  return entries.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt));
+  return { ok: true, data: entries.sort((a, b) => b.deletedAt.localeCompare(a.deletedAt)) };
 }

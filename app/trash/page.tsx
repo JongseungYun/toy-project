@@ -11,6 +11,7 @@ import { listTrash } from "@/lib/notes/trash";
 import { getMessages } from "@/lib/i18n/server";
 import { EmptyTrashButton } from "@/components/notes/empty-trash-button";
 import { LibraryShell } from "@/components/notes/library-shell";
+import { ReadFailure } from "@/components/notes/read-failure";
 import { TrashRow } from "@/components/notes/trash-row";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,13 +36,18 @@ export default async function TrashPage({
   const sort = resolveSort(await searchParams);
 
   // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
-  const [name, crumbs, folders, notes, entries] = await Promise.all([
+  const [name, pathResult, foldersResult, notesResult, trashResult] = await Promise.all([
     displayName(),
     folderPath(null, t.library.root),
     listFolders(null, sort),
     listNotes(sort, null),
     listTrash(),
   ]);
+  if (!pathResult.ok || !foldersResult.ok || !notesResult.ok || !trashResult.ok) return <ReadFailure />;
+  const crumbs = pathResult.data;
+  const folders = foldersResult.data;
+  const notes = notesResult.data;
+  const entries = trashResult.data;
 
   // 좌측 목록은 보관함과 같은 것을 보여준다. 썸네일의 배경도 같아야 한다.
   const backgroundUrls = await signBackgroundUrls(imagePathsOf(notes));

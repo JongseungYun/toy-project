@@ -36,6 +36,10 @@ export interface Messages {
     goSignIn: string;
   };
   library: {
+    readErrorTitle: string;
+    readErrorBody: string;
+    readRetry: string;
+    readRetrying: string;
     title: string;
     root: string;
     folderPath: string;

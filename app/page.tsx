@@ -9,6 +9,7 @@ import { resolveSort } from "@/lib/notes/sort";
 import { getMessages } from "@/lib/i18n/server";
 import { FormatPicker } from "@/components/notes/format-picker";
 import { LibraryShell } from "@/components/notes/library-shell";
+import { ReadFailure } from "@/components/notes/read-failure";
 import {
   Empty,
   EmptyContent,
@@ -34,12 +35,16 @@ export default async function LibraryPage({
   const folderId = params.folder ?? null;
 
   // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
-  const [name, crumbs, folders, notes] = await Promise.all([
+  const [name, pathResult, foldersResult, notesResult] = await Promise.all([
     displayName(),
     folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
   ]);
+  if (!pathResult.ok || !foldersResult.ok || !notesResult.ok) return <ReadFailure />;
+  const crumbs = pathResult.data;
+  const folders = foldersResult.data;
+  const notes = notesResult.data;
 
   // 썸네일도 노트와 같은 배경을 입는다. 이미지 배경은 비공개 버킷에 있어
   // 서명된 주소가 필요하므로, 목록에 나온 것을 한 번에 받는다.

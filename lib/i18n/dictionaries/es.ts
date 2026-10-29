@@ -33,6 +33,10 @@ export const es: Messages = {
     goSignIn: "Entrar",
   },
   library: {
+    readErrorTitle: "No se pudieron cargar tus notas",
+    readErrorBody: "Inténtalo de nuevo en un momento. Si el problema continúa, comprueba tu conexión.",
+    readRetry: "Reintentar",
+    readRetrying: "Cargando…",
     title: "Mi biblioteca",
     root: "Mis notas",
     folderPath: "Ruta de carpetas",

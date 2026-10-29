@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient, currentUser } from "@/lib/supabase/server";
 import type { ResolvedSort } from "@/lib/notes/sort";
+import type { ReadResult } from "@/lib/notes/read-result";
 
 export interface FolderSummary {
   id: string;
@@ -33,18 +34,19 @@ type Ancestor = Pick<FolderRow, "id" | "name" | "parent_id">;
  * 지우지 않은 내 폴더 전체를 id로 찾을 수 있게 담아 둔다.
  * 상단 경로와 옮길 곳 목록이 같은 목록을 쓰므로, 같은 요청 안에서는 한 번만 읽는다.
  */
-const folderIndex = cache(async (): Promise<Map<string, Ancestor>> => {
+const folderIndex = cache(async (): Promise<ReadResult<Map<string, Ancestor>>> => {
   const user = await currentUser();
-  if (!user) return new Map();
+  if (!user) return { ok: false };
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("folders")
     .select("id, name, parent_id")
     .eq("owner_id", user.id)
     .is("deleted_at", null);
 
-  return new Map(((data ?? []) as Ancestor[]).map((row) => [row.id, row]));
+  if (error || !data) return { ok: false };
+  return { ok: true, data: new Map((data as Ancestor[]).map((row) => [row.id, row])) };
 });
 
 /**
@@ -54,9 +56,9 @@ const folderIndex = cache(async (): Promise<Map<string, Ancestor>> => {
 export async function listFolders(
   parentId: string | null,
   sort: ResolvedSort,
-): Promise<FolderSummary[]> {
+): Promise<ReadResult<FolderSummary[]>> {
   const user = await currentUser();
-  if (!user) return [];
+  if (!user) return { ok: false };
 
   const supabase = await createClient();
   let query = supabase
@@ -75,14 +77,14 @@ export async function listFolders(
     })
     .order("id", { ascending: true });
 
-  if (error || !data) return [];
+  if (error || !data) return { ok: false };
 
   const ids = data.map((row) => row.id);
-  if (ids.length === 0) return [];
+  if (ids.length === 0) return { ok: true, data: [] };
 
   // 개수는 두 번의 조회로 한꺼번에 세고 메모리에서 묶는다. 폴더마다 따로 세면
   // 폴더 수만큼 왕복이 늘어난다.
-  const [{ data: notes }, { data: children }] = await Promise.all([
+  const [{ data: notes, error: notesError }, { data: children, error: childrenError }] = await Promise.all([
     supabase
       .from("notes")
       .select("folder_id")
@@ -96,6 +98,7 @@ export async function listFolders(
       .is("deleted_at", null)
       .in("parent_id", ids),
   ]);
+  if (notesError || childrenError || !notes || !children) return { ok: false };
 
   const count = (rows: { [key: string]: string | null }[] | null, key: string) => {
     const tally = new Map<string, number>();
@@ -109,15 +112,18 @@ export async function listFolders(
   const noteTally = count(notes, "folder_id");
   const childTally = count(children, "parent_id");
 
-  return (data as FolderRow[]).map((row) => ({
-    id: row.id,
-    name: row.name,
-    parentId: row.parent_id,
-    noteCount: noteTally.get(row.id) ?? 0,
-    childFolderCount: childTally.get(row.id) ?? 0,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
+  return {
+    ok: true,
+    data: (data as FolderRow[]).map((row) => ({
+      id: row.id,
+      name: row.name,
+      parentId: row.parent_id,
+      noteCount: noteTally.get(row.id) ?? 0,
+      childFolderCount: childTally.get(row.id) ?? 0,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+  };
 }
 
 /**
@@ -128,11 +134,13 @@ export async function listFolders(
 export async function folderPath(
   folderId: string | null,
   rootLabel: string,
-): Promise<Crumb[]> {
+): Promise<ReadResult<Crumb[]>> {
   const root: Crumb = { id: null, name: rootLabel };
-  if (!folderId) return [root];
+  if (!folderId) return { ok: true, data: [root] };
 
-  const byId = await folderIndex();
+  const result = await folderIndex();
+  if (!result.ok) return result;
+  const byId = result.data;
   const crumbs: Crumb[] = [];
   const seen = new Set<string>();
   let current: string | null = folderId;
@@ -145,12 +153,14 @@ export async function folderPath(
     current = row.parent_id;
   }
 
-  return [root, ...crumbs];
+  return { ok: true, data: [root, ...crumbs] };
 }
 
 /** 노트를 옮길 곳을 고르는 창에 쓰는 전체 폴더 목록. 이름 앞에 경로를 붙여 준다. */
-export async function listAllFolders(): Promise<{ id: string; label: string }[]> {
-  const byId = await folderIndex();
+export async function listAllFolders(): Promise<ReadResult<{ id: string; label: string }[]>> {
+  const result = await folderIndex();
+  if (!result.ok) return result;
+  const byId = result.data;
   const rows = [...byId.values()];
 
   function label(row: Ancestor): string {
@@ -166,7 +176,10 @@ export async function listAllFolders(): Promise<{ id: string; label: string }[]>
     return parts.join(" / ");
   }
 
-  return rows
-    .map((row) => ({ id: row.id, label: label(row) }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  return {
+    ok: true,
+    data: rows
+      .map((row) => ({ id: row.id, label: label(row) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+  };
 }

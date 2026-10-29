@@ -33,6 +33,10 @@ export const ko: Messages = {
     goSignIn: "로그인",
   },
   library: {
+    readErrorTitle: "노트를 불러오지 못했어요",
+    readErrorBody: "잠시 후 다시 시도해 주세요. 계속되면 연결 상태를 확인해 주세요.",
+    readRetry: "다시 시도",
+    readRetrying: "불러오는 중…",
     title: "내 보관함",
     root: "내 노트",
     folderPath: "폴더 경로",

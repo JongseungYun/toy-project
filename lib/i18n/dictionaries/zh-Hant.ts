@@ -33,6 +33,10 @@ export const zhHant: Messages = {
     goSignIn: "登入",
   },
   library: {
+    readErrorTitle: "無法載入筆記",
+    readErrorBody: "請稍後重試。如果問題持續，請檢查網路連線。",
+    readRetry: "重試",
+    readRetrying: "載入中…",
     title: "我的收藏",
     root: "我的筆記",
     folderPath: "資料夾路徑",

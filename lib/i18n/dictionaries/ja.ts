@@ -33,6 +33,10 @@ export const ja: Messages = {
     goSignIn: "ログイン",
   },
   library: {
+    readErrorTitle: "ノートを読み込めませんでした",
+    readErrorBody: "しばらくしてからもう一度お試しください。問題が続く場合は接続を確認してください。",
+    readRetry: "再試行",
+    readRetrying: "読み込み中…",
     title: "マイライブラリ",
     root: "マイノート",
     folderPath: "フォルダの経路",

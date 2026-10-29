@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient, currentUser } from "@/lib/supabase/server";
 import { isShareToken } from "@/lib/notes/share";
+import type { ReadResult } from "@/lib/notes/read-result";
 import { sortColumn, type ResolvedSort } from "@/lib/notes/sort";
 import type { Note, NoteContent, NoteFormat, NoteSummary } from "@/lib/notes/types";
 
@@ -44,9 +45,9 @@ function toSummary(
 export async function listNotes(
   sort: ResolvedSort,
   folderId: string | null = null,
-): Promise<NoteSummary[]> {
+): Promise<ReadResult<NoteSummary[]>> {
   const user = await currentUser();
-  if (!user) return [];
+  if (!user) return { ok: false };
 
   const supabase = await createClient();
   let query = supabase
@@ -62,18 +63,19 @@ export async function listNotes(
     .order(sortColumn(sort.key), { ascending: sort.ascending })
     .order("id", { ascending: true });
 
-  if (error || !data) return [];
-  return data.map(toSummary);
+  if (error || !data) return { ok: false };
+  return { ok: true, data: data.map(toSummary) };
 }
 
 /**
  * 노트 하나를 본문까지 읽는다. 내 노트가 아니면 RLS가 걸러 null이 된다.
  * 휴지통에 있는 노트도 열리지 않는다. 되돌리기는 휴지통 화면에서 한다.
+ * 조회 실패는 null과 구분해 화면이 없는 노트로 오인하지 않게 한다.
  *
  * 제목을 지을 때와 화면을 그릴 때 같은 노트를 각각 부르므로, 같은 요청 안에서는
  * 한 번만 읽는다.
  */
-export const getNote = cache(async (id: string): Promise<Note | null> => {
+export const getNote = cache(async (id: string): Promise<ReadResult<Note | null>> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("notes")
@@ -82,13 +84,17 @@ export const getNote = cache(async (id: string): Promise<Note | null> => {
     .is("deleted_at", null)
     .maybeSingle<NoteRow & { owner_id: string }>();
 
-  if (error || !data) return null;
+  if (error) return { ok: false };
+  if (!data) return { ok: true, data: null };
   return {
-    ...toSummary(data),
-    ownerId: data.owner_id,
-    content: data.content ?? {},
-    folderId: data.folder_id ?? null,
-    shareToken: data.share_token ?? null,
+    ok: true,
+    data: {
+      ...toSummary(data),
+      ownerId: data.owner_id,
+      content: data.content ?? {},
+      folderId: data.folder_id ?? null,
+      shareToken: data.share_token ?? null,
+    },
   };
 });
 

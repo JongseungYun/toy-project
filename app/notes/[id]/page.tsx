@@ -18,6 +18,7 @@ import { DocEditor } from "@/components/notes/doc-editor";
 import { LibraryShell } from "@/components/notes/library-shell";
 import { MarkdownEditor } from "@/components/notes/markdown-editor";
 import { NoteActions } from "@/components/notes/note-actions";
+import { ReadFailure } from "@/components/notes/read-failure";
 
 export async function generateMetadata({
   params,
@@ -25,7 +26,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { t } = await getMessages();
-  const note = await getNote((await params).id);
+  const result = await getNote((await params).id);
+  const note = result.ok ? result.data : null;
   return {
     title: note ? `${displayTitle(note, t)} — ${t.app.name}` : t.app.name,
   };
@@ -42,7 +44,9 @@ export default async function NotePage({
   const { id } = await params;
   const sort = resolveSort(await searchParams);
 
-  const note = await getNote(id);
+  const result = await getNote(id);
+  if (!result.ok) return <ReadFailure />;
+  const note = result.data;
   // 내 노트가 아니면 RLS가 걸러 여기까지 오지 않는다. 남의 노트, 없는 노트,
   // 휴지통에 있는 노트를 같은 결과로 돌려주어 존재 여부도 알리지 않는다.
   if (!note) notFound();
@@ -52,13 +56,20 @@ export default async function NotePage({
   const background = parseBackground(note.background);
 
   // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
-  const [name, crumbs, folders, notes, allFolders] = await Promise.all([
+  const [name, pathResult, foldersResult, notesResult, allFoldersResult] = await Promise.all([
     displayName(),
     folderPath(folderId, t.library.root),
     listFolders(folderId, sort),
     listNotes(sort, folderId),
     listAllFolders(),
   ]);
+  if (!pathResult.ok || !foldersResult.ok || !notesResult.ok || !allFoldersResult.ok) {
+    return <ReadFailure />;
+  }
+  const crumbs = pathResult.data;
+  const folders = foldersResult.data;
+  const notes = notesResult.data;
+  const allFolders = allFoldersResult.data;
 
   // 배경 이미지는 비공개 버킷에 있어 서명된 주소가 필요하다. 여는 노트와
   // 좌측 목록의 썸네일이 쓰는 것을 한 번에 받는다.

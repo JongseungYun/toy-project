@@ -33,6 +33,10 @@ export const zhHans: Messages = {
     goSignIn: "登录",
   },
   library: {
+    readErrorTitle: "无法加载笔记",
+    readErrorBody: "请稍后重试。如果问题持续，请检查网络连接。",
+    readRetry: "重试",
+    readRetrying: "加载中…",
     title: "我的收藏",
     root: "我的笔记",
     folderPath: "文件夹路径",

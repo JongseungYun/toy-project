@@ -33,6 +33,10 @@ export const en: Messages = {
     goSignIn: "Sign in",
   },
   library: {
+    readErrorTitle: "Couldn’t load your notes",
+    readErrorBody: "Try again in a moment. If the problem continues, check your connection.",
+    readRetry: "Try again",
+    readRetrying: "Loading…",
     title: "My library",
     root: "My notes",
     folderPath: "Folder path",
