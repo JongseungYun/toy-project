@@ -103,7 +103,9 @@ test("R01: 복구할 초안보다 서버 버전이 앞서면 덮지 않고 선�
   await page.goto(url);
   await expect(page.getByTestId("note-body")).toContainText("이 브라우저에만 남긴 초안");
   await expect(page.getByRole("button", { name: "최신 내용 불러오기" })).toBeVisible();
-  await expect(page.getByTestId("save-state")).not.toHaveAttribute("data-state", "saved");
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "conflict");
+  await expect(page.getByTestId("save-state")).toContainText("충돌 해결 대기");
+  await expect(page.getByTestId("save-state")).toContainText("초안은 이 기기에 보관됨 · 서버 저장 미확인");
   await other.reload();
   await expect(other.getByTestId("note-body")).toContainText("다른 기기에서 저장한 최신 원문");
   await page.getByRole("button", { name: "최신 내용 불러오기" }).click();

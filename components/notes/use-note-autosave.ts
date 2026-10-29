@@ -16,7 +16,7 @@ import type { Note, NoteContent } from "@/lib/notes/types";
 const IDLE_DELAY_MS = 2_000;
 const MAX_DELAY_MS = 30_000;
 
-export type SaveStatus = "pending" | "unprotected" | "saving" | "saved" | "error";
+export type SaveStatus = "pending" | "unprotected" | "saving" | "saved" | "error" | "offline" | "conflict";
 
 export interface RemoteNote {
   title: string;
@@ -44,6 +44,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
   const [status, setStatus] = useState<SaveStatus>("saved");
   const [savedAt, setSavedAt] = useState(note.updatedAt);
   const [savedCount, setSavedCount] = useState(0);
+  const [draftProtected, setDraftProtected] = useState(false);
   const [remote, setRemote] = useState<RemoteNote | null>(null);
 
   const versionRef = useRef(note.version);
@@ -68,6 +69,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
   const persist = useCallback((draft: LocalNoteDraft) => {
     const stored = writeLocalDraft(draftKey, draft);
     protectedDraft.current = stored;
+    setDraftProtected(stored);
     if (stored) lastStoredId.current = draft.id;
     return stored;
   }, [draftKey]);
@@ -85,11 +87,20 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
     return snapshot;
   }, [openedNote.format, persist, readDraft]);
 
-  const save = useCallback(async () => {
+  const unsavedStatus = useCallback((): SaveStatus => {
+    if (remoteRef.current) return "conflict";
+    if (!navigator.onLine) return "offline";
+    return protectedDraft.current ? "pending" : "unprotected";
+  }, []);
+
+  const save = useCallback(async (manualRetry = false) => {
     if (!mounted.current) return;
     clearTimers();
     capture();
-    if (remoteRef.current) return;
+    if (remoteRef.current || (!navigator.onLine && !manualRetry)) {
+      setStatus(unsavedStatus());
+      return;
+    }
     if (saving.current) {
       pending.current = true;
       return;
@@ -98,6 +109,10 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
     try {
       do {
         clearTimers();
+        if (!navigator.onLine && !manualRetry) {
+          setStatus("offline");
+          return;
+        }
         pending.current = false;
         const sent = dirty.current!;
         setStatus("saving");
@@ -109,13 +124,15 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
           baseVersion: sent.baseVersion,
         });
         if (result.status === "conflict") {
+          clearTimers();
           remoteRef.current = result.latest;
           setRemote(result.latest);
-          setStatus(protectedDraft.current ? "pending" : "unprotected");
+          setStatus("conflict");
           return;
         }
         if (result.status === "error") {
-          setStatus("error");
+          clearTimers();
+          setStatus(navigator.onLine ? "error" : "offline");
           return;
         }
 
@@ -124,6 +141,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
         setSavedCount((count) => count + 1);
         if (dirty.current?.id === sent.id) {
           dirty.current = null;
+          setDraftProtected(false);
           clearLocalDraft(draftKey, lastStoredId.current);
           lastStoredId.current = null;
           setStatus("saved");
@@ -131,27 +149,31 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
           // 요청 중에 더 쓴 내용은 지우지 않고, 성공한 새 버전에서 이어 저장한다.
           dirty.current = { ...dirty.current, baseVersion: result.version };
           if (readLocalDraft(draftKey)?.id === lastStoredId.current) persist(dirty.current);
-          setStatus(protectedDraft.current ? "pending" : "unprotected");
+          setStatus(unsavedStatus());
         }
         if (mounted.current) router.refresh();
       } while (mounted.current && pending.current && dirty.current);
     } catch {
       // 연결 예외도 초안을 지우지 않는다. 기존 재시도 버튼으로 이어 저장한다.
-      setStatus("error");
+      clearTimers();
+      setStatus(navigator.onLine ? "error" : "offline");
     } finally {
       saving.current = false;
     }
-  }, [capture, clearTimers, draftKey, openedNote.id, persist, router]);
+  }, [capture, clearTimers, draftKey, openedNote.id, persist, router, unsavedStatus]);
 
   const scheduleSave = useCallback(() => {
     capture();
-    setStatus(protectedDraft.current ? "pending" : "unprotected");
-    if (remoteRef.current) return;
+    setStatus(unsavedStatus());
+    if (remoteRef.current || !navigator.onLine) {
+      clearTimers();
+      return;
+    }
     if (saving.current) pending.current = true;
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => void save(), IDLE_DELAY_MS);
     if (!maxTimer.current) maxTimer.current = setTimeout(() => void save(), MAX_DELAY_MS);
-  }, [capture, save]);
+  }, [capture, clearTimers, save, unsavedStatus]);
 
   useEffect(() => {
     let active = true;
@@ -168,16 +190,19 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
         return;
       }
       dirty.current = cached;
+      protectedDraft.current = true;
+      setDraftProtected(true);
       titleRef.current = cached.title;
       versionRef.current = cached.baseVersion;
       setTitleState(cached.title);
       applyRemote(cached.content);
-      setStatus("pending");
       if (cached.baseVersion !== openedNote.version) {
         remoteRef.current = openedNote;
         setRemote(openedNote);
+        setStatus("conflict");
       } else {
-        idleTimer.current = setTimeout(() => void save(), IDLE_DELAY_MS);
+        setStatus(unsavedStatus());
+        if (navigator.onLine) idleTimer.current = setTimeout(() => void save(), IDLE_DELAY_MS);
       }
     });
     const warnIfUnprotected = (event: BeforeUnloadEvent) => {
@@ -186,14 +211,24 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warnIfUnprotected);
+    const connectionChanged = () => {
+      if (!dirty.current || remoteRef.current) return;
+      clearTimers();
+      // 연결 복구는 서버 저장 성공이 아니다. 버튼으로 재시도할 때 버전을 확인한다.
+      setStatus(!navigator.onLine ? "offline" : saving.current ? "saving" : "error");
+    };
+    window.addEventListener("offline", connectionChanged);
+    window.addEventListener("online", connectionChanged);
     return () => {
       active = false;
       mounted.current = false;
       clearTimers();
       window.removeEventListener("beforeunload", warnIfUnprotected);
+      window.removeEventListener("offline", connectionChanged);
+      window.removeEventListener("online", connectionChanged);
       // 초안은 입력 시 이미 보관했다. 해제된 편집기 DOM을 다시 읽지 않는다.
     };
-  }, [applyRemote, clearTimers, draftKey, openedNote, save]);
+  }, [applyRemote, clearTimers, draftKey, openedNote, save, unsavedStatus]);
 
   const setTitle = useCallback((value: string) => {
     setTitleState(value);
@@ -207,6 +242,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
     clearLocalDraft(draftKey, lastStoredId.current);
     lastStoredId.current = null;
     dirty.current = null;
+    setDraftProtected(false);
     pending.current = false;
     applyRemote(remote.content);
     setTitleState(remote.title);
@@ -224,9 +260,12 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
     versionRef.current = remote.version;
     remoteRef.current = null;
     setRemote(null);
-    void save();
+    void save(true);
   }, [remote, save]);
 
-  return { title, setTitle, status, savedAt, savedCount, remote,
-    scheduleSave, saveNow: save, takeRemote, keepMine };
+  // 브라우저의 연결 감지는 힌트다. 사용자가 누른 재시도는 실제 요청으로 확인한다.
+  const saveNow = useCallback(() => save(true), [save]);
+
+  return { title, setTitle, status, savedAt, savedCount, remote, draftProtected,
+    scheduleSave, saveNow, takeRemote, keepMine };
 }

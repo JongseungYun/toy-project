@@ -16,6 +16,7 @@ function SaveIndicator({
   t,
   locale,
   status,
+  draftProtected,
   savedAt,
   savedCount,
   onRetry,
@@ -23,6 +24,7 @@ function SaveIndicator({
   t: Messages;
   locale: Locale;
   status: SaveStatus;
+  draftProtected: boolean;
   savedAt: string;
   savedCount: number;
   onRetry: () => void;
@@ -56,7 +58,36 @@ function SaveIndicator({
     );
   }
 
-  if (status === "error" || status === "unprotected") {
+  if (status === "error" || status === "offline" || status === "conflict") {
+    const label = status === "conflict" ? t.note.conflictWaiting
+      : status === "offline" ? t.note.offline : t.note.saveFailed;
+    return (
+      <div
+        data-testid="save-state"
+        data-state={status}
+        data-saved-count={savedCount}
+        role="status"
+        className="flex min-w-0 flex-col items-end gap-0.5 text-right text-xs"
+      >
+        {status === "conflict" ? (
+          <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
+            <WarningIcon className="size-3.5 shrink-0" />
+            {label}
+          </span>
+        ) : (
+          <button type="button" onClick={onRetry} className="flex items-center gap-1.5 font-medium text-destructive">
+            <WarningIcon className="size-3.5 shrink-0" />
+            {label}
+          </button>
+        )}
+        <span className="text-muted-foreground">
+          {draftProtected ? t.note.localDraftSaved : t.note.localDraftUnsaved}
+        </span>
+      </div>
+    );
+  }
+
+  if (status === "unprotected") {
     return (
       <button
         type="button"
@@ -67,7 +98,7 @@ function SaveIndicator({
         className="flex items-center gap-1.5 text-xs font-medium text-destructive"
       >
         <WarningIcon className="size-3.5" />
-        {status === "unprotected" ? t.note.draftUnavailable : t.note.saveFailed}
+        {t.note.draftUnavailable}
       </button>
     );
   }
@@ -95,6 +126,7 @@ export function NoteFrame({
   title,
   onTitleChange,
   status,
+  draftProtected,
   savedAt,
   savedCount,
   onRetry,
@@ -108,6 +140,7 @@ export function NoteFrame({
   title: string;
   onTitleChange: (value: string) => void;
   status: SaveStatus;
+  draftProtected: boolean;
   savedAt: string;
   savedCount: number;
   onRetry: () => void;
@@ -143,6 +176,7 @@ export function NoteFrame({
           t={t}
           locale={locale}
           status={status}
+          draftProtected={draftProtected}
           savedAt={savedAt}
           savedCount={savedCount}
           onRetry={onRetry}

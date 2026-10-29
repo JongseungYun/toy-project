@@ -54,6 +54,7 @@ export function DocEditor({
       title={autosave.title}
       onTitleChange={autosave.setTitle}
       status={autosave.status}
+      draftProtected={autosave.draftProtected}
       savedAt={autosave.savedAt}
       savedCount={autosave.savedCount}
       onRetry={() => void autosave.saveNow()}

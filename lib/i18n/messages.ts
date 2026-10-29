@@ -75,6 +75,10 @@ export interface Messages {
     bodyLabel: string;
     pending: string;
     draftUnavailable: string;
+    conflictWaiting: string;
+    offline: string;
+    localDraftSaved: string;
+    localDraftUnsaved: string;
     saving: string;
     saved: string;
     saveFailed: string;

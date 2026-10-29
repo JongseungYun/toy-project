@@ -67,3 +67,72 @@ it("임시 저장소가 막혔으면 저장 대기 대신 실패를 알리고 �
   window.dispatchEvent(leave);
   expect(leave.defaultPrevented).toBe(true);
 });
+
+it("충돌은 선택 대기로 표시하고 추가 입력 뒤에도 자동으로 덮지 않는다", async () => {
+  mocks.save.mockResolvedValueOnce({ status: "conflict", latest: { title: "최신 제목", content: { html: "서버 원문" }, version: 2, updatedAt: "2026-10-29" } });
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  act(() => result.current.setTitle("내 제목"));
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(result.current.status).toBe("conflict");
+  expect(result.current.draftProtected).toBe(true);
+  act(() => result.current.setTitle("충돌 중 더 쓴 제목"));
+  expect(result.current.status).toBe("conflict");
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  expect(mocks.save).toHaveBeenCalledTimes(1);
+  expect(readLocalDraft(key)?.title).toBe("충돌 중 더 쓴 제목");
+  act(() => result.current.takeRemote());
+  expect(result.current.status).toBe("saved");
+  expect(result.current.title).toBe("최신 제목");
+  expect(readLocalDraft(key)).toBeNull();
+});
+
+it.each(["예외", "오류 응답"])("%s 후에도 초안을 남기고 재시도 성공 시에만 저장 완료로 바꾼다", async (failure) => {
+  if (failure === "예외") mocks.save.mockRejectedValueOnce(new Error("network"));
+  else mocks.save.mockResolvedValueOnce({ status: "error", message: "저장 실패" });
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  act(() => result.current.setTitle("다시 저장할 내용"));
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(result.current.status).toBe("error");
+  expect(result.current.draftProtected).toBe(true);
+  expect(result.current.savedCount).toBe(0);
+  expect(readLocalDraft(key)?.title).toBe("다시 저장할 내용");
+  mocks.save.mockResolvedValueOnce(saved(2));
+  await act(async () => { await result.current.saveNow(); });
+  expect(result.current.status).toBe("saved");
+  expect(result.current.draftProtected).toBe(false);
+  expect(result.current.savedCount).toBe(1);
+  expect(readLocalDraft(key)).toBeNull();
+});
+
+it("연결이 끊기면 요청을 보류하고 재연결 뒤 재시도할 때 저장한다", async () => {
+  const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  act(() => result.current.setTitle("연결 끊김 중 입력"));
+  expect(result.current.status).toBe("offline");
+  expect(result.current.draftProtected).toBe(true);
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  expect(mocks.save).not.toHaveBeenCalled();
+  online.mockReturnValue(true);
+  act(() => window.dispatchEvent(new Event("online")));
+  expect(result.current.status).toBe("error");
+  mocks.save.mockResolvedValueOnce(saved(2));
+  await act(async () => { await result.current.saveNow(); });
+  expect(result.current.status).toBe("saved");
+  expect(readLocalDraft(key)).toBeNull();
+});
+
+it("연결 감지가 끊김이어도 사용자가 누른 재시도는 실제 저장 결과를 확인한다", async () => {
+  vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  act(() => result.current.setTitle("직접 재시도할 내용"));
+  expect(result.current.status).toBe("offline");
+  mocks.save.mockResolvedValueOnce(saved(2));
+  await act(async () => { await result.current.saveNow(); });
+  expect(mocks.save).toHaveBeenCalledTimes(1);
+  expect(result.current.status).toBe("saved");
+  expect(readLocalDraft(key)).toBeNull();
+});
