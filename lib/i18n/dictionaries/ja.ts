@@ -131,6 +131,7 @@ export const ja: Messages = {
     red: "赤",
     blue: "青",
     undo: "元に戻す",
+    redo: "やり直す",
     surface: "描画面",
     textBoxLabel: "テキストボックスの内容",
     textBoxPlaceholder: "入力してEnter",

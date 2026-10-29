@@ -131,6 +131,7 @@ export const fr: Messages = {
     red: "Rouge",
     blue: "Bleu",
     undo: "Annuler",
+    redo: "Rétablir",
     surface: "Surface de dessin",
     textBoxLabel: "Contenu de la zone de texte",
     textBoxPlaceholder: "Tapez, puis Entrée",

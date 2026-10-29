@@ -131,6 +131,7 @@ export const ko: Messages = {
     red: "빨강",
     blue: "파랑",
     undo: "되돌리기",
+    redo: "다시 실행",
     surface: "그림면",
     textBoxLabel: "글상자 내용",
     textBoxPlaceholder: "글자를 쓰고 Enter",

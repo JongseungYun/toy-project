@@ -131,6 +131,7 @@ export const en: Messages = {
     red: "Red",
     blue: "Blue",
     undo: "Undo",
+    redo: "Redo",
     surface: "Drawing surface",
     textBoxLabel: "Text box content",
     textBoxPlaceholder: "Type, then press Enter",

@@ -181,7 +181,7 @@ export function NoteFrame({
           className="col-start-2 min-w-0 w-full flex-1 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-base font-semibold outline-none focus:border-border sm:col-span-2 sm:col-start-1 @lg/note:text-[15px]"
         />
         <div className={cn("col-span-2 flex min-w-0 flex-wrap items-center gap-2", !needsAttention && "@lg/note:contents")}>
-          <div className={cn("min-w-0 flex-1 @lg/note:flex-none", needsAttention && "basis-full")}>
+          <div className={cn("min-w-24 flex-1 @lg/note:min-w-0 @lg/note:flex-none", needsAttention && "basis-full")}>
             <SaveIndicator
               t={t}
               locale={locale}

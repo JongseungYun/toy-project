@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import {
   canvasScale,
   canvasSize,
@@ -14,6 +14,13 @@ import {
   type CanvasTool,
   type ShapeKind,
 } from "@/lib/notes/canvas";
+import {
+  createCanvasHistory,
+  recordCanvasChange,
+  redoCanvas,
+  undoCanvas,
+  type CanvasHistory,
+} from "@/lib/notes/canvas-history";
 import type { CanvasContent, Note, NoteContent } from "@/lib/notes/types";
 import { CanvasShape } from "@/components/notes/canvas-figure";
 import { DrawBar } from "@/components/notes/draw-bar";
@@ -21,6 +28,7 @@ import { NoteFrame } from "@/components/notes/note-frame";
 import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
+import { Button } from "@/components/ui/button";
 
 const SHAPE_TOOLS: ShapeKind[] = ["rect", "ellipse", "line", "arrow"];
 const TEXT_SIZE = 17;
@@ -71,7 +79,7 @@ interface Draft {
 }
 
 /**
- * 그림판 편집기. 그린 것은 요소 하나하나로 남아서 되돌리기가 요소 단위로
+ * 그림판 편집기. 그린 것은 요소 하나하나로 남아서 되돌리기가 작업 단위로
  * 동작하고, 다시 열어 이어 그릴 수 있다.
  */
 export function CanvasEditor({
@@ -83,19 +91,20 @@ export function CanvasEditor({
   actions?: ReactNode;
   surface?: CSSProperties;
 }) {
-  const [elements, setElements] = useState(() => elementsOf(note.content));
+  const [history, setHistory] = useState(() => createCanvasHistory(elementsOf(note.content)));
+  const historyRef = useRef(history);
+  const elements = history.present;
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tool, setTool] = useState<CanvasTool>("pen");
   const [width, setWidth] = useState(2);
   const [color, setColor] = useState<string>(STROKE_COLORS[0].value);
   const [typing, setTyping] = useState<{ x: number; y: number } | null>(null);
-  const erasing = useRef<{ pointerId: number; last: Point } | null>(null);
+  const erasing = useRef<{ pointerId: number; last: Point; recorded: boolean } | null>(null);
   const [erasePaper, setErasePaper] = useState<CanvasSize | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const elementsRef = useRef(elements);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -114,22 +123,34 @@ export function CanvasEditor({
     height: Math.max(bounds.height, erasePaper?.height ?? 0, viewport.height / scale),
   };
 
-  const commit = useCallback((next: CanvasElement[]) => {
-    elementsRef.current = next;
-    setElements(next);
+  const applyHistory = useCallback((next: CanvasHistory) => {
+    historyRef.current = next;
+    setHistory(next);
   }, []);
+
+  // 지우개 드래그의 후속 변경은 첫 삭제 직전의 스냅샷을 함께 사용한다.
+  const commit = useCallback((next: CanvasElement[], continuing = false) => {
+    const current = historyRef.current;
+    applyHistory(continuing ? { ...current, present: next } : recordCanvasChange(current, next));
+  }, [applyHistory]);
 
   const readDraft = useCallback(
     () => ({
-      content: { elements: elementsRef.current },
-      preview: previewFromCanvas(elementsRef.current),
+      content: { elements: historyRef.current.present },
+      preview: previewFromCanvas(historyRef.current.present),
     }),
     [],
   );
 
   const applyRemote = useCallback(
-    (content: NoteContent) => commit(elementsOf(content)),
-    [commit],
+    (content: NoteContent) => {
+      erasing.current = null;
+      setErasePaper(null);
+      setDraft(null);
+      setTyping(null);
+      applyHistory(createCanvasHistory(elementsOf(content)));
+    },
+    [applyHistory],
   );
 
   const t = useMessages();
@@ -151,10 +172,11 @@ export function CanvasEditor({
 
   function startDrawing(event: React.PointerEvent<SVGSVGElement>) {
     if (event.button !== 0) return;
+    event.currentTarget.focus({ preventScroll: true });
     if (tool === "eraser") {
       if (erasing.current) return;
       const point = originalPoint(event);
-      erasing.current = { pointerId: event.pointerId, last: point };
+      erasing.current = { pointerId: event.pointerId, last: point, recorded: false };
       // 지운 직후 그림면이 줄면서 스크롤과 포인터 위치가 튀지 않게 한다.
       setErasePaper(paper);
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -227,6 +249,7 @@ export function CanvasEditor({
       return;
     }
     if (tool === "text") {
+      if (event.type !== "pointerup") return;
       setTyping(pointOf(event));
       return;
     }
@@ -234,6 +257,7 @@ export function CanvasEditor({
     if (!draft) return;
     const { element } = draft;
     setDraft(null);
+    if (event.type !== "pointerup") return;
 
     // 누르기만 하고 끌지 않은 도형은 남기지 않는다.
     if (element.kind === "pen" && element.points.length < 4) return;
@@ -246,7 +270,7 @@ export function CanvasEditor({
       return;
     }
 
-    commit([...elementsRef.current, element]);
+    commit([...historyRef.current.present, element]);
     autosave.scheduleSave();
   }
 
@@ -256,7 +280,7 @@ export function CanvasEditor({
     if (!place || !text.trim()) return;
 
     commit([
-      ...elementsRef.current,
+      ...historyRef.current.present,
       {
         id: newId(),
         kind: "text",
@@ -272,9 +296,12 @@ export function CanvasEditor({
 
   function eraseBetween(from: Point, to: Point) {
     const ids = erasedIdsBetween(svgRef.current!, from, to);
-    const next = elementsRef.current.filter((element) => !ids.has(element.id));
-    if (next.length === elementsRef.current.length) return;
-    commit(next);
+    const current = historyRef.current.present;
+    const next = current.filter((element) => !ids.has(element.id));
+    const gesture = erasing.current;
+    if (!gesture || next.length === current.length) return;
+    commit(next, gesture.recorded);
+    gesture.recorded = true;
     autosave.scheduleSave();
   }
 
@@ -283,114 +310,150 @@ export function CanvasEditor({
     setErasePaper(null);
   }
 
-  function undo() {
-    if (elementsRef.current.length === 0) return;
-    commit(elementsRef.current.slice(0, -1));
+  function stepHistory(redo: boolean) {
+    if (draft || erasing.current || typing) return;
+    const current = historyRef.current;
+    const next = redo ? redoCanvas(current) : undoCanvas(current);
+    if (next === current) return;
+    applyHistory(next);
     autosave.scheduleSave();
   }
 
-  return (
-    <NoteFrame
-      format={note.format}
-      title={autosave.title}
-      onTitleChange={autosave.setTitle}
-      status={autosave.status}
-      draftProtected={autosave.draftProtected}
-      savedAt={autosave.savedAt}
-      savedCount={autosave.savedCount}
-      onRetry={() => void autosave.saveNow()}
-      remote={autosave.remote}
-      onTakeRemote={autosave.takeRemote}
-      onKeepMine={autosave.keepMine}
-      actions={
-        <>
-        <button
-          type="button"
-          onClick={undo}
-          aria-label={t.draw.undo}
-          disabled={elements.length === 0}
-          className="flex size-8 flex-none items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
-        >
-          <ArrowCounterClockwiseIcon className="size-4" />
-        </button>
-        <ExportButton format={note.format} title={autosave.title} read={readDraft} />
-        {actions}
-        </>
-      }
-    >
-      <div className="flex min-h-0 flex-1 flex-col bg-muted p-3">
-        <div ref={viewportRef} className="relative min-h-0 flex-1" data-testid="canvas-viewport">
-          <div className="absolute inset-0 overflow-auto" data-testid="canvas-scroll">
-            <div className="relative" style={{ width: paper.width * scale, height: paper.height * scale }}>
-              <svg
-                ref={svgRef}
-                data-testid="note-body"
-                role="img"
-                aria-label={t.draw.surface}
-                width={paper.width * scale}
-                height={paper.height * scale}
-                viewBox={`0 0 ${paper.width} ${paper.height}`}
-                onPointerDown={startDrawing}
-                onPointerMove={keepDrawing}
-                onPointerUp={finishDrawing}
-                onPointerCancel={finishDrawing}
-                onLostPointerCapture={stopErasing}
-                className="block max-w-none touch-none rounded-md bg-[#fffdf8] shadow-sm ring-1 ring-border"
-                style={{
-                  ...surface,
-                  cursor: tool === "eraser" ? ERASER_CURSOR : tool === "pen" ? PEN_CURSOR : "crosshair",
-                }}
-              >
-                {elements.map((element) => (
-                  <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>
-                    <CanvasShape element={element} />
-                    {tool === "eraser" && (
-                      // 눈에 보이지 않는 굵은 획으로 경로 접촉을 판정한다.
-                      <g
-                        data-eraser-hit={element.id}
-                        style={{ pointerEvents: "none" }}
-                      >
-                        <CanvasShape element={element} hitArea />
-                      </g>
-                    )}
-                  </g>
-                ))}
-                {draft && <CanvasShape element={draft.element} />}
-              </svg>
+  function historyKey(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.defaultPrevented || event.nativeEvent.isComposing || event.altKey || !(event.ctrlKey || event.metaKey)) return;
+    const target = event.target as Element;
+    // 제목·글상자의 글자 편집과 포털로 열린 대화상자는 브라우저에 맡긴다.
+    if (!event.currentTarget.contains(target) || target.closest("input, textarea, [contenteditable='true']")) return;
+    const key = event.key.toLowerCase();
+    const redo = (key === "z" && event.shiftKey) || (key === "y" && event.ctrlKey);
+    if (key !== "z" && !(key === "y" && event.ctrlKey)) return;
+    if (draft || erasing.current || typing || (redo ? !historyRef.current.future.length : !historyRef.current.past.length)) return;
+    event.preventDefault();
+    stepHistory(redo);
+  }
 
-              {typing && (
-                <input
-                  autoFocus
-                  aria-label={t.draw.textBoxLabel}
-                  placeholder={t.draw.textBoxPlaceholder}
+  const busy = draft !== null || erasePaper !== null || typing !== null;
+
+  return (
+    <div className="contents" onKeyDown={historyKey}>
+      <NoteFrame
+        format={note.format}
+        title={autosave.title}
+        onTitleChange={autosave.setTitle}
+        status={autosave.status}
+        draftProtected={autosave.draftProtected}
+        savedAt={autosave.savedAt}
+        savedCount={autosave.savedCount}
+        onRetry={() => void autosave.saveNow()}
+        remote={autosave.remote}
+        onTakeRemote={autosave.takeRemote}
+        onKeepMine={autosave.keepMine}
+        actions={
+          <>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={() => stepHistory(false)}
+            aria-label={t.draw.undo}
+            title={`${t.draw.undo} (Ctrl/⌘+Z)`}
+            aria-keyshortcuts="Control+Z Meta+Z"
+            disabled={busy || history.past.length === 0}
+          >
+            <ArrowCounterClockwiseIcon />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            onClick={() => stepHistory(true)}
+            aria-label={t.draw.redo}
+            title={`${t.draw.redo} (Ctrl/⌘+Shift+Z / Ctrl+Y)`}
+            aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
+            disabled={busy || history.future.length === 0}
+          >
+            <ArrowClockwiseIcon />
+          </Button>
+          <ExportButton format={note.format} title={autosave.title} read={readDraft} />
+          {actions}
+          </>
+        }
+      >
+        <div className="flex min-h-0 flex-1 flex-col bg-muted p-3">
+          <div ref={viewportRef} className="relative min-h-0 flex-1" data-testid="canvas-viewport">
+            <div className="absolute inset-0 overflow-auto" data-testid="canvas-scroll">
+              <div className="relative" style={{ width: paper.width * scale, height: paper.height * scale }}>
+                <svg
+                  ref={svgRef}
+                  data-testid="note-body"
+                  role="img"
+                  tabIndex={0}
+                  aria-label={t.draw.surface}
+                  width={paper.width * scale}
+                  height={paper.height * scale}
+                  viewBox={`0 0 ${paper.width} ${paper.height}`}
+                  onPointerDown={startDrawing}
+                  onPointerMove={keepDrawing}
+                  onPointerUp={finishDrawing}
+                  onPointerCancel={finishDrawing}
+                  onLostPointerCapture={() => { stopErasing(); setDraft(null); }}
+                  className="block max-w-none touch-none rounded-md bg-[#fffdf8] shadow-sm ring-1 ring-border"
                   style={{
-                    left: typing.x * scale,
-                    top: Math.max(0, typing.y - TEXT_SIZE) * scale,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "top left",
-                    color,
+                    ...surface,
+                    cursor: tool === "eraser" ? ERASER_CURSOR : tool === "pen" ? PEN_CURSOR : "crosshair",
                   }}
-                  className="absolute min-w-40 rounded-sm border border-ring bg-card px-1 py-0.5 text-[17px] outline-none"
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") addText(event.currentTarget.value);
-                    if (event.key === "Escape") setTyping(null);
-                  }}
-                  onBlur={(event) => addText(event.currentTarget.value)}
-                />
-              )}
+                >
+                  {elements.map((element) => (
+                    <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>
+                      <CanvasShape element={element} />
+                      {tool === "eraser" && (
+                        // 눈에 보이지 않는 굵은 획으로 경로 접촉을 판정한다.
+                        <g
+                          data-eraser-hit={element.id}
+                          style={{ pointerEvents: "none" }}
+                        >
+                          <CanvasShape element={element} hitArea />
+                        </g>
+                      )}
+                    </g>
+                  ))}
+                  {draft && <CanvasShape element={draft.element} />}
+                </svg>
+
+                {typing && (
+                  <input
+                    autoFocus
+                    aria-label={t.draw.textBoxLabel}
+                    placeholder={t.draw.textBoxPlaceholder}
+                    style={{
+                      left: typing.x * scale,
+                      top: Math.max(0, typing.y - TEXT_SIZE) * scale,
+                      transform: `scale(${scale})`,
+                      transformOrigin: "top left",
+                      color,
+                    }}
+                    className="absolute min-w-40 rounded-sm border border-ring bg-card px-1 py-0.5 text-[17px] outline-none"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") addText(event.currentTarget.value);
+                      if (event.key === "Escape") setTyping(null);
+                    }}
+                    onBlur={(event) => addText(event.currentTarget.value)}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <DrawBar
-        tool={tool}
-        onToolChange={setTool}
-        width={width}
-        onWidthChange={setWidth}
-        color={color}
-        onColorChange={setColor}
-      />
-    </NoteFrame>
+        <DrawBar
+          tool={tool}
+          onToolChange={setTool}
+          width={width}
+          onWidthChange={setWidth}
+          color={color}
+          onColorChange={setColor}
+        />
+      </NoteFrame>
+    </div>
   );
 }

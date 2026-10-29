@@ -131,6 +131,7 @@ export const zhHans: Messages = {
     red: "红色",
     blue: "蓝色",
     undo: "撤销",
+    redo: "重做",
     surface: "绘图面",
     textBoxLabel: "文本框内容",
     textBoxPlaceholder: "输入后按 Enter",

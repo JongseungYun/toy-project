@@ -131,6 +131,7 @@ export const it: Messages = {
     red: "Rosso",
     blue: "Blu",
     undo: "Annulla",
+    redo: "Ripeti",
     surface: "Superficie di disegno",
     textBoxLabel: "Contenuto della casella di testo",
     textBoxPlaceholder: "Scrivi, poi premi Invio",

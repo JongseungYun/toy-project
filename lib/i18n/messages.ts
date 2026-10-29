@@ -134,6 +134,7 @@ export interface Messages {
     red: string;
     blue: string;
     undo: string;
+    redo: string;
     surface: string;
     textBoxLabel: string;
     textBoxPlaceholder: string;

@@ -131,6 +131,7 @@ export const zhHant: Messages = {
     red: "紅色",
     blue: "藍色",
     undo: "復原",
+    redo: "重做",
     surface: "繪圖面",
     textBoxLabel: "文字方塊內容",
     textBoxPlaceholder: "輸入後按 Enter",

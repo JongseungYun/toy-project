@@ -131,6 +131,7 @@ export const de: Messages = {
     red: "Rot",
     blue: "Blau",
     undo: "Rückgängig",
+    redo: "Wiederholen",
     surface: "Zeichenfläche",
     textBoxLabel: "Inhalt des Textfelds",
     textBoxPlaceholder: "Tippen, dann Enter",

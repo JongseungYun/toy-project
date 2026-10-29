@@ -33,6 +33,13 @@ async function drag(
   from: { x: number; y: number },
   to: { x: number; y: number },
 ) {
+  // 새로고침 직후에는 이전 DOM이 숨겨져 있거나 배율 측정이 아직 안 끝날 수 있다.
+  await expect(paper).toBeVisible();
+  await expect.poll(async () => {
+    const viewport = await page.getByTestId("canvas-viewport").boundingBox();
+    const current = await paper.boundingBox();
+    return Boolean(viewport && viewport.width > 0 && current && current.width >= viewport.width - 1);
+  }).toBe(true);
   const box = (await paper.boundingBox())!;
   await page.mouse.move(box.x + from.x, box.y + from.y);
   await page.mouse.down();
@@ -93,7 +100,7 @@ test("그림판에 선, 도형, 글상자를 넣으면 다시 열어도 그대�
   await expect(elements).toHaveCount(7);
 });
 
-test("되돌리기가 마지막 요소 하나만 지운다", async ({ page }) => {
+test("추가 작업을 되돌리면 마지막 요소부터 제거된다", async ({ page }) => {
   await signUpAndEnter(page);
   await createCanvasNote(page);
 

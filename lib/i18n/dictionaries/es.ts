@@ -131,6 +131,7 @@ export const es: Messages = {
     red: "Rojo",
     blue: "Azul",
     undo: "Deshacer",
+    redo: "Rehacer",
     surface: "Superficie de dibujo",
     textBoxLabel: "Contenido del cuadro de texto",
     textBoxPlaceholder: "Escribe y pulsa Intro",
