@@ -11,6 +11,11 @@ import { FormatPicker } from "@/components/notes/format-picker";
 import { LibraryViewport } from "@/components/notes/library-viewport";
 import { NoteListItem } from "@/components/notes/note-list-item";
 import { SortControls } from "@/components/notes/sort-controls";
+import {
+  NoteSearchForm,
+  NoteSearchResults,
+  type SearchPanelData,
+} from "@/components/notes/note-search";
 import type { Locale } from "@/lib/i18n/locales";
 import { format, type Messages } from "@/lib/i18n/messages";
 
@@ -20,7 +25,7 @@ export type NarrowPane = "list" | "detail";
 /**
  * 보관함과 노트 편집이 함께 쓰는 두 칸 레이아웃.
  * 좌측 패널은 어느 화면에서나 같고, 우측에 무엇을 놓을지는 각 페이지가 정한다.
- * 목록은 지금 열려 있는 폴더의 내용만 보여준다.
+ * 기본 목록은 현재 폴더를, 검색 중에는 전체 보관함의 검색 결과를 보여준다.
  *
  * 두 칸을 세울 수 없는 좁은 화면에서는 나란히 쌓지 않고 한 칸씩 쓴다.
  * 쌓으면 목록도 본문도 제 높이를 못 받아 둘 다 쓰기 어려워진다.
@@ -34,6 +39,7 @@ export function LibraryShell({
   sort,
   backgroundUrls,
   activeNoteId,
+  search,
   narrow = "list",
   t,
   locale,
@@ -49,6 +55,7 @@ export function LibraryShell({
   /** 이미지 배경의 서명된 주소. 목록 썸네일이 노트와 같은 배경을 입는 데 쓴다. */
   backgroundUrls: Record<string, string>;
   activeNoteId?: string;
+  search?: SearchPanelData;
   narrow?: NarrowPane;
   children: React.ReactNode;
 }) {
@@ -56,7 +63,7 @@ export function LibraryShell({
 
   // 목록이 비어 있으면 좁은 화면에도 자리가 남는다. 그럴 때만 두 칸을 쌓아
   // 빈 보관함 안내까지 함께 보여준다.
-  const listEmpty = folders.length === 0 && notes.length === 0;
+  const listEmpty = !search && folders.length === 0 && notes.length === 0;
   const stacked = narrow === "list" && listEmpty;
 
   return (
@@ -64,7 +71,9 @@ export function LibraryShell({
       <div
         className={cn(
           "mx-auto grid h-full w-full grid-cols-1 overflow-hidden rounded-3xl bg-card shadow-md ring-1 ring-foreground/5 sm:grid-cols-[304px_1fr] sm:grid-rows-none",
-          stacked ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]",
+          stacked
+            ? "grid-rows-[auto_minmax(0,1fr)]"
+            : "grid-rows-[minmax(0,1fr)]",
         )}
       >
         <aside
@@ -82,42 +91,67 @@ export function LibraryShell({
                 {displayName}
               </span>
             </div>
-            <FolderBar crumbs={crumbs} />
-            <SortControls sort={sort} />
+            <NoteSearchForm key={search?.query ?? ""} query={search?.query} />
+            {search ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  {t.search.scope}
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  render={<Link href="/" />}
+                  nativeButton={false}
+                >
+                  {t.search.close}
+                </Button>
+              </>
+            ) : (
+              <>
+                <FolderBar crumbs={crumbs} />
+                <SortControls sort={sort} />
+              </>
+            )}
           </div>
 
           {/* 목록이 길어져도 새 노트 카드는 이 칸 맨 위에 붙어 있는다.
               위쪽 여백은 카드가 직접 가진다. 칸에 두면 지나가는 항목이
               카드 위로 새어 나와 보인다. */}
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-2.5 pt-0">
-            <div className="sticky top-0 z-10 bg-sidebar pt-2.5 pb-1">
-              <FormatPicker variant="card" folderId={here} />
-            </div>
+            {search ? (
+              <NoteSearchResults search={search} activeNoteId={activeNoteId} />
+            ) : (
+              <>
+                <div className="sticky top-0 z-10 bg-sidebar pt-2.5 pb-1">
+                  <FormatPicker variant="card" folderId={here} />
+                </div>
 
-            {folders.length > 0 && (
-              <p className="px-1 pt-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                {format(t.library.folders, { count: folders.length })}
-              </p>
-            )}
-            {folders.map((folder) => (
-              <FolderListItem key={folder.id} folder={folder} t={t} />
-            ))}
+                {folders.length > 0 && (
+                  <p className="px-1 pt-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    {format(t.library.folders, { count: folders.length })}
+                  </p>
+                )}
+                {folders.map((folder) => (
+                  <FolderListItem key={folder.id} folder={folder} t={t} />
+                ))}
 
-            {notes.length > 0 && (
-              <p className="px-1 pt-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                {format(t.library.notes, { count: notes.length })}
-              </p>
+                {notes.length > 0 && (
+                  <p className="px-1 pt-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                    {format(t.library.notes, { count: notes.length })}
+                  </p>
+                )}
+                {notes.map((note) => (
+                  <NoteListItem
+                    key={note.id}
+                    note={note}
+                    active={note.id === activeNoteId}
+                    backgroundUrls={backgroundUrls}
+                    t={t}
+                    locale={locale}
+                  />
+                ))}
+              </>
             )}
-            {notes.map((note) => (
-              <NoteListItem
-                key={note.id}
-                note={note}
-                active={note.id === activeNoteId}
-                backgroundUrls={backgroundUrls}
-                t={t}
-                locale={locale}
-              />
-            ))}
           </div>
 
           <div className="flex gap-1 border-t border-sidebar-border p-2">

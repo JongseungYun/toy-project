@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, WarningIcon } from "@phosphor-icons/react";
 import { formatUpdatedAt, untitledTitle } from "@/lib/notes/display";
 import type { NoteFormat } from "@/lib/notes/types";
@@ -12,6 +13,7 @@ import { useLocale, useMessages } from "@/components/i18n-provider";
 import { format, type Messages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
+import { searchHref } from "@/lib/notes/search";
 
 function SaveIndicator({
   t,
@@ -153,6 +155,7 @@ export function NoteFrame({
 }) {
   const t = useMessages();
   const locale = useLocale();
+  const query = useSearchParams().get("q");
   const needsAttention = status === "error" || status === "offline" || status === "conflict" || status === "unprotected";
 
   return (
@@ -168,7 +171,7 @@ export function NoteFrame({
           variant="ghost"
           size="icon-sm"
           className="sm:hidden"
-          render={<Link href="/" aria-label={t.library.backToList} />}
+          render={<Link href={query ? searchHref(query) : "/"} aria-label={t.library.backToList} />}
           nativeButton={false}
         >
           <ArrowLeftIcon />

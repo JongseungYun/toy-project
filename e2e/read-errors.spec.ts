@@ -106,3 +106,41 @@ test("R03: 휴지통 조회 실패를 빈 휴지통으로 표시하지 않는다
   await expect(page).toHaveURL(/\/trash$/);
   await expect(page.getByText("휴지통이 비었습니다", { exact: true })).toBeVisible();
 });
+
+test("R04: 검색 실패는 결과 없음과 구분하고 같은 검색어로 재시도한다", async ({ page, next }) => {
+  await createDocNote(page);
+  await page.getByTestId("note-body").fill("검색실패 복구 확인");
+  await expect(page.getByTestId("save-state")).not.toHaveAttribute("data-saved-count", "0", { timeout: 20_000 });
+  const fault = failReads(next, (url) => url.pathname === "/rest/v1/notes" && url.searchParams.get("select")?.includes("content") === true);
+  await page.goto(`/search?q=${encodeURIComponent("검색실패")}`);
+  const failure = page.getByTestId("search-failure");
+  await expect(failure).toContainText("검색하지 못했어요");
+  await expect(page.getByTestId("search-empty")).toHaveCount(0);
+  const before = fault.count();
+  await failure.getByRole("button", { name: "다시 시도", exact: true }).click();
+  await expect(failure.getByRole("button", { name: "다시 시도", exact: true })).toBeEnabled({ timeout: 30_000 });
+  expect(fault.count()).toBeGreaterThan(before);
+  fault.recover();
+  await failure.getByRole("button", { name: "다시 시도", exact: true }).click();
+  await expect(page.getByTestId("search-result")).toHaveCount(1);
+  await expect(page.getByRole("searchbox")).toHaveValue("검색실패");
+});
+
+test("R04: 첫 조회 묶음 뒤에 있는 노트도 검색한다", async ({ page, next }) => {
+  let secondPage = false;
+  next.onFetch((request) => {
+    const url = new URL(request.url);
+    if (request.method !== "GET" || url.pathname !== "/rest/v1/notes" || !url.searchParams.get("select")?.includes("content")) return;
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    if (offset >= 200) secondPage = true;
+    return Response.json(Array.from({ length: offset === 0 ? 200 : 1 }, (_, index) => ({
+      id: randomUUID(), format: "doc", title: offset === 0 ? `기타 ${index}` : "마지막 묶음",
+      content: { html: offset === 0 ? "<p>다른 내용</p>" : "<p>다음묶음검색</p>" },
+      folder_id: null, updated_at: "2026-10-30T00:00:00Z",
+    })));
+  });
+  await page.goto(`/search?q=${encodeURIComponent("다음묶음검색")}`);
+  await expect(page.getByTestId("search-result")).toHaveCount(1);
+  await expect(page.getByTestId("search-result")).toContainText("마지막 묶음");
+  expect(secondPage).toBe(true);
+});

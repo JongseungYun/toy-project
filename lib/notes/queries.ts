@@ -3,7 +3,19 @@ import { createClient, currentUser } from "@/lib/supabase/server";
 import { isShareToken } from "@/lib/notes/share";
 import type { ReadResult } from "@/lib/notes/read-result";
 import { sortColumn, type ResolvedSort } from "@/lib/notes/sort";
-import type { Note, NoteContent, NoteFormat, NoteSummary } from "@/lib/notes/types";
+import type {
+  Note,
+  NoteContent,
+  NoteFormat,
+  NoteSummary,
+} from "@/lib/notes/types";
+import {
+  matchRanges,
+  normalizeSearchText,
+  searchExcerpt,
+  type NoteSearchResult,
+} from "@/lib/notes/search";
+import { searchableText } from "@/lib/notes/search-text";
 
 interface NoteRow {
   id: string;
@@ -57,7 +69,9 @@ export async function listNotes(
     // 휴지통에 있는 노트는 보관함 목록에 나오지 않는다.
     .is("deleted_at", null);
 
-  query = folderId ? query.eq("folder_id", folderId) : query.is("folder_id", null);
+  query = folderId
+    ? query.eq("folder_id", folderId)
+    : query.is("folder_id", null);
 
   const { data, error } = await query
     .order(sortColumn(sort.key), { ascending: sort.ascending })
@@ -65,6 +79,54 @@ export async function listNotes(
 
   if (error || !data) return { ok: false };
   return { ok: true, data: data.map(toSummary) };
+}
+
+/** 모든 폴더의 서버 저장본을 검색한다. 본문 전체는 서버 안에서만 읽는다. */
+export async function searchNotes(
+  query: string,
+): Promise<ReadResult<NoteSearchResult[]>> {
+  const phrase = normalizeSearchText(query);
+  if (!phrase) return { ok: true, data: [] };
+  const user = await currentUser();
+  if (!user) return { ok: false };
+  const supabase = await createClient();
+  const results: NoteSearchResult[] = [];
+  const pageSize = 200;
+
+  // Data API의 행 수 제한 때문에 첫 묶음에서만 찾지 않도록 끝까지 읽는다.
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("notes")
+      .select("id, format, title, content, folder_id, updated_at")
+      .eq("owner_id", user.id)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error || !data) return { ok: false };
+    for (const row of data as Pick<
+      NoteRow,
+      "id" | "format" | "title" | "content" | "folder_id" | "updated_at"
+    >[]) {
+      const text = searchableText(row.format, row.content ?? {});
+      const title = normalizeSearchText(row.title);
+      if (
+        !matchRanges(title, phrase).length &&
+        !matchRanges(text, phrase).length
+      )
+        continue;
+      results.push({
+        id: row.id,
+        format: row.format,
+        title: title || text.slice(0, 60),
+        folderId: row.folder_id,
+        excerpt: searchExcerpt(text, phrase),
+        updatedAt: row.updated_at,
+      });
+    }
+    if (data.length < pageSize) break;
+  }
+  return { ok: true, data: results };
 }
 
 /**
@@ -75,28 +137,30 @@ export async function listNotes(
  * 제목을 지을 때와 화면을 그릴 때 같은 노트를 각각 부르므로, 같은 요청 안에서는
  * 한 번만 읽는다.
  */
-export const getNote = cache(async (id: string): Promise<ReadResult<Note | null>> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notes")
-    .select(`${SUMMARY_COLUMNS}, content, folder_id, share_token, owner_id`)
-    .eq("id", id)
-    .is("deleted_at", null)
-    .maybeSingle<NoteRow & { owner_id: string }>();
+export const getNote = cache(
+  async (id: string): Promise<ReadResult<Note | null>> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("notes")
+      .select(`${SUMMARY_COLUMNS}, content, folder_id, share_token, owner_id`)
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle<NoteRow & { owner_id: string }>();
 
-  if (error) return { ok: false };
-  if (!data) return { ok: true, data: null };
-  return {
-    ok: true,
-    data: {
-      ...toSummary(data),
-      ownerId: data.owner_id,
-      content: data.content ?? {},
-      folderId: data.folder_id ?? null,
-      shareToken: data.share_token ?? null,
-    },
-  };
-});
+    if (error) return { ok: false };
+    if (!data) return { ok: true, data: null };
+    return {
+      ok: true,
+      data: {
+        ...toSummary(data),
+        ownerId: data.owner_id,
+        content: data.content ?? {},
+        folderId: data.folder_id ?? null,
+        shareToken: data.share_token ?? null,
+      },
+    };
+  },
+);
 
 /**
  * 링크로 열어 주는 노트. 편집에 필요한 것(version, 폴더, 소유자)은 담지 않는다.

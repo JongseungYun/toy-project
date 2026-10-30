@@ -35,6 +35,21 @@ export interface Messages {
     hasAccount: string;
     goSignIn: string;
   };
+  search: {
+    pickBody: string;
+    label: string;
+    placeholder: string;
+    submit: string;
+    searching: string;
+    scope: string;
+    results: string;
+    count: string;
+    empty: string;
+    start: string;
+    failed: string;
+    failedBody: string;
+    close: string;
+  };
   library: {
     readErrorTitle: string;
     readErrorBody: string;
