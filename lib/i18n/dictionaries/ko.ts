@@ -89,6 +89,11 @@ export const ko: Messages = {
     yesterday: "어제",
   },
   formatBar: {
+    mixedColors: "혼합",
+    noColor: "없음",
+    defaultColor: "기본 색",
+    pickColor: "색상 선택",
+    applyColor: "적용",
     more: "더보기",
     toolbar: "서식",
     font: "글꼴",

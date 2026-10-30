@@ -89,6 +89,11 @@ export const en: Messages = {
     yesterday: "Yesterday",
   },
   formatBar: {
+    mixedColors: "Mixed",
+    noColor: "None",
+    defaultColor: "Default colour",
+    pickColor: "Choose colour",
+    applyColor: "Apply",
     more: "More",
     toolbar: "Formatting",
     font: "Font",

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { chooseDocColor } from "./support/doc-format";
 import {
   createDocNote,
   signInAndEnter,
@@ -244,9 +245,9 @@ test("글자 배경색은 고른 글에 적용되고 다시 열어도 남는다"
 
   const body = page.getByTestId("note-body");
   await selectRange(page, 0, 5);
-  await page.getByLabel("글자 색", { exact: true }).fill("#0055aa");
+  await chooseDocColor(page, "글자 색", "#0055aa");
   await selectRange(page, 0, 5);
-  await page.getByLabel("글자 배경색", { exact: true }).fill("#ffeb3b");
+  await chooseDocColor(page, "글자 배경색", "#ffeb3b");
 
   async function expectHighlight() {
     const highlighted = body.locator('span[style*="background-color"]');
@@ -282,7 +283,7 @@ test("붙여넣은 목록은 외부 문단 배경 없이 들어오고 글자 서
   await expect(body.locator("strong")).toHaveText("첫 항목");
   await expect(body.locator("ul")).not.toHaveAttribute("style", /background|padding/);
   await selectRange(page, 0, 4);
-  await page.getByLabel("글자 색", { exact: true }).fill("#0055aa");
+  await chooseDocColor(page, "글자 색", "#0055aa");
   await expect(body.locator("li").first()).toContainText("첫 항목");
   await expect(body.locator("strong")).toHaveCSS("color", "rgb(0, 85, 170)");
 });

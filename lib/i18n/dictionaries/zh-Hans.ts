@@ -89,6 +89,11 @@ export const zhHans: Messages = {
     yesterday: "昨天",
   },
   formatBar: {
+    mixedColors: "混合",
+    noColor: "无",
+    defaultColor: "默认颜色",
+    pickColor: "选择颜色",
+    applyColor: "应用",
     more: "更多",
     toolbar: "格式",
     font: "字体",

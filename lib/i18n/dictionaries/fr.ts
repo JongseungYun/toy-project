@@ -89,6 +89,11 @@ export const fr: Messages = {
     yesterday: "Hier",
   },
   formatBar: {
+    mixedColors: "Mixte",
+    noColor: "Aucune",
+    defaultColor: "Couleur par défaut",
+    pickColor: "Choisir une couleur",
+    applyColor: "Appliquer",
     more: "Plus",
     toolbar: "Mise en forme",
     font: "Police",

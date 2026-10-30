@@ -89,6 +89,11 @@ export const ja: Messages = {
     yesterday: "昨日",
   },
   formatBar: {
+    mixedColors: "混在",
+    noColor: "なし",
+    defaultColor: "既定の色",
+    pickColor: "色を選択",
+    applyColor: "適用",
     more: "その他",
     toolbar: "書式",
     font: "フォント",

@@ -64,7 +64,11 @@ export type FormatState = {
   on: Record<string, boolean>;
   font: string;
   size: string;
+  color: SelectionColor;
+  highlight: SelectionColor;
 };
+
+export type SelectionColor = { kind: "color"; value: string } | { kind: "mixed" } | { kind: "none" };
 
 /** 눌림 여부를 물어볼 수 있는 명령들. */
 export const STATE_COMMANDS = [
@@ -95,7 +99,7 @@ function normalize(value: string) {
 function inlineValue(
   editor: HTMLElement,
   node: Node | null,
-  prop: "fontFamily" | "fontSize",
+  prop: "fontFamily" | "fontSize" | "color",
 ): string | null {
   let el =
     node?.nodeType === Node.TEXT_NODE
@@ -109,6 +113,88 @@ function inlineValue(
     el = el.parentElement;
   }
   return null;
+}
+
+/** CSS가 저장한 rgb·이름·테마 색을 같은 sRGB 값으로 비교한다. */
+function colorReader() {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 1;
+  const context = canvas.getContext("2d", { willReadFrequently: true })!;
+  const values = new Map<string, string | null>();
+  return (css: string): string | null => {
+    if (values.has(css)) return values.get(css)!;
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = css;
+    context.fillRect(0, 0, 1, 1);
+    const [r, g, b, alpha] = context.getImageData(0, 0, 1, 1).data;
+    const hex = (n: number) => n.toString(16).padStart(2, "0");
+    const value = alpha === 0 ? null : `#${hex(r)}${hex(g)}${hex(b)}${alpha === 255 ? "" : hex(alpha)}`;
+    values.set(css, value);
+    return value;
+  };
+}
+
+export function defaultTextColor(editor: HTMLElement): string {
+  return colorReader()(getComputedStyle(editor).color) ?? "#000000";
+}
+
+function selectionColors(editor: HTMLElement): Pick<FormatState, "color" | "highlight"> {
+  const read = colorReader();
+  const fallback = read(getComputedStyle(editor).color) ?? "#000000";
+  const colors = new Set<string>();
+  const highlights = new Set<string>();
+
+  function add(node: Node) {
+    colors.add(read(inlineValue(editor, node, "color") ?? getComputedStyle(editor).color) ?? fallback);
+    let el = node.nodeType === Node.TEXT_NODE ? node.parentElement : node as HTMLElement;
+    let highlight: string | null = null;
+    // 노트 자체의 배경과 글자에 입힌 배경을 구분한다. 투명한 자식은 부모의 색을 따른다.
+    while (el && el !== editor && editor.contains(el)) {
+      if (el.style.backgroundColor) highlight = read(getComputedStyle(el).backgroundColor);
+      if (highlight) break;
+      el = el.parentElement;
+    }
+    highlights.add(highlight ?? "");
+  }
+
+  const selection = window.getSelection();
+  const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+  if (range && !range.collapsed) {
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      if (!node.textContent?.length || !range.intersectsNode(node)) continue;
+      const part = document.createRange();
+      part.selectNodeContents(node);
+      if (range.compareBoundaryPoints(Range.START_TO_START, part) > 0) part.setStart(range.startContainer, range.startOffset);
+      if (range.compareBoundaryPoints(Range.END_TO_END, part) < 0) part.setEnd(range.endContainer, range.endOffset);
+      if (!part.collapsed) add(node);
+    }
+  }
+  if (!colors.size) {
+    let node = range?.startContainer ?? editor;
+    if (node.nodeType !== Node.TEXT_NODE) {
+      const next = node.childNodes[range?.startOffset ?? 0];
+      node = next ?? node.lastChild ?? node;
+      while (node.nodeType !== Node.TEXT_NODE && (next ? node.firstChild : node.lastChild)) {
+        node = (next ? node.firstChild : node.lastChild)!;
+      }
+    }
+    add(editor.contains(node) ? node : editor);
+  }
+  // 커서만 있을 때 execCommand는 DOM을 바꾸지 않고 다음 입력의 색만 바꿀 수 있다.
+  if (range?.collapsed && editor.contains(range.startContainer)) {
+    try {
+      const value = document.queryCommandValue("foreColor");
+      if (value) { colors.clear(); colors.add(read(value) ?? ""); }
+    } catch {
+      // 지원하지 않는 브라우저에서는 커서 주변의 저장된 서식을 사용한다.
+    }
+  }
+  const result = (values: Set<string>): SelectionColor => values.size > 1
+    ? { kind: "mixed" }
+    : [...values][0] ? { kind: "color", value: [...values][0] } : { kind: "none" };
+  return { color: result(colors), highlight: result(highlights) };
 }
 
 export function readFormatState(editor: HTMLElement): FormatState {
@@ -135,5 +221,5 @@ export function readFormatState(editor: HTMLElement): FormatState {
   // 값이면 기본 크기로 보여 준다.
   const size = px && SIZE_OPTIONS.includes(px as never) ? px : DEFAULT_SIZE;
 
-  return { on, font, size };
+  return { on, font, size, ...selectionColors(editor) };
 }

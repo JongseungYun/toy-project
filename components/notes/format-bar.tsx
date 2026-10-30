@@ -22,11 +22,16 @@ import {
   SIZE_OPTIONS,
   applyCommand,
   applyFontSize,
+  defaultTextColor,
   readFormatState,
   type FormatState,
+  type SelectionColor,
 } from "@/lib/notes/rich-text";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -56,39 +61,76 @@ const ALIGNMENTS = [
   { command: "justifyRight", key: "alignRight", Icon: TextAlignRightIcon },
 ] as const;
 
-const IDLE: FormatState = { on: {}, font: DEFAULT_FONT, size: DEFAULT_SIZE };
+const IDLE: FormatState = { on: {}, font: DEFAULT_FONT, size: DEFAULT_SIZE, color: { kind: "color", value: "#000000" }, highlight: { kind: "none" } };
 
-/** 색상 입력은 그대로 쓰고, 선택한 색을 아이콘 아래의 띠로 보여 준다. */
-function ColorButton({ label, initialColor, highlight = false, onColorChange }: {
+function sameRange(a: Range | null, b: Range | null): boolean {
+  return Boolean(a && b && a.startContainer === b.startContainer && a.startOffset === b.startOffset
+    && a.endContainer === b.endContainer && a.endOffset === b.endOffset);
+}
+
+/** 띠는 현재 선택 상태, 선택창 안의 색은 적용 전 후보를 표시한다. */
+function ColorButton({ label, value, highlight = false, onColorChange, onReset }: {
   label: string;
-  initialColor: string;
+  value: SelectionColor;
   highlight?: boolean;
   onColorChange: (color: string) => void;
+  onReset: () => void;
 }) {
-  const [color, setColor] = useState(initialColor);
+  const t = useMessages();
+  const [open, setOpen] = useState(false);
+  const [candidate, setCandidate] = useState("#000000");
+  const trigger = useRef<HTMLButtonElement>(null);
+  const applied = useRef(false);
+  const id = useId();
+  const current = value.kind === "color" ? value.value : value.kind === "mixed" ? t.formatBar.mixedColors : t.formatBar.noColor;
+
+  function apply(action: () => void) {
+    applied.current = true;
+    action();
+    setOpen(false);
+  }
+
   return (
-    <label
-      title={label}
-      className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "relative cursor-pointer gap-1 px-2 focus-within:ring-2 focus-within:ring-ring")}
-    >
-      <span aria-hidden="true" className="pointer-events-none flex flex-col items-center gap-0.5">
-        {highlight ? <HighlighterIcon className="size-4" /> : <span className="text-sm leading-4 font-semibold">A</span>}
-        <span className="h-1 w-5 rounded-sm" style={{ backgroundColor: color }} />
-      </span>
-      <CaretDownIcon aria-hidden="true" className="pointer-events-none size-3" />
-      <input
-        type="color"
-        aria-label={label}
-        title={label}
-        value={color}
-        className="absolute inset-0 size-full cursor-pointer opacity-0"
-        onMouseDown={(event) => event.stopPropagation()}
-        onChange={(event) => {
-          setColor(event.target.value);
-          onColorChange(event.target.value);
-        }}
-      />
-    </label>
+    <Popover open={open} onOpenChange={(next) => {
+      if (next) {
+        applied.current = false;
+        setCandidate(value.kind === "color" ? value.value.slice(0, 7) : highlight ? "#fff59d" : "#000000");
+      }
+      setOpen(next);
+    }}>
+      <PopoverTrigger render={
+        <Button ref={trigger} type="button" variant="ghost" size="sm"
+          aria-label={label} aria-describedby={`${id}-current`} title={`${label}: ${current}`}
+          data-color-state={value.kind} data-color={value.kind === "color" ? value.value : undefined}
+          onMouseDown={(event) => event.preventDefault()}
+        />
+      }>
+        <span aria-hidden="true" className="flex flex-col items-center gap-0.5">
+          {highlight ? <HighlighterIcon /> : <span>A</span>}
+          <span className={cn("h-1 w-5 rounded-sm", value.kind !== "color" && "border border-dashed border-muted-foreground")}
+            style={value.kind === "color" ? { backgroundColor: value.value } : undefined} />
+        </span>
+        {value.kind !== "color" && <span>{current}</span>}
+        <CaretDownIcon aria-hidden="true" />
+      </PopoverTrigger>
+      <span id={`${id}-current`} className="sr-only">{current}</span>
+      <PopoverContent side="top" align="start" className="w-64" role="dialog" aria-label={label}
+        finalFocus={() => applied.current ? false : trigger.current}>
+        <PopoverHeader><PopoverTitle>{label}</PopoverTitle></PopoverHeader>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor={`${id}-pick`}>{t.formatBar.pickColor}</FieldLabel>
+            <Input id={`${id}-pick`} type="color" value={candidate} onChange={(event) => setCandidate(event.target.value)} />
+          </Field>
+        </FieldGroup>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => apply(onReset)}>
+            {highlight ? t.formatBar.noColor : t.formatBar.defaultColor}
+          </Button>
+          <Button type="button" size="sm" onClick={() => apply(() => onColorChange(candidate))}>{t.formatBar.applyColor}</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -144,6 +186,20 @@ export function FormatBar({
   // 고른 자리. 드롭다운을 열면 편집 영역에서 포커스가 떠나므로, 명령을
   // 실행하기 직전에 이 자리를 되돌려 놓는다.
   const picked = useRef<Range | null>(null);
+  // 커서에서 정한 다음 글자 배경은 아직 DOM에 없다. 같은 커서에서만 유지한다.
+  const typingHighlight = useRef<{ range: Range; value: SelectionColor } | null>(null);
+
+  const readState = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return IDLE;
+    const next = readFormatState(editor);
+    const selection = window.getSelection();
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    const pending = typingHighlight.current;
+    if (pending && range?.collapsed && sameRange(pending.range, range)) next.highlight = pending.value;
+    else typingHighlight.current = null;
+    return next;
+  }, [editorRef]);
 
   const sync = useCallback(() => {
     const editor = editorRef.current;
@@ -152,15 +208,23 @@ export function FormatBar({
     if (!editor.contains(selection.anchorNode)) return;
 
     picked.current = selection.getRangeAt(0).cloneRange();
-    setState(readFormatState(editor));
-  }, [editorRef]);
+    setState(readState());
+  }, [editorRef, readState]);
 
   useEffect(() => {
     document.addEventListener("selectionchange", sync);
-    return () => document.removeEventListener("selectionchange", sync);
-  }, [sync]);
+    const editor = editorRef.current;
+    const clearTyping = () => { typingHighlight.current = null; };
+    editor?.addEventListener("pointerdown", clearTyping);
+    editor?.addEventListener("pointerup", sync);
+    return () => {
+      document.removeEventListener("selectionchange", sync);
+      editor?.removeEventListener("pointerdown", clearTyping);
+      editor?.removeEventListener("pointerup", sync);
+    };
+  }, [editorRef, sync]);
 
-  function run(action: () => void) {
+  function run(action: () => void, nextHighlight?: SelectionColor) {
     const editor = editorRef.current;
     if (!editor) return;
 
@@ -168,13 +232,23 @@ export function FormatBar({
     const range = picked.current;
     if (range) {
       const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
+      const current = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      // 같은 커서를 불필요하게 다시 만들면 브라우저의 다음 입력 서식이 풀린다.
+      if (!sameRange(current, range)) {
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
     }
 
     action();
     onChange();
-    setState(readFormatState(editor));
+    const selection = window.getSelection();
+    const current = selection?.rangeCount ? selection.getRangeAt(0) : null;
+    if (current) picked.current = current.cloneRange();
+    if (nextHighlight && current?.collapsed) {
+      typingHighlight.current = { range: current.cloneRange(), value: nextHighlight };
+    }
+    setState(readState());
   }
 
   return (
@@ -250,14 +324,18 @@ export function FormatBar({
       <div id={`${id}-color`} className={extraClass}>
         <ColorButton
           label={t.formatBar.color}
-          initialColor="#b3123f"
+          value={state.color}
           onColorChange={(color) => run(() => applyCommand("foreColor", color))}
+          onReset={() => run(() => {
+            if (editorRef.current) applyCommand("foreColor", defaultTextColor(editorRef.current));
+          })}
         />
         <ColorButton
           label={t.formatBar.highlight}
-          initialColor="#fff59d"
+          value={state.highlight}
           highlight
-          onColorChange={(color) => run(() => applyCommand("hiliteColor", color))}
+          onColorChange={(color) => run(() => applyCommand("hiliteColor", color), { kind: "color", value: color })}
+          onReset={() => run(() => applyCommand("hiliteColor", "transparent"), { kind: "none" })}
         />
 
         <span className="mx-1 h-5 w-px bg-border" />

@@ -92,6 +92,11 @@ export interface Messages {
     yesterday: string;
   };
   formatBar: {
+    mixedColors: string;
+    noColor: string;
+    defaultColor: string;
+    pickColor: string;
+    applyColor: string;
     more: string;
     toolbar: string;
     font: string;
