@@ -22,6 +22,51 @@ test.beforeEach(async ({ page, next }) => {
   await signUpAndEnter(page);
 });
 
+test("R06: 이력 목록·본문 조회와 복원 실패를 구분하고 재시도한다", async ({ page, next }) => {
+  await createDocNote(page);
+  await expect(page.getByTestId("note-body")).toBeVisible();
+  for (const title of ["복원할 내용", "현재 내용"]) {
+    const count = (await page.getByTestId("save-state").getAttribute("data-saved-count"))!;
+    await page.getByLabel("노트 제목").fill(title);
+    await page.getByTestId("note-body").fill(`${title}의 본문`);
+    await expect(page.getByTestId("save-state")).not.toHaveAttribute("data-saved-count", count, { timeout: 20_000 });
+    await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved");
+  }
+  let stage = "list";
+  let failures = 0;
+  next.onFetch((request) => {
+    const url = new URL(request.url);
+    const detail = url.searchParams.get("select")?.includes("content");
+    if ((url.pathname === "/rest/v1/note_revisions" && ((stage === "list" && !detail) || (stage === "detail" && detail))) ||
+      (stage === "restore" && url.pathname === "/rest/v1/rpc/restore_note_revision")) {
+      failures++;
+      return Response.json({ message: "R06 test only" }, { status: 503 });
+    }
+  });
+  await page.getByRole("button", { name: "수정 이력", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("이력을 불러오지 못했습니다.", { timeout: 30_000 });
+  await expect(dialog).not.toContainText("아직 수정 이력이 없어요");
+  stage = "detail";
+  await dialog.getByRole("button", { name: "다시 불러오기", exact: true }).click();
+  await expect(page.getByLabel("복원 지점")).toBeVisible();
+  await expect(dialog).toContainText("이력을 불러오지 못했습니다.", { timeout: 30_000 });
+  stage = "restore";
+  await dialog.getByRole("button", { name: "다시 불러오기", exact: true }).click();
+  await expect(page.getByTestId("revision-preview")).toContainText("복원할 내용의 본문");
+  await dialog.getByRole("button", { name: "이 버전 복원", exact: true }).click();
+  await dialog.getByRole("button", { name: "복원하기", exact: true }).click();
+  await expect(dialog).toContainText("복원하지 못했습니다.");
+  await expect(page.getByLabel("노트 제목")).toHaveValue("현재 내용");
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved");
+  expect(failures).toBeGreaterThanOrEqual(3);
+  stage = "recovered";
+  await dialog.getByRole("button", { name: "이 버전 복원", exact: true }).click();
+  await dialog.getByRole("button", { name: "복원하기", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByLabel("노트 제목")).toHaveValue("복원할 내용");
+});
+
 test("R03: 실제 빈 보관함과 없는 노트는 조회 실패와 구분한다", async ({ page }) => {
   await expect(page.getByText("첫 노트를 만들어 보세요", { exact: true })).toBeVisible();
   await expect(page.getByTestId("read-failure")).toHaveCount(0);

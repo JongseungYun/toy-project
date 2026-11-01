@@ -15,7 +15,7 @@ import type {
 import { CanvasShape } from "@/components/notes/canvas-figure";
 
 /**
- * 고칠 수 없는 노트 한 장. 공유 링크로 들어온 사람이 보는 화면이다.
+ * 고칠 수 없는 노트 한 장. 공유 링크와 수정 이력의 미리보기에서 쓴다.
  *
  * 편집기와 같은 내용을 같은 모양으로 보여주되 손댈 수 있는 것은 두지 않는다.
  * 그림판은 편집 화면·목록 미리보기와 같은 renderer로 그린다.

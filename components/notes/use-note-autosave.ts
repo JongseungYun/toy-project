@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNote } from "@/lib/notes/actions";
+import { restoreNoteRevision } from "@/lib/notes/revision-actions";
+import type { RestoreRevisionResult } from "@/lib/notes/revisions";
 import {
   clearLocalDraft,
   localDraftKey,
@@ -57,6 +59,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saving = useRef(false);
+  const restoring = useRef(false);
   const pending = useRef(false);
 
   const clearTimers = useCallback(() => {
@@ -97,6 +100,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
     if (!mounted.current) return;
     clearTimers();
     capture();
+    if (restoring.current) return;
     if (remoteRef.current || (!navigator.onLine && !manualRetry)) {
       setStatus(unsavedStatus());
       return;
@@ -165,7 +169,7 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
   const scheduleSave = useCallback(() => {
     capture();
     setStatus(unsavedStatus());
-    if (remoteRef.current || !navigator.onLine) {
+    if (restoring.current || remoteRef.current || !navigator.onLine) {
       clearTimers();
       return;
     }
@@ -263,9 +267,45 @@ export function useNoteAutosave({ note, readDraft, applyRemote }: {
     void save(true);
   }, [remote, save]);
 
+  const restoreFromHistory = useCallback(async (revisionId: string): Promise<RestoreRevisionResult["status"]> => {
+    if (!mounted.current || restoring.current || saving.current || dirty.current || remoteRef.current || !navigator.onLine) return "unsaved";
+    restoring.current = true;
+    clearTimers();
+    try {
+      const result = await restoreNoteRevision(openedNote.id, revisionId, versionRef.current);
+      if (!mounted.current) return result.status;
+      if (result.status === "conflict" || (result.status === "restored" && dirty.current)) {
+        const latest = result.status === "conflict" ? result.latest : result.note;
+        remoteRef.current = latest;
+        setRemote(latest);
+        setStatus("conflict");
+        return "conflict";
+      }
+      if (result.status === "restored") {
+        applyRemote(result.note.content);
+        titleRef.current = result.note.title;
+        versionRef.current = result.note.version;
+        setTitleState(result.note.title);
+        setSavedAt(result.note.updatedAt);
+        setSavedCount((count) => count + 1);
+        setDraftProtected(false);
+        setStatus("saved");
+        router.refresh();
+      }
+      return result.status;
+    } catch { return "error"; }
+    finally {
+      restoring.current = false;
+      // 요청 도중 생긴 입력은 실패 뒤에도 저장을 이어간다.
+      if (mounted.current && dirty.current && !remoteRef.current && navigator.onLine) {
+        idleTimer.current = setTimeout(() => void save(), IDLE_DELAY_MS);
+      }
+    }
+  }, [applyRemote, clearTimers, openedNote.id, router, save]);
+
   // 브라우저의 연결 감지는 힌트다. 사용자가 누른 재시도는 실제 요청으로 확인한다.
   const saveNow = useCallback(() => save(true), [save]);
 
   return { title, setTitle, status, savedAt, savedCount, remote, draftProtected,
-    scheduleSave, saveNow, takeRemote, keepMine };
+    scheduleSave, saveNow, takeRemote, keepMine, restoreFromHistory };
 }

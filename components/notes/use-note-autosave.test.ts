@@ -3,10 +3,12 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { SaveNoteResult } from "@/lib/notes/actions";
 import { localDraftKey, readLocalDraft } from "@/lib/notes/local-draft";
 import type { Note } from "@/lib/notes/types";
+import type { RestoreRevisionResult } from "@/lib/notes/revisions";
 import { useNoteAutosave } from "./use-note-autosave";
 
-const mocks = vi.hoisted(() => ({ save: vi.fn(), router: { refresh: vi.fn() } }));
+const mocks = vi.hoisted(() => ({ save: vi.fn(), restore: vi.fn(), router: { refresh: vi.fn() } }));
 vi.mock("@/lib/notes/actions", () => ({ saveNote: mocks.save }));
+vi.mock("@/lib/notes/revision-actions", () => ({ restoreNoteRevision: mocks.restore }));
 vi.mock("next/navigation", () => ({ useRouter: () => mocks.router }));
 const note: Note = { id: "note", ownerId: "owner", format: "doc", title: "", content: { html: "원문" }, preview: "원문", version: 1, createdAt: "2026-10-29", updatedAt: "2026-10-29" };
 const key = localDraftKey("owner", "note");
@@ -19,8 +21,88 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   localStorage.clear();
   mocks.save.mockReset();
+  mocks.restore.mockReset();
+  applyRemote.mockClear();
 });
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); localStorage.clear(); });
+
+const restored: RestoreRevisionResult = { status: "restored", note: { title: "이전 제목", content: { html: "이전 본문" }, version: 3, updatedAt: "2026-11-01" } };
+
+it("이력을 복원한 뒤 다음 편집은 복원된 버전에서 저장한다", async () => {
+  mocks.restore.mockResolvedValueOnce(restored);
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  await act(async () => { expect(await result.current.restoreFromHistory("revision")).toBe("restored"); });
+  expect(result.current.title).toBe("이전 제목");
+  expect(applyRemote).toHaveBeenCalledWith({ html: "이전 본문" });
+  expect(result.current.status).toBe("saved");
+  mocks.save.mockResolvedValueOnce(saved(4));
+  act(() => result.current.setTitle("복원 후 편집"));
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ baseVersion: 3 }));
+});
+
+it("미저장 초안이 있으면 이력을 복원하지 않는다", async () => {
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  act(() => result.current.setTitle("내 초안"));
+  await act(async () => { expect(await result.current.restoreFromHistory("revision")).toBe("unsaved"); });
+  expect(readLocalDraft(key)?.title).toBe("내 초안");
+  expect(mocks.restore).not.toHaveBeenCalled();
+});
+
+it("연결이 끊긴 상태에서는 저장 완료인 노트도 복원을 보류한다", async () => {
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  await act(async () => { expect(await result.current.restoreFromHistory("revision")).toBe("unsaved"); });
+  expect(mocks.restore).not.toHaveBeenCalled();
+});
+
+it("복원 실패 중 새로 쓴 내용은 초안을 지키고 자동 저장을 이어간다", async () => {
+  let finish!: (result: RestoreRevisionResult) => void;
+  mocks.restore.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+  mocks.save.mockResolvedValueOnce(saved(2));
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  let request!: Promise<string>;
+  act(() => { request = result.current.restoreFromHistory("revision"); });
+  act(() => result.current.setTitle("계속 쓴 내용"));
+  await act(async () => { finish({ status: "error" }); await request; });
+  expect(readLocalDraft(key)?.title).toBe("계속 쓴 내용");
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(result.current.status).toBe("saved");
+  expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ title: "계속 쓴 내용", baseVersion: 1 }));
+});
+
+it("복원 요청 중 새 입력은 보관하고 복원 응답과 충돌로 표시한다", async () => {
+  let finish!: (result: RestoreRevisionResult) => void;
+  mocks.restore.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  let request!: Promise<string>;
+  act(() => { request = result.current.restoreFromHistory("revision"); });
+  act(() => result.current.setTitle("복원 중 내 입력"));
+  await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+  expect(mocks.save).not.toHaveBeenCalled();
+  await act(async () => { finish(restored); await request; });
+  expect(result.current.status).toBe("conflict");
+  expect(result.current.title).toBe("복원 중 내 입력");
+  expect(readLocalDraft(key)?.title).toBe("복원 중 내 입력");
+  expect(applyRemote).not.toHaveBeenCalled();
+  act(() => result.current.takeRemote());
+  expect(result.current.title).toBe("이전 제목");
+});
+
+it("복원 실패는 현재 저장된 본문과 저장 상태를 유지하고 재시도할 수 있다", async () => {
+  mocks.restore.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce(restored);
+  const { result } = renderHook(useSave);
+  await act(async () => {});
+  await act(async () => { expect(await result.current.restoreFromHistory("revision")).toBe("error"); });
+  expect(result.current.status).toBe("saved");
+  expect(result.current.title).toBe("");
+  await act(async () => { expect(await result.current.restoreFromHistory("revision")).toBe("restored"); });
+});
 
 it("저장 요청 중의 새 입력은 이전 응답으로 지우지 않고 새 버전으로 이어 저장한다", async () => {
   let finishFirst!: (result: SaveNoteResult) => void;

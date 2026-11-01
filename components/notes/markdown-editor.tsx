@@ -77,6 +77,8 @@ export function MarkdownEditor({
 
   return (
     <NoteFrame
+      noteId={note.id}
+      onRestoreRevision={autosave.restoreFromHistory}
       format={note.format}
       title={autosave.title}
       onTitleChange={autosave.setTitle}

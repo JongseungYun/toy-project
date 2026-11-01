@@ -99,6 +99,25 @@ export interface Messages {
     untitledMarkdown: string;
     untitledCanvas: string;
   };
+  revisions: {
+    title: string;
+    policy: string;
+    choose: string;
+    empty: string;
+    emptyBody: string;
+    loading: string;
+    loadFailed: string;
+    missing: string;
+    retry: string;
+    restore: string;
+    restoring: string;
+    confirm: string;
+    confirmAction: string;
+    cancel: string;
+    close: string;
+    waitSaved: string;
+    restoreFailed: string;
+  };
   note: {
     titleLabel: string;
     bodyLabel: string;

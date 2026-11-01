@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { searchHref } from "@/lib/notes/search";
 import { libraryHref, resolveLibraryView } from "@/lib/notes/library-view";
 import { resolveSort } from "@/lib/notes/sort";
+import { NoteRevisionButton } from "@/components/notes/note-revision-button";
+import type { RestoreRevisionResult } from "@/lib/notes/revisions";
 
 function SaveIndicator({
   t,
@@ -140,6 +142,8 @@ function SaveIndicator({
  * actions로 머리말 오른쪽에 붙는다.
  */
 export function NoteFrame({
+  noteId,
+  onRestoreRevision,
   format,
   title,
   onTitleChange,
@@ -154,6 +158,8 @@ export function NoteFrame({
   actions,
   children,
 }: {
+  noteId: string;
+  onRestoreRevision: (revisionId: string) => Promise<RestoreRevisionResult["status"]>;
   format: NoteFormat;
   title: string;
   onTitleChange: (value: string) => void;
@@ -241,6 +247,7 @@ export function NoteFrame({
             className="ml-auto flex min-w-0 max-w-full shrink-0 flex-wrap items-center justify-end gap-1"
             data-testid="note-actions"
           >
+            <NoteRevisionButton noteId={noteId} format={format} canRestore={status === "saved"} restore={onRestoreRevision} />
             {actions}
           </div>
         </div>
