@@ -273,6 +273,42 @@ export interface Messages {
     action: string;
     failed: string;
   };
+  backup: {
+    title: string;
+    scope: string;
+    savedOnly: string;
+    excluded: string;
+    download: string;
+    downloading: string;
+    file: string;
+    fileLimit: string;
+    checking: string;
+    preview: string;
+    retry: string;
+    confirmTitle: string;
+    confirmBody: string;
+    date: string;
+    folders: string;
+    notes: string;
+    trash: string;
+    revisions: string;
+    images: string;
+    folderPrefix: string;
+    restore: string;
+    restoring: string;
+    cancel: string;
+    success: string;
+    openFolder: string;
+    errors: {
+      invalid: string;
+      unsupported: string;
+      tooLarge: string;
+      inspectFailed: string;
+      exportFailed: string;
+      restoreFailed: string;
+      loginRequired: string;
+    };
+  };
   settings: {
     title: string;
     back: string;

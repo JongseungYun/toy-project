@@ -52,6 +52,13 @@ export async function updateSession(request: NextRequest) {
   const isEntry = ENTRY_PATHS.some((path) => pathname.startsWith(path));
 
   if (!user && !isOpen) {
+    if (pathname.startsWith("/api/")) {
+      const denied = NextResponse.json({ code: "loginRequired" }, {
+        status: 401, headers: { "Cache-Control": "private, no-store" },
+      });
+      supabaseResponse.cookies.getAll().forEach((cookie) => denied.cookies.set(cookie));
+      return denied;
+    }
     // no user, redirect to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/login";

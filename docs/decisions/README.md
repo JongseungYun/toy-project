@@ -7,4 +7,5 @@
 - [note-safety](note-safety.md) — Read when changing saving, conflict handling, deletion, or who can read a note.
 - [note-search](note-search.md) — Read when changing search targets, matching, or search result navigation.
 - [note-sharing](note-sharing.md) — Read when changing read-only share links, revoking them, or exporting a note to a file.
+- [note-backup](note-backup.md) — Read when changing library backup files, their contents, or restoring copies from a backup.
 - [ui-composition](ui-composition.md) — Read when choosing UI components, page composition, visual tokens, or custom interface boundaries.

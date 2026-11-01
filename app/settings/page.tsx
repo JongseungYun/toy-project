@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefaultBackgroundRow } from "@/components/notes/default-background-row";
 import { LanguageRow } from "@/components/notes/language-row";
+import { BackupCard } from "@/components/notes/backup-card";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getMessages();
@@ -103,6 +104,8 @@ export default async function SettingsPage() {
           />
         </CardContent>
       </Card>
+
+      <BackupCard />
 
       <Card>
         <CardHeader>

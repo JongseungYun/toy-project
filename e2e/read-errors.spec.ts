@@ -1,6 +1,8 @@
 import { expect, test, type NextFixture } from "next/experimental/testmode/playwright";
 import { randomUUID } from "node:crypto";
 import { createDocNote, signUpAndEnter } from "./support/account";
+import { BACKUP_PNG } from "./support/backup";
+import { decodeBackup } from "../lib/notes/backup-file";
 
 /** 실제 서버의 Supabase 조회 응답을 바꿔 실패와 복구를 확인한다. */
 function failReads(next: NextFixture, matches: (url: URL) => boolean) {
@@ -20,6 +22,74 @@ test.beforeEach(async ({ page, next }) => {
   // 정상 요청은 테스트 프로세스에서 실제 서버로 보내고 응답을 그대로 돌려준다.
   next.onFetch((request) => fetch(request));
   await signUpAndEnter(page);
+});
+
+test("R08: 불완전한 백업을 내려주지 않고 복원 응답 유실 후 재시도해도 중복을 만들지 않는다", async ({ page, next }, info) => {
+  test.setTimeout(180_000);
+  await createDocNote(page);
+  await expect(page.getByTestId("note-body")).toBeVisible();
+  await page.getByLabel("노트 제목").fill("오류 경로 원본");
+  await page.getByTestId("note-body").fill("끝까지 보존할 원문");
+  await page.getByRole("button", { name: "배경 바꾸기", exact: true }).click();
+  await page.getByLabel("배경 이미지 파일").setInputFiles({ name: "retry.png", mimeType: "image/png", buffer: BACKUP_PNG });
+  await expect(page.getByTestId("note-body")).toHaveCSS("background-image", /note-backgrounds/, { timeout: 20_000 });
+  await expect(page.getByTestId("save-state")).not.toHaveAttribute("data-saved-count", "0", { timeout: 20_000 });
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved");
+  await page.goto("/settings");
+  let stage = "metadata";
+  let imageFailures = 0, writes = 0, imageUploads = 0;
+  next.onFetch(async (request) => {
+    const url = new URL(request.url);
+    if (stage === "metadata" && url.pathname === "/rest/v1/rpc/create_note_backup") return Response.json({ message: "R08 metadata failure" }, { status: 503 });
+    if (url.pathname.startsWith("/storage/v1/object/")) {
+      if (request.method === "GET" && stage === "image") { imageFailures++; return new Response("R08 image failure", { status: 503 }); }
+      if (request.method === "POST") imageUploads++;
+    }
+    if (url.pathname === "/rest/v1/rpc/restore_note_backup") {
+      const body = await request.clone().json();
+      if (!body.check_only) {
+        writes++;
+        if (stage === "lost") {
+          const committed = await fetch(request);
+          if (committed.ok) { await committed.arrayBuffer(); return Response.json({ message: "R08 response lost after commit" }, { status: 503 }); }
+          return committed;
+        }
+      }
+    }
+  });
+  const card = page.getByTestId("backup-card");
+  let downloads = 0;
+  page.on("download", () => { downloads++; });
+  await card.getByRole("button", { name: "전체 백업 다운로드", exact: true }).click();
+  await expect(card.getByRole("alert")).toContainText("전체 백업을 만들지 못했습니다.", { timeout: 30_000 });
+  expect(downloads).toBe(0);
+  stage = "image";
+  await card.getByRole("button", { name: "전체 백업 다운로드", exact: true }).click();
+  await expect.poll(() => imageFailures, { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect(card.getByRole("button", { name: "전체 백업 다운로드", exact: true })).toBeEnabled({ timeout: 30_000 });
+  expect(downloads).toBe(0);
+  stage = "healthy";
+  const event = page.waitForEvent("download");
+  await card.getByRole("button", { name: "전체 백업 다운로드", exact: true }).click();
+  const download = await event;
+  const file = info.outputPath("r08-retry.zip");
+  await download.saveAs(file);
+  await expect(page.getByLabel("백업 파일", { exact: true })).toBeEnabled();
+  await page.getByLabel("백업 파일", { exact: true }).setInputFiles(file);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  stage = "lost";
+  await page.getByRole("dialog").getByRole("button", { name: "복원하기", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("alert").last()).toContainText("복원을 완료하지 못했습니다.", { timeout: 30_000 });
+  const afterLost = await page.request.get("/api/backup");
+  expect(afterLost.ok()).toBe(true);
+  expect(decodeBackup(await afterLost.body()).manifest.notes).toHaveLength(2);
+  const beforeWrites = writes, beforeUploads = imageUploads;
+  stage = "healthy";
+  await page.getByRole("dialog").getByRole("button", { name: "복원하기", exact: true }).click();
+  await expect(page.getByTestId("backup-success")).toBeVisible({ timeout: 30_000 });
+  expect(writes).toBe(beforeWrites); expect(imageUploads).toBe(beforeUploads);
+  const afterRetry = await page.request.get("/api/backup");
+  expect(decodeBackup(await afterRetry.body()).manifest.notes).toHaveLength(2);
 });
 
 test("R06: 이력 목록·본문 조회와 복원 실패를 구분하고 재시도한다", async ({ page, next }) => {
