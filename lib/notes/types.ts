@@ -45,6 +45,8 @@ export interface Note {
   updatedAt: string;
   /** 담겨 있는 폴더. null이면 보관함 뿌리에 있다. */
   folderId?: string | null;
+  /** 보관함에서 자주 여는 노트. 본문 편집 버전과는 별개다. */
+  isPinned?: boolean;
   /** 노트마다 하나. { kind: 'color' } 또는 { kind: 'image' }. */
   background?: unknown;
   /** 읽기 전용 공유 링크의 열쇠. null이면 지금 공유하고 있지 않다. */

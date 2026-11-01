@@ -11,6 +11,8 @@ import { FormatPicker } from "@/components/notes/format-picker";
 import { LibraryViewport } from "@/components/notes/library-viewport";
 import { NoteListItem } from "@/components/notes/note-list-item";
 import { SortControls } from "@/components/notes/sort-controls";
+import { LibraryViewSwitcher } from "@/components/notes/library-view-switcher";
+import { noteHref, type LibraryView } from "@/lib/notes/library-view";
 import {
   NoteSearchForm,
   NoteSearchResults,
@@ -40,6 +42,8 @@ export function LibraryShell({
   backgroundUrls,
   activeNoteId,
   search,
+  view = "folder",
+  folderLabels = [],
   narrow = "list",
   t,
   locale,
@@ -56,15 +60,21 @@ export function LibraryShell({
   backgroundUrls: Record<string, string>;
   activeNoteId?: string;
   search?: SearchPanelData;
+  view?: LibraryView;
+  folderLabels?: { id: string; label: string }[];
   narrow?: NarrowPane;
   children: React.ReactNode;
 }) {
   const here = crumbs[crumbs.length - 1].id;
+  const labels = new Map(
+    folderLabels.map((folder) => [folder.id, folder.label]),
+  );
+  const createIn = view === "folder" ? here : null;
 
   // 목록이 비어 있으면 좁은 화면에도 자리가 남는다. 그럴 때만 두 칸을 쌓아
   // 빈 보관함 안내까지 함께 보여준다.
   const listEmpty = !search && folders.length === 0 && notes.length === 0;
-  const stacked = narrow === "list" && listEmpty;
+  const stacked = narrow === "list" && listEmpty && view === "folder";
 
   return (
     <LibraryViewport>
@@ -92,6 +102,11 @@ export function LibraryShell({
               </span>
             </div>
             <NoteSearchForm key={search?.query ?? ""} query={search?.query} />
+            <LibraryViewSwitcher
+              view={search ? null : view}
+              sort={sort}
+              folderId={here}
+            />
             {search ? (
               <>
                 <p className="text-xs text-muted-foreground">
@@ -108,7 +123,13 @@ export function LibraryShell({
               </>
             ) : (
               <>
-                <FolderBar crumbs={crumbs} />
+                {view === "folder" ? (
+                  <FolderBar crumbs={crumbs} />
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {view === "all" ? t.library.allView : t.library.pinnedView}
+                  </p>
+                )}
                 <SortControls sort={sort} />
               </>
             )}
@@ -123,7 +144,7 @@ export function LibraryShell({
             ) : (
               <>
                 <div className="sticky top-0 z-10 bg-sidebar pt-2.5 pb-1">
-                  <FormatPicker variant="card" folderId={here} />
+                  <FormatPicker variant="card" folderId={createIn} />
                 </div>
 
                 {folders.length > 0 && (
@@ -148,8 +169,24 @@ export function LibraryShell({
                     backgroundUrls={backgroundUrls}
                     t={t}
                     locale={locale}
+                    href={noteHref(note.id, view, sort)}
+                    folderLabel={
+                      view === "folder"
+                        ? undefined
+                        : note.folderId && labels.has(note.folderId)
+                          ? `${t.library.root} / ${labels.get(note.folderId)}`
+                          : t.library.root
+                    }
                   />
                 ))}
+                {view !== "folder" && notes.length === 0 && (
+                  <p
+                    role="status"
+                    className="px-2 py-4 text-sm text-muted-foreground"
+                  >
+                    {view === "pinned" ? t.library.noPinned : t.library.noNotes}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -181,7 +218,7 @@ export function LibraryShell({
         <main
           className={cn(
             "@container/note flex min-h-0 min-w-0 flex-col sm:flex",
-            narrow === "list" && !listEmpty && "hidden",
+            narrow === "list" && !stacked && "hidden",
           )}
         >
           {children}

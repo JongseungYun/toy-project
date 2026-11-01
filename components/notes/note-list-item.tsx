@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { displayTitle, formatLabel, formatUpdatedAt } from "@/lib/notes/display";
 import {
-  canvasSize,
-  parseCanvasElements,
-} from "@/lib/notes/canvas";
+  displayTitle,
+  formatLabel,
+  formatUpdatedAt,
+} from "@/lib/notes/display";
+import { canvasSize, parseCanvasElements } from "@/lib/notes/canvas";
 import {
   backgroundStyle,
   imageUrlOf,
@@ -16,6 +17,7 @@ import { NOTE_DRAG_TYPE } from "@/lib/notes/drag";
 import type { NoteSummary } from "@/lib/notes/types";
 import type { Messages } from "@/lib/i18n/messages";
 import { CanvasShape } from "@/components/notes/canvas-figure";
+import { PinButton } from "@/components/notes/pin-button";
 
 /** 글로 쓰는 형식의 미리보기. 저장할 때 뽑아 둔 발췌를 작게 줄여 종이처럼 보인다. */
 function TextThumb({ title, preview }: { title: string; preview: string }) {
@@ -60,6 +62,8 @@ export function NoteListItem({
   backgroundUrls,
   t,
   locale,
+  href,
+  folderLabel,
 }: {
   note: NoteSummary;
   active: boolean;
@@ -67,49 +71,69 @@ export function NoteListItem({
   backgroundUrls: Record<string, string>;
   t: Messages;
   locale: string;
+  href?: string;
+  folderLabel?: string;
 }) {
   const title = displayTitle(note, t);
   const background = parseBackground(note.background);
-  const surface = backgroundStyle(background, imageUrlOf(background, backgroundUrls));
+  const surface = backgroundStyle(
+    background,
+    imageUrlOf(background, backgroundUrls),
+  );
 
   return (
-    <Link
-      href={`/notes/${note.id}`}
-      data-testid="note-item"
-      draggable
-      onDragStart={(event) => {
-        event.dataTransfer.setData(NOTE_DRAG_TYPE, note.id);
-        event.dataTransfer.effectAllowed = "move";
-      }}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "flex w-full items-center gap-2.5 rounded-xl border border-transparent p-1.5 text-left transition-colors hover:bg-sidebar-accent",
-        active && "border-sidebar-border bg-sidebar-accent",
-      )}
-    >
-      <span
-        style={surface}
-        data-testid="note-thumb"
-        className="flex size-14 flex-none overflow-hidden rounded-md border border-sidebar-border bg-card"
-      >
-        {note.format === "canvas" ? (
-          <CanvasThumb preview={note.preview} />
-        ) : (
-          <TextThumb title={title} preview={note.preview} />
+    <div data-testid="note-row" className="flex min-w-0 items-start gap-0.5">
+      <Link
+        href={href ?? `/notes/${note.id}`}
+        data-testid="note-item"
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.setData(NOTE_DRAG_TYPE, note.id);
+          event.dataTransfer.effectAllowed = "move";
+        }}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-transparent p-1.5 text-left transition-colors hover:bg-sidebar-accent",
+          active && "border-sidebar-border bg-sidebar-accent",
         )}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-semibold">{title}</span>
-        <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="rounded-full border border-border bg-muted px-1.5 py-px text-[10px] whitespace-nowrap">
-            {formatLabel(t, note.format)}
-          </span>
-          {formatUpdatedAt(note.updatedAt, {
-            locale,
-            yesterday: t.note.yesterday,
-          })}
+      >
+        <span
+          style={surface}
+          data-testid="note-thumb"
+          className="flex size-14 flex-none overflow-hidden rounded-md border border-sidebar-border bg-card"
+        >
+          {note.format === "canvas" ? (
+            <CanvasThumb preview={note.preview} />
+          ) : (
+            <TextThumb title={title} preview={note.preview} />
+          )}
         </span>
-      </span>
-    </Link>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-semibold">
+            {title}
+          </span>
+          <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="rounded-full border border-border bg-muted px-1.5 py-px text-[10px] whitespace-nowrap">
+              {formatLabel(t, note.format)}
+            </span>
+            {formatUpdatedAt(note.updatedAt, {
+              locale,
+              yesterday: t.note.yesterday,
+            })}
+          </span>
+          {folderLabel && (
+            <span
+              className="mt-0.5 block truncate text-[11px] text-muted-foreground"
+              title={folderLabel}
+            >
+              {folderLabel}
+            </span>
+          )}
+        </span>
+      </Link>
+      <div className="shrink-0 pt-1.5">
+        <PinButton noteId={note.id} pinned={note.isPinned ?? false} />
+      </div>
+    </div>
   );
 }

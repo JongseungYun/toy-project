@@ -51,6 +51,16 @@ export interface Messages {
     close: string;
   };
   library: {
+    viewLabel: string;
+    folderView: string;
+    allView: string;
+    pinnedView: string;
+    pin: string;
+    unpin: string;
+    pinFailed: string;
+    noPinned: string;
+    noNotes: string;
+    pinHint: string;
     readErrorTitle: string;
     readErrorBody: string;
     readRetry: string;

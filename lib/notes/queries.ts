@@ -16,10 +16,12 @@ import {
   type NoteSearchResult,
 } from "@/lib/notes/search";
 import { searchableText } from "@/lib/notes/search-text";
+import type { LibraryView } from "@/lib/notes/library-view";
 
 interface NoteRow {
   id: string;
   folder_id: string | null;
+  is_pinned: boolean;
   background: unknown;
   share_token: string | null;
   format: Note["format"];
@@ -33,11 +35,9 @@ interface NoteRow {
 
 // 배경도 목록이 함께 읽는다. 좌측 목록의 썸네일이 노트와 같은 배경을 입는다.
 const SUMMARY_COLUMNS =
-  "id, format, title, preview, version, created_at, updated_at, background";
+  "id, format, title, preview, version, created_at, updated_at, background, folder_id, is_pinned";
 
-function toSummary(
-  row: Omit<NoteRow, "content" | "folder_id" | "share_token">,
-): NoteSummary {
+function toSummary(row: Omit<NoteRow, "content" | "share_token">): NoteSummary {
   return {
     id: row.id,
     format: row.format,
@@ -47,6 +47,8 @@ function toSummary(
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     background: row.background,
+    folderId: row.folder_id,
+    isPinned: row.is_pinned,
   };
 }
 
@@ -57,28 +59,34 @@ function toSummary(
 export async function listNotes(
   sort: ResolvedSort,
   folderId: string | null = null,
+  view: LibraryView = "folder",
 ): Promise<ReadResult<NoteSummary[]>> {
   const user = await currentUser();
   if (!user) return { ok: false };
 
   const supabase = await createClient();
-  let query = supabase
-    .from("notes")
-    .select(SUMMARY_COLUMNS)
-    .eq("owner_id", user.id)
-    // 휴지통에 있는 노트는 보관함 목록에 나오지 않는다.
-    .is("deleted_at", null);
-
-  query = folderId
-    ? query.eq("folder_id", folderId)
-    : query.is("folder_id", null);
-
-  const { data, error } = await query
-    .order(sortColumn(sort.key), { ascending: sort.ascending })
-    .order("id", { ascending: true });
-
-  if (error || !data) return { ok: false };
-  return { ok: true, data: data.map(toSummary) };
+  const notes: NoteSummary[] = [];
+  const pageSize = 200;
+  for (let offset = 0; ; offset += pageSize) {
+    let query = supabase
+      .from("notes")
+      .select(SUMMARY_COLUMNS)
+      .eq("owner_id", user.id)
+      .is("deleted_at", null);
+    if (view === "folder")
+      query = folderId
+        ? query.eq("folder_id", folderId)
+        : query.is("folder_id", null);
+    if (view === "pinned") query = query.eq("is_pinned", true);
+    const { data, error } = await query
+      .order("is_pinned", { ascending: false })
+      .order(sortColumn(sort.key), { ascending: sort.ascending })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error || !data) return { ok: false };
+    notes.push(...data.map(toSummary));
+    if (data.length < pageSize) return { ok: true, data: notes };
+  }
 }
 
 /** 모든 폴더의 서버 저장본을 검색한다. 본문 전체는 서버 안에서만 읽는다. */
@@ -142,7 +150,7 @@ export const getNote = cache(
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("notes")
-      .select(`${SUMMARY_COLUMNS}, content, folder_id, share_token, owner_id`)
+      .select(`${SUMMARY_COLUMNS}, content, share_token, owner_id`)
       .eq("id", id)
       .is("deleted_at", null)
       .maybeSingle<NoteRow & { owner_id: string }>();

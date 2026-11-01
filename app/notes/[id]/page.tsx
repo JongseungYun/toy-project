@@ -12,6 +12,7 @@ import { displayTitle } from "@/lib/notes/display";
 import { folderPath, listAllFolders, listFolders } from "@/lib/notes/folders";
 import { getNote, listNotes, searchNotes } from "@/lib/notes/queries";
 import { normalizeSearchText } from "@/lib/notes/search";
+import { resolveLibraryView } from "@/lib/notes/library-view";
 import { resolveSort } from "@/lib/notes/sort";
 import { getMessages } from "@/lib/i18n/server";
 import { CanvasEditor } from "@/components/notes/canvas-editor";
@@ -39,12 +40,18 @@ export default async function NotePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ sort?: string; dir?: string; q?: string | string[] }>;
+  searchParams: Promise<{
+    sort?: string;
+    dir?: string;
+    q?: string | string[];
+    view?: string | string[];
+  }>;
 }) {
   const { locale, t } = await getMessages();
   const { id } = await params;
   const queryParams = await searchParams;
   const sort = resolveSort(queryParams);
+  const view = resolveLibraryView(queryParams.view);
   const query = normalizeSearchText(
     typeof queryParams.q === "string" ? queryParams.q : "",
   );
@@ -71,12 +78,12 @@ export default async function NotePage({
   ] = await Promise.all([
     displayName(),
     folderPath(folderId, t.library.root),
-    query
+    query || view !== "folder"
       ? Promise.resolve({ ok: true as const, data: [] })
       : listFolders(folderId, sort),
     query
       ? Promise.resolve({ ok: true as const, data: [] })
-      : listNotes(sort, folderId),
+      : listNotes(sort, folderId, view),
     listAllFolders(),
     query
       ? searchNotes(query)
@@ -113,6 +120,7 @@ export default async function NotePage({
       folders={allFolders}
       background={background}
       shareToken={note.shareToken ?? null}
+      pinned={note.isPinned ?? false}
     />
   );
 
@@ -128,6 +136,8 @@ export default async function NotePage({
       backgroundUrls={backgroundUrls}
       activeNoteId={note.id}
       narrow="detail"
+      view={view}
+      folderLabels={allFolders}
       search={
         query
           ? {

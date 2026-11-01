@@ -144,3 +144,56 @@ test("R04: 첫 조회 묶음 뒤에 있는 노트도 검색한다", async ({ pag
   await expect(page.getByTestId("search-result")).toContainText("마지막 묶음");
   expect(secondPage).toBe(true);
 });
+
+test("R05: 고정 저장 실패를 표시하고 같은 버튼으로 다시 시도한다", async ({ page, next }) => {
+  await createDocNote(page);
+  await expect(page.getByTestId("note-body")).toBeVisible();
+  let failing = true;
+  next.onFetch(async (request) => {
+    const url = new URL(request.url);
+    if (request.method === "PATCH" && url.pathname === "/rest/v1/notes" && failing) {
+      const body = await request.clone().json();
+      if ("is_pinned" in body) return Response.json({ code: "TEST_PIN_FAILURE" }, { status: 503 });
+    }
+  });
+  const actions = page.getByTestId("note-actions");
+  await actions.getByRole("button", { name: "노트 고정", exact: true }).click();
+  await expect(actions.getByRole("alert")).toContainText("고정 상태를 저장하지 못했어요");
+  await expect(actions.getByRole("button", { name: "노트 고정", exact: true })).toHaveAttribute("aria-pressed", "false");
+  failing = false;
+  await actions.getByRole("button", { name: "노트 고정", exact: true }).click();
+  await expect(actions.getByRole("button", { name: "고정 해제", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(actions.getByRole("alert")).toHaveCount(0);
+});
+
+test("R05: 전체 보기 조회 실패는 빈 목록과 구분하고 같은 보기·정렬로 복구한다", async ({ page, next }) => {
+  const fault = failReads(next, (url) => url.pathname === "/rest/v1/notes");
+  await page.goto("/?view=all&sort=title&dir=asc");
+  const failure = page.getByTestId("read-failure");
+  await expect(failure).toBeVisible();
+  expect(fault.count()).toBeGreaterThan(0);
+  fault.recover();
+  await failure.getByRole("button", { name: "다시 시도", exact: true }).click();
+  await expect(failure).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "전체 노트", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/view=all&sort=title&dir=asc$/);
+});
+
+test("R05: 전체 보기는 첫 조회 묶음 뒤의 노트까지 표시한다", async ({ page, next }) => {
+  let secondPage = false;
+  next.onFetch((request) => {
+    const url = new URL(request.url);
+    if (request.method !== "GET" || url.pathname !== "/rest/v1/notes" || !url.searchParams.get("select")?.includes("is_pinned")) return;
+    const offset = Number(url.searchParams.get("offset") ?? 0);
+    if (offset >= 200) secondPage = true;
+    return Response.json(Array.from({ length: offset === 0 ? 200 : 1 }, (_, index) => ({
+      id: randomUUID(), format: "doc", title: offset === 0 ? `기록 ${index}` : "마지막 묶음 노트",
+      preview: "", version: 1, folder_id: null, is_pinned: false, background: null,
+      created_at: "2026-11-01T00:00:00Z", updated_at: "2026-11-01T00:00:00Z",
+    })));
+  });
+  await page.goto("/?view=all");
+  await expect(page.getByTestId("note-item")).toHaveCount(201);
+  await expect(page.getByTestId("note-item").last()).toContainText("마지막 묶음 노트");
+  expect(secondPage).toBe(true);
+});

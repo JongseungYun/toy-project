@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { FolderIcon, NotePencilIcon, PlusIcon } from "@phosphor-icons/react/ssr";
+import {
+  FolderIcon,
+  NotePencilIcon,
+  PlusIcon,
+} from "@phosphor-icons/react/ssr";
 import { displayName } from "@/lib/account/profile";
 import { imagePathsOf } from "@/lib/notes/background";
 import { signBackgroundUrls } from "@/lib/notes/background-actions";
-import { folderPath, listFolders } from "@/lib/notes/folders";
+import { folderPath, listFolders, listAllFolders } from "@/lib/notes/folders";
+import { resolveLibraryView } from "@/lib/notes/library-view";
 import { listNotes } from "@/lib/notes/queries";
 import { resolveSort } from "@/lib/notes/sort";
 import { getMessages } from "@/lib/i18n/server";
@@ -27,21 +32,39 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function LibraryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; dir?: string; folder?: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    dir?: string;
+    folder?: string;
+    view?: string | string[];
+  }>;
 }) {
   const { locale, t } = await getMessages();
   const params = await searchParams;
   const sort = resolveSort(params);
-  const folderId = params.folder ?? null;
+  const view = resolveLibraryView(params.view);
+  const folderId = view === "folder" ? (params.folder ?? null) : null;
 
   // 서로 기다릴 이유가 없는 조회들이다. 한꺼번에 보내고 함께 받는다.
-  const [name, pathResult, foldersResult, notesResult] = await Promise.all([
-    displayName(),
-    folderPath(folderId, t.library.root),
-    listFolders(folderId, sort),
-    listNotes(sort, folderId),
-  ]);
-  if (!pathResult.ok || !foldersResult.ok || !notesResult.ok) return <ReadFailure />;
+  const [name, pathResult, foldersResult, notesResult, allFoldersResult] =
+    await Promise.all([
+      displayName(),
+      folderPath(folderId, t.library.root),
+      view === "folder"
+        ? listFolders(folderId, sort)
+        : Promise.resolve({ ok: true as const, data: [] }),
+      listNotes(sort, folderId, view),
+      view === "folder"
+        ? Promise.resolve({ ok: true as const, data: [] })
+        : listAllFolders(),
+    ]);
+  if (
+    !pathResult.ok ||
+    !foldersResult.ok ||
+    !notesResult.ok ||
+    !allFoldersResult.ok
+  )
+    return <ReadFailure />;
   const crumbs = pathResult.data;
   const folders = foldersResult.data;
   const notes = notesResult.data;
@@ -64,6 +87,8 @@ export default async function LibraryPage({
       notes={notes}
       sort={sort}
       backgroundUrls={backgroundUrls}
+      view={view}
+      folderLabels={allFoldersResult.data}
     >
       <div className="flex min-h-0 flex-1 items-center justify-center p-6">
         {empty ? (
@@ -73,10 +98,16 @@ export default async function LibraryPage({
                 {here ? <FolderIcon /> : <PlusIcon />}
               </EmptyMedia>
               <EmptyTitle>
-                {here ? t.library.emptyFolderTitle : t.library.emptyTitle}
+                {view === "pinned"
+                  ? t.library.noPinned
+                  : view === "all"
+                    ? t.library.noNotes
+                    : here
+                      ? t.library.emptyFolderTitle
+                      : t.library.emptyTitle}
               </EmptyTitle>
               <EmptyDescription>
-                {t.library.emptyBody}
+                {view === "pinned" ? t.library.pinHint : t.library.emptyBody}
               </EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -90,9 +121,7 @@ export default async function LibraryPage({
                 <NotePencilIcon />
               </EmptyMedia>
               <EmptyTitle>{t.library.pickTitle}</EmptyTitle>
-              <EmptyDescription>
-                {t.library.pickBody}
-              </EmptyDescription>
+              <EmptyDescription>{t.library.pickBody}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}

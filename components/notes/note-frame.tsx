@@ -8,12 +8,17 @@ import { formatUpdatedAt, untitledTitle } from "@/lib/notes/display";
 import type { NoteFormat } from "@/lib/notes/types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import type { RemoteNote, SaveStatus } from "@/components/notes/use-note-autosave";
+import type {
+  RemoteNote,
+  SaveStatus,
+} from "@/components/notes/use-note-autosave";
 import { useLocale, useMessages } from "@/components/i18n-provider";
 import { format, type Messages } from "@/lib/i18n/messages";
 import type { Locale } from "@/lib/i18n/locales";
 import { cn } from "@/lib/utils";
 import { searchHref } from "@/lib/notes/search";
+import { libraryHref, resolveLibraryView } from "@/lib/notes/library-view";
+import { resolveSort } from "@/lib/notes/sort";
 
 function SaveIndicator({
   t,
@@ -62,8 +67,12 @@ function SaveIndicator({
   }
 
   if (status === "error" || status === "offline" || status === "conflict") {
-    const label = status === "conflict" ? t.note.conflictWaiting
-      : status === "offline" ? t.note.offline : t.note.saveFailed;
+    const label =
+      status === "conflict"
+        ? t.note.conflictWaiting
+        : status === "offline"
+          ? t.note.offline
+          : t.note.saveFailed;
     return (
       <div
         data-testid="save-state"
@@ -78,7 +87,11 @@ function SaveIndicator({
             {label}
           </span>
         ) : (
-          <button type="button" onClick={onRetry} className="flex items-center gap-1.5 font-medium text-destructive">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="flex items-center gap-1.5 font-medium text-destructive"
+          >
             <WarningIcon className="size-3.5 shrink-0" />
             {label}
           </button>
@@ -114,7 +127,9 @@ function SaveIndicator({
       className="flex items-center gap-1.5 text-xs text-muted-foreground"
     >
       <span className="size-1.5 rounded-full bg-emerald-500" />
-      {format(t.note.saved, { time: formatUpdatedAt(savedAt, { locale, yesterday: t.note.yesterday }) })}
+      {format(t.note.saved, {
+        time: formatUpdatedAt(savedAt, { locale, yesterday: t.note.yesterday }),
+      })}
     </span>
   );
 }
@@ -155,8 +170,25 @@ export function NoteFrame({
 }) {
   const t = useMessages();
   const locale = useLocale();
-  const query = useSearchParams().get("q");
-  const needsAttention = status === "error" || status === "offline" || status === "conflict" || status === "unprotected";
+  const params = useSearchParams();
+  const query = params.get("q");
+  const view = resolveLibraryView(params.get("view") ?? undefined);
+  const backHref = query
+    ? searchHref(query)
+    : view === "folder"
+      ? "/"
+      : libraryHref(
+          view,
+          resolveSort({
+            sort: params.get("sort") ?? undefined,
+            dir: params.get("dir") ?? undefined,
+          }),
+        );
+  const needsAttention =
+    status === "error" ||
+    status === "offline" ||
+    status === "conflict" ||
+    status === "unprotected";
 
   return (
     <>
@@ -171,7 +203,7 @@ export function NoteFrame({
           variant="ghost"
           size="icon-sm"
           className="sm:hidden"
-          render={<Link href={query ? searchHref(query) : "/"} aria-label={t.library.backToList} />}
+          render={<Link href={backHref} aria-label={t.library.backToList} />}
           nativeButton={false}
         >
           <ArrowLeftIcon />
@@ -183,8 +215,18 @@ export function NoteFrame({
           placeholder={untitledTitle(t, format)}
           className="col-start-2 min-w-0 w-full flex-1 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-base font-semibold outline-none focus:border-border sm:col-span-2 sm:col-start-1 @lg/note:text-[15px]"
         />
-        <div className={cn("col-span-2 flex min-w-0 flex-wrap items-center gap-2", !needsAttention && "@lg/note:contents")}>
-          <div className={cn("min-w-24 flex-1 @lg/note:min-w-0 @lg/note:flex-none", needsAttention && "basis-full")}>
+        <div
+          className={cn(
+            "col-span-2 flex min-w-0 flex-wrap items-center gap-2",
+            !needsAttention && "@lg/note:contents",
+          )}
+        >
+          <div
+            className={cn(
+              "min-w-24 flex-1 @lg/note:min-w-0 @lg/note:flex-none",
+              needsAttention && "basis-full",
+            )}
+          >
             <SaveIndicator
               t={t}
               locale={locale}
@@ -195,7 +237,10 @@ export function NoteFrame({
               onRetry={onRetry}
             />
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="note-actions">
+          <div
+            className="ml-auto flex min-w-0 max-w-full shrink-0 flex-wrap items-center justify-end gap-1"
+            data-testid="note-actions"
+          >
             {actions}
           </div>
         </div>
@@ -206,9 +251,7 @@ export function NoteFrame({
           role="alert"
           className="flex flex-wrap items-center gap-2 border-b border-border bg-muted px-3 py-2 text-sm"
         >
-          <span className="min-w-45 flex-1">
-            {t.note.conflict}
-          </span>
+          <span className="min-w-45 flex-1">{t.note.conflict}</span>
           <Button size="sm" variant="outline" onClick={onTakeRemote}>
             {t.note.takeRemote}
           </Button>

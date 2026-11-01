@@ -7,6 +7,7 @@ import { setNoteBackground } from "@/lib/notes/background-actions";
 import type { NoteBackground } from "@/lib/notes/background";
 import { BackgroundPicker } from "@/components/notes/background-picker";
 import { ShareButton } from "@/components/notes/share-button";
+import { PinButton } from "@/components/notes/pin-button";
 import { useMessages } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export function NoteActions({
   folders,
   background,
   shareToken,
+  pinned,
 }: {
   noteId: string;
   folderId: string | null;
@@ -47,6 +49,7 @@ export function NoteActions({
   background: NoteBackground;
   /** 지금 공유 중이면 그 열쇠. 없으면 아직 링크를 열지 않은 노트다. */
   shareToken: string | null;
+  pinned: boolean;
 }) {
   const t = useMessages();
   const [moving, setMoving] = useState(false);
@@ -66,6 +69,7 @@ export function NoteActions({
 
   return (
     <>
+      <PinButton noteId={noteId} pinned={pinned} />
       <BackgroundPicker
         background={background}
         onChange={(next) => setNoteBackground(noteId, next)}
@@ -106,7 +110,9 @@ export function NoteActions({
           <AlertDialogFooter>
             <AlertDialogCancel>{t.trash.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => startTransition(async () => void (await trashNote(noteId)))}
+              onClick={() =>
+                startTransition(async () => void (await trashNote(noteId)))
+              }
             >
               {t.folder.sendToTrash}
             </AlertDialogAction>
@@ -118,9 +124,7 @@ export function NoteActions({
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{t.folder.moveTitle}</DialogTitle>
-            <DialogDescription>
-              {t.folder.moveBody}
-            </DialogDescription>
+            <DialogDescription>{t.folder.moveBody}</DialogDescription>
           </DialogHeader>
           <div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {places.map((place) => {
@@ -138,14 +142,20 @@ export function NoteActions({
                 >
                   {place.label}
                   {current && (
-                    <span className="ml-2 text-xs">{t.folder.currentPlace}</span>
+                    <span className="ml-2 text-xs">
+                      {t.folder.currentPlace}
+                    </span>
                   )}
                 </button>
               );
             })}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMoving(false)} disabled={pending}>
+            <Button
+              variant="outline"
+              onClick={() => setMoving(false)}
+              disabled={pending}
+            >
               {t.folder.cancel}
             </Button>
           </DialogFooter>
