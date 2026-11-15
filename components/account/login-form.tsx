@@ -44,6 +44,9 @@ export function LoginForm() {
           {pending && <Spinner data-icon="inline-start" />}
           {t.auth.submitSignIn}
         </Button>
+        <Link href="/auth/recovery" className="self-center text-sm font-medium underline underline-offset-4">
+          {t.recovery.forgot}
+        </Link>
         <FieldSeparator>{t.auth.or}</FieldSeparator>
         <GoogleSignInButton />
       </FieldGroup>

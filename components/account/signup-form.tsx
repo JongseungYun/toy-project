@@ -131,7 +131,7 @@ export function SignupForm() {
         </Field>
 
         <FieldDescription>
-          {t.auth.noRecovery}
+          {t.recovery.signupHint}
         </FieldDescription>
 
         <Button type="submit" className="w-full" disabled={pending}>

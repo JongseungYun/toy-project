@@ -1,6 +1,6 @@
 import { expect, test, type NextFixture } from "next/experimental/testmode/playwright";
 import { randomUUID } from "node:crypto";
-import { createDocNote, signUpAndEnter } from "./support/account";
+import { createDocNote, signUpAndEnter, TEST_PASSWORD, uniqueUsername } from "./support/account";
 import { BACKUP_PNG } from "./support/backup";
 import { decodeBackup } from "../lib/notes/backup-file";
 
@@ -22,6 +22,107 @@ test.beforeEach(async ({ page, next }) => {
   // 정상 요청은 테스트 프로세스에서 실제 서버로 보내고 응답을 그대로 돌려준다.
   next.onFetch((request) => fetch(request));
   await signUpAndEnter(page);
+});
+
+test("R07: 복구 주소를 확인한 뒤에만 재설정하고 링크는 한 번만 사용할 수 있다", async ({ page, next }) => {
+  test.skip(process.env.RECOVERY_APP_ORIGIN !== "http://localhost:3001", "복구 메일 테스트 환경이 필요합니다.");
+  // Supabase Auth는 실제 로그인과 현재 비밀번호를 검증한다. 메일과 복구 DB·관리자 요청만 대체한다.
+  const mails: { to: string[]; text: string }[] = [];
+  const resetRequests: string[] = [];
+  let localAccount: string | null = null;
+  let pending: string | null = null;
+  let verified: string | null = null;
+  let used = false;
+  const passwordChanges: unknown[] = [];
+  next.onFetch(async (request) => {
+    const url = new URL(request.url);
+    if (url.hostname === "api.resend.com") {
+      mails.push(await request.json());
+      return Response.json({ id: "mail-test" });
+    }
+    if (url.pathname === "/rest/v1/account_recovery") {
+      if (request.method === "PATCH") { pending = null; verified = null; return new Response(null, { status: 204 }); }
+      return Response.json({ verified_email: verified, pending_email: pending, verification_expires_at: "2099-01-01T00:00:00Z" });
+    }
+    if (url.pathname === "/rest/v1/rpc/begin_recovery_email") {
+      const data = await request.json();
+      localAccount = data.account_id;
+      pending = data.address;
+      return Response.json(true);
+    }
+    if (url.pathname === "/rest/v1/rpc/confirm_recovery_email") {
+      if (!pending) return Response.json(false);
+      verified = pending;
+      pending = null;
+      return Response.json(true);
+    }
+    if (url.pathname === "/rest/v1/rpc/begin_password_recovery") {
+      const { internal_email } = await request.json();
+      resetRequests.push(internal_email);
+      return Response.json(internal_email.startsWith("unknown") ? null : verified);
+    }
+    if (url.pathname === "/rest/v1/rpc/consume_password_recovery") {
+      if (used) return Response.json(null);
+      used = true;
+      return Response.json(localAccount);
+    }
+    if (url.pathname === `/auth/v1/admin/users/${localAccount}`) {
+      passwordChanges.push(await request.json());
+      return Response.json({ id: localAccount });
+    }
+  });
+  await page.goto("/settings");
+  const identifier = await page.getByText("가입할 때 정한 아이디입니다.", { exact: false }).locator("span").textContent();
+  expect(identifier).toBeTruthy();
+  const address = "recovery@example.net";
+  await page.getByLabel("복구 이메일", { exact: true }).fill(address);
+  await page.getByLabel("현재 비밀번호", { exact: true }).fill("wrong-current-password");
+  await page.getByRole("button", { name: "확인 메일 보내기" }).click();
+  await expect(page.getByText("현재 비밀번호를 확인해 주세요.", { exact: true })).toBeVisible();
+  expect(mails).toHaveLength(0);
+  await page.getByLabel("복구 이메일", { exact: true }).fill(address);
+  await page.getByLabel("현재 비밀번호", { exact: true }).fill(TEST_PASSWORD);
+  await page.getByRole("button", { name: "확인 메일 보내기" }).click();
+  await expect(page.getByText("확인 메일을 보냈습니다.", { exact: false })).toBeVisible();
+  expect(mails[0].to).toEqual([address]);
+  const confirmation = mails[0].text.split("\n").find((line) => line.startsWith("http:"))!;
+  const requestReset = async (username: string) => {
+    await page.goto("/auth/recovery");
+    await page.getByLabel("아이디", { exact: true }).fill(username);
+    await page.getByRole("button", { name: "재설정 요청", exact: true }).click();
+    await expect(page.getByText("요청을 접수했습니다.", { exact: false })).toBeVisible();
+  };
+  await requestReset(identifier!);
+  await expect.poll(() => resetRequests.length).toBe(1);
+  expect(mails).toHaveLength(1);
+  await page.goto(confirmation);
+  await page.getByRole("button", { name: "복구 이메일 확인", exact: true }).click();
+  await expect(page.getByText("복구 이메일이 확인됐습니다.")).toBeVisible();
+  await page.goto("/settings");
+  await expect(page.getByTestId("verified-recovery-email")).toHaveText("r•••@example.net");
+  await requestReset(uniqueUsername("unknown"));
+  await expect.poll(() => resetRequests.length).toBe(2);
+  expect(mails).toHaveLength(1);
+  await page.goto("/settings");
+  await page.getByRole("button", { name: "로그아웃", exact: true }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByRole("link", { name: "비밀번호를 잊으셨나요?" }).click();
+  await requestReset(identifier!);
+  await expect.poll(() => mails.length).toBe(2);
+  const resetLink = mails[1].text.split("\n").find((line) => line.startsWith("http:"))!;
+  const submitPassword = async () => {
+    await page.goto(resetLink);
+    await page.getByLabel("새 비밀번호", { exact: true }).fill("Revised2026!");
+    await page.getByLabel("비밀번호 확인", { exact: true }).fill("Revised2026!");
+    await page.getByRole("button", { name: "비밀번호 변경", exact: true }).click();
+  };
+  await submitPassword();
+  await expect(page.getByText("비밀번호를 변경했습니다.", { exact: false })).toBeVisible();
+  expect(passwordChanges).toEqual([{ password: "Revised2026!" }]);
+  await page.goto("/login");
+  await submitPassword();
+  await expect(page.getByText("링크를 사용할 수 없습니다.", { exact: false })).toBeVisible();
+  expect(passwordChanges).toHaveLength(1);
 });
 
 test("R08: 불완전한 백업을 내려주지 않고 복원 응답 유실 후 재시도해도 중복을 만들지 않는다", async ({ page, next }, info) => {

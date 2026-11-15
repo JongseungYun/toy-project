@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefaultBackgroundRow } from "@/components/notes/default-background-row";
 import { LanguageRow } from "@/components/notes/language-row";
 import { BackupCard } from "@/components/notes/backup-card";
+import { RecoverySettingsForm } from "@/components/account/recovery-forms";
+import { recoverySettings } from "@/lib/account/recovery";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getMessages();
@@ -22,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SettingsPage() {
   const { locale, t } = await getMessages();
 
-  const [user, profile] = await Promise.all([currentUser(), currentProfile()]);
+  const [user, profile, recovery] = await Promise.all([currentUser(), currentProfile(), recoverySettings()]);
   if (!user) {
     redirect("/login");
   }
@@ -79,6 +81,17 @@ export default async function SettingsPage() {
               </Button>
             </form>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>{t.recovery.email}</CardTitle></CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">{
+            recovery.kind === "local" ? t.recovery.settingsBody
+              : recovery.kind === "provider" ? t.recovery.provider : t.recovery.status.unavailable
+          }</p>
+          {recovery.kind === "local" && <RecoverySettingsForm masked={recovery.masked} hasPending={recovery.pending} />}
         </CardContent>
       </Card>
 

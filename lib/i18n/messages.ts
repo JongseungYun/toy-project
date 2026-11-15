@@ -25,7 +25,6 @@ export interface Messages {
     ruleLetters: string;
     ruleDigit: string;
     ruleSymbol: string;
-    noRecovery: string;
     submitSignUp: string;
     submitSignIn: string;
     or: string;
@@ -34,6 +33,37 @@ export interface Messages {
     goSignUp: string;
     hasAccount: string;
     goSignIn: string;
+  };
+  recovery: {
+    email: string;
+    settingsBody: string;
+    waiting: string;
+    currentPassword: string;
+    sendVerification: string;
+    remove: string;
+    forgot: string;
+    signupHint: string;
+    requestTitle: string;
+    requestBody: string;
+    provider: string;
+    sendReset: string;
+    confirm: string;
+    linkBody: string;
+    newPassword: string;
+    savePassword: string;
+    status: {
+      sent: string;
+      accepted: string;
+      confirmed: string;
+      removed: string;
+      changed: string;
+      invalidEmail: string;
+      wrongPassword: string;
+      expired: string;
+      cooldown: string;
+      unavailable: string;
+      failed: string;
+    };
   };
   search: {
     pickBody: string;
