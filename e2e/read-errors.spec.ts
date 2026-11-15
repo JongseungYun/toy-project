@@ -1,6 +1,6 @@
 import { expect, test, type NextFixture } from "next/experimental/testmode/playwright";
 import { randomUUID } from "node:crypto";
-import { createDocNote, signUpAndEnter, TEST_PASSWORD, uniqueUsername } from "./support/account";
+import { createDocNote, signInAndEnter, signUpAndEnter, TEST_PASSWORD, uniqueUsername } from "./support/account";
 import { BACKUP_PNG } from "./support/backup";
 import { decodeBackup } from "../lib/notes/backup-file";
 
@@ -22,6 +22,35 @@ test.beforeEach(async ({ page, next }) => {
   // 정상 요청은 테스트 프로세스에서 실제 서버로 보내고 응답을 그대로 돌려준다.
   next.onFetch((request) => fetch(request));
   await signUpAndEnter(page);
+});
+
+test("R07: 종료된 세션으로 보관함을 열면 다시 로그인할 수 있다", async ({ page, next }) => {
+  await createDocNote(page);
+  const noteUrl = page.url();
+  await page.goto("/settings");
+  const username = await page.getByText("가입할 때 정한 아이디입니다.", { exact: false }).locator("span").innerText();
+
+  let revoked = true;
+  next.onFetch((request) => {
+    if (revoked && request.method === "GET" && new URL(request.url).pathname === "/auth/v1/user") {
+      return Response.json({ code: "session_not_found", message: "Session no longer exists" }, {
+        status: 403,
+        headers: { "X-Supabase-API-Version": "2024-01-01" },
+      });
+    }
+  });
+
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole("button", { name: "로그인", exact: true })).toBeVisible();
+
+  // 기존 세션을 서버에서 다시 허용해도 브라우저에서 지웠다면 로그인 화면이 열린다.
+  revoked = false;
+  await page.reload();
+  await expect(page).toHaveURL(/\/login$/);
+  await signInAndEnter(page, username);
+  await page.goto(noteUrl);
+  await expect(page.getByTestId("note-body")).toBeVisible();
 });
 
 test("R07: 복구 주소를 확인한 뒤에만 재설정하고 링크는 한 번만 사용할 수 있다", async ({ page, next }) => {

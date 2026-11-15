@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 // 로그인하지 않아도 열리는 곳. 공유 링크는 받은 사람이 계정 없이 여는 화면이다.
@@ -9,6 +10,10 @@ const OPEN_PATHS = ["/login", "/signup", "/auth", "/share"];
 const ENTRY_PATHS = ["/login", "/signup"];
 
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isOpen = OPEN_PATHS.some((path) => pathname.startsWith(path));
+  const isEntry = ENTRY_PATHS.some((path) => pathname.startsWith(path));
+  const authHeaders = new Headers();
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -23,7 +28,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
@@ -33,58 +38,50 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
+          for (const [name, value] of Object.entries(headers)) {
+            authHeaders.set(name, value);
+          }
         },
       },
     },
   );
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to
-  // debug issues with users being randomly logged out.
+  let signedIn = false;
+  if (isOpen && !isEntry) {
+    await supabase.auth.getClaims();
+  } else {
+    // 비밀번호 재설정으로 세션이 종료돼도 기존 JWT 서명은 만료 전까지 유효하다.
+    const { data, error } = await supabase.auth.getUser();
+    signedIn = Boolean(data.user);
+    if (isAuthRetryableFetchError(error)) {
+      // 일시적인 Auth 장애에는 서명을 확인해 로그인 화면으로 되돌리지 않는다.
+      signedIn = Boolean((await supabase.auth.getClaims()).data?.claims);
+    }
+  }
 
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
-
-  const { pathname } = request.nextUrl;
-  const isOpen = OPEN_PATHS.some((path) => pathname.startsWith(path));
-  const isEntry = ENTRY_PATHS.some((path) => pathname.startsWith(path));
-
-  if (!user && !isOpen) {
+  let response = supabaseResponse;
+  if (!signedIn && !isOpen) {
     if (pathname.startsWith("/api/")) {
-      const denied = NextResponse.json({ code: "loginRequired" }, {
+      response = NextResponse.json({ code: "loginRequired" }, {
         status: 401, headers: { "Cache-Control": "private, no-store" },
       });
-      supabaseResponse.cookies.getAll().forEach((cookie) => denied.cookies.set(cookie));
-      return denied;
+    } else {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      response = NextResponse.redirect(url);
     }
-    // no user, redirect to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && isEntry) {
-    // already signed in, no reason to see the login/signup screens again
+  } else if (signedIn && isEntry) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    response = NextResponse.redirect(url);
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is. If
-  // you're creating a new response object with NextResponse.next() make sure
-  // to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
-
-  return supabaseResponse;
+  if (response !== supabaseResponse) {
+    // 세션을 갱신하거나 지운 응답은 리다이렉트에도 쿠키를 넘긴다.
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      response.cookies.set(cookie);
+    }
+  }
+  authHeaders.forEach((value, name) => response.headers.set(name, value));
+  return response;
 }
