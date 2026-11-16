@@ -188,6 +188,7 @@ export const de: Messages = {
     alignRight: "Rechtsbündig",
   },
   markdown: {
+    resize: "Größe von Quelltext und Vorschau ändern",
     viewer: "Vorschau",
     source: "Markdown-Quelltext",
     placeholder: "# Mit einer Überschrift beginnen",

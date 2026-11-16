@@ -188,6 +188,7 @@ export const ja: Messages = {
     alignRight: "右揃え",
   },
   markdown: {
+    resize: "原文とプレビューのサイズを調整",
     viewer: "プレビュー",
     source: "Markdown原文",
     placeholder: "# 見出しから書いてみましょう",

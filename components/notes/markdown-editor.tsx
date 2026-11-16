@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import type { Layout } from "react-resizable-panels";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { EyeIcon } from "@phosphor-icons/react";
@@ -12,6 +13,16 @@ import { NoteFrame } from "@/components/notes/note-frame";
 import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+
+function subscribeToScreenWidth(onChange: () => void) {
+  const query = window.matchMedia("(min-width: 640px)");
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+const isWideScreen = () => window.matchMedia("(min-width: 640px)").matches;
+const serverWideScreen = () => false;
 
 function read(content: NoteContent): MarkdownContent {
   const markdown = content as MarkdownContent;
@@ -38,6 +49,9 @@ export function MarkdownEditor({
   const initial = read(note.content);
   const [source, setSource] = useState(initial.source);
   const [viewer, setViewer] = useState(initial.viewer);
+  const wide = useSyncExternalStore(subscribeToScreenWidth, isWideScreen, serverWideScreen);
+  const orientation = wide ? "horizontal" : "vertical";
+  const [layouts, setLayouts] = useState<Record<string, Layout>>({});
 
   const sourceRef = useRef(initial.source);
   const viewerRef = useRef(initial.viewer);
@@ -113,36 +127,47 @@ export function MarkdownEditor({
       }
     >
       {/* 넓은 화면에서는 좌우로, 좁은 화면에서는 위아래로 나눈다. */}
-      <div
+      <ResizablePanelGroup
+        key={`${orientation}-${viewer}`}
         data-testid="md-split"
-        className={cn(
-          "grid min-h-0 flex-1",
-          viewer ? "grid-rows-2 sm:grid-cols-2 sm:grid-rows-1" : "grid-cols-1",
-        )}
+        orientation={orientation}
+        defaultLayout={viewer ? layouts[orientation] : undefined}
+        onLayoutChanged={(layout) => {
+          if (viewer) setLayouts((current) => ({ ...current, [orientation]: layout }));
+        }}
+        className="min-h-0 flex-1"
       >
-        <textarea
-          style={surface}
-          value={source}
-          onChange={(event) => changeSource(event.target.value)}
-          aria-label={t.markdown.source}
-          data-testid="note-body"
-          spellCheck={false}
-          placeholder={t.markdown.placeholder}
-          className={cn(
-            "min-h-0 min-w-0 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none",
-            viewer && "border-b border-border sm:border-r sm:border-b-0",
-          )}
-        />
-        {viewer && (
-          <div
-            data-testid="md-viewer"
+        <ResizablePanel id="markdown-source" defaultSize="50%" minSize="20%">
+          <textarea
             style={surface}
-            className="prose-md min-h-0 min-w-0 overflow-y-auto bg-card p-5 text-sm"
-          >
-            <Markdown remarkPlugins={[remarkGfm]}>{source}</Markdown>
-          </div>
+            value={source}
+            onChange={(event) => changeSource(event.target.value)}
+            aria-label={t.markdown.source}
+            data-testid="note-body"
+            spellCheck={false}
+            placeholder={t.markdown.placeholder}
+            className="block h-full w-full min-h-0 min-w-0 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none"
+          />
+        </ResizablePanel>
+        {viewer && (
+          <>
+            <ResizableHandle
+              withHandle
+              aria-label={t.markdown.resize}
+              className="w-2 shrink-0 aria-[orientation=horizontal]:h-3"
+            />
+            <ResizablePanel id="markdown-preview" defaultSize="50%" minSize="20%">
+              <div
+                data-testid="md-viewer"
+                style={surface}
+                className="prose-md h-full min-h-0 min-w-0 overflow-y-auto bg-card p-5 text-sm"
+              >
+                <Markdown remarkPlugins={[remarkGfm]}>{source}</Markdown>
+              </div>
+            </ResizablePanel>
+          </>
         )}
-      </div>
+      </ResizablePanelGroup>
     </NoteFrame>
   );
 }

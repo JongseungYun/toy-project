@@ -188,6 +188,7 @@ export const zhHant: Messages = {
     alignRight: "靠右對齊",
   },
   markdown: {
+    resize: "調整原文與預覽大小",
     viewer: "預覽",
     source: "Markdown 原文",
     placeholder: "# 從標題開始寫",

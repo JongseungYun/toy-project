@@ -188,6 +188,7 @@ export const zhHans: Messages = {
     alignRight: "右对齐",
   },
   markdown: {
+    resize: "调整原文与预览大小",
     viewer: "预览",
     source: "Markdown 原文",
     placeholder: "# 从标题开始写",

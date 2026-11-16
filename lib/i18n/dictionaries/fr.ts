@@ -188,6 +188,7 @@ export const fr: Messages = {
     alignRight: "Aligner à droite",
   },
   markdown: {
+    resize: "Redimensionner la source et l’aperçu",
     viewer: "Aperçu",
     source: "Source Markdown",
     placeholder: "# Commencez par un titre",

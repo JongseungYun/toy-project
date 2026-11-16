@@ -188,6 +188,7 @@ export const ko: Messages = {
     alignRight: "오른쪽 정렬",
   },
   markdown: {
+    resize: "원문과 뷰어 크기 조절",
     viewer: "뷰어",
     source: "Markdown 원문",
     placeholder: "# 제목부터 써 보세요",

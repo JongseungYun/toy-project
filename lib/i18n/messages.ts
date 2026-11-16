@@ -191,6 +191,7 @@ export interface Messages {
     alignRight: string;
   };
   markdown: {
+    resize: string;
     viewer: string;
     source: string;
     placeholder: string;

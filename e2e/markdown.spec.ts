@@ -86,6 +86,52 @@ test("Markdown 노트를 만들어 쓰면 뷰어가 결과를 보여주고 그�
   await expect(page.getByTestId("note-body")).toHaveValue(SOURCE);
 });
 
+test("Markdown 경계선을 마우스·키보드·터치로 조절하고 뷰어 전환 시 비율을 유지한다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createMarkdownNote(page);
+  const handle = page.getByRole("separator", { name: "원문과 뷰어 크기 조절" });
+  const body = page.getByTestId("note-body");
+  await expect(handle).toHaveAttribute("aria-orientation", "vertical");
+  const original = (await body.boundingBox())!.width;
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 120, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(async () => (await body.boundingBox())!.width).toBeGreaterThan(original + 80);
+  const resized = (await body.boundingBox())!.width;
+  await handle.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect.poll(async () => (await body.boundingBox())!.width).toBeLessThan(resized);
+  const remembered = (await body.boundingBox())!.width;
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-saved-count", "0");
+  await clickViewerAndWaitForSave(page);
+  await clickViewerAndWaitForSave(page);
+  await expect.poll(async () => Math.abs((await body.boundingBox())!.width - remembered)).toBeLessThan(2);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(handle).toHaveAttribute("aria-orientation", "horizontal");
+  const beforeTouch = (await body.boundingBox())!.height;
+  const mobile = (await handle.boundingBox())!;
+  const x = mobile.x + mobile.width / 2;
+  const y = mobile.y + mobile.height / 2;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+  for (let step = 1; step <= 6; step++) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + step * 10 }] });
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await cdp.detach();
+  await expect.poll(async () => (await body.boundingBox())!.height).toBeGreaterThan(beforeTouch + 40);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(handle).toHaveAttribute("aria-orientation", "vertical");
+  await handle.focus();
+  await page.keyboard.press("Home");
+  const groupWidth = (await page.getByTestId("md-split").boundingBox())!.width;
+  await expect.poll(async () => (await body.boundingBox())!.width).toBeGreaterThan(groupWidth * 0.18);
+});
+
 test("뷰어를 끄면 편집 영역이 전체 폭을 쓰고, 끈 상태가 노트에 기억된다", async ({
   page,
 }) => {
@@ -96,17 +142,14 @@ test("뷰어를 끄면 편집 영역이 전체 폭을 쓰고, 끈 상태가 노�
   await expectSaved(page, "뷰어 상태 점검");
 
   const split = page.getByTestId("md-split");
-  const columnsWithViewer = await split.evaluate(
-    (node) => getComputedStyle(node).gridTemplateColumns,
-  );
+  const widthWithViewer = (await page.getByTestId("note-body").boundingBox())!.width;
 
   await clickViewerAndWaitForSave(page);
   await expect(page.getByTestId("md-viewer")).toHaveCount(0);
 
-  const columnsWithoutViewer = await split.evaluate(
-    (node) => getComputedStyle(node).gridTemplateColumns,
-  );
-  expect(columnsWithoutViewer).not.toBe(columnsWithViewer);
+  const widthWithoutViewer = (await page.getByTestId("note-body").boundingBox())!.width;
+  expect(widthWithoutViewer).toBeGreaterThan(widthWithViewer);
+  expect(widthWithoutViewer).toBeCloseTo((await split.boundingBox())!.width, 0);
 
   // 목록으로 나갔다 다시 열어도 꺼진 상태다
   await page.goto("/");
