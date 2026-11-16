@@ -303,6 +303,21 @@ export interface Messages {
     action: string;
     failed: string;
   };
+  markdownImport: {
+    title: string;
+    description: string;
+    file: string;
+    fileHint: string;
+    action: string;
+    importing: string;
+    errors: {
+      unsupported: string;
+      tooLarge: string;
+      encoding: string;
+      failed: string;
+      loginRequired: string;
+    };
+  };
   backup: {
     title: string;
     scope: string;

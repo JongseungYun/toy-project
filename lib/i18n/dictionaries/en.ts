@@ -300,6 +300,21 @@ export const en: Messages = {
     action: "Export as a file",
     failed: "Could not export. Please try again in a moment.",
   },
+  markdownImport: {
+    title: "Import Markdown",
+    description: "Use the filename as the title and open a new Markdown note in your library.",
+    file: "Markdown file",
+    fileHint: "One UTF-8 .md file · up to 512 KiB. Image files need to be transferred separately.",
+    action: "Import as a note",
+    importing: "Importing…",
+    errors: {
+      unsupported: "Choose a file with the .md extension.",
+      tooLarge: "Choose a file of 512 KiB or less.",
+      encoding: "Choose a Markdown file saved as UTF-8 text.",
+      failed: "Could not import. Check your connection and try again.",
+      loginRequired: "Sign in again before importing.",
+    },
+  },
   backup: {
     title: "Full backup and restore",
     scope: "Keep folders, notes, pins, background images, trash and version history in one file.",

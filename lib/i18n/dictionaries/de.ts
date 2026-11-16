@@ -300,6 +300,21 @@ export const de: Messages = {
     action: "Als Datei exportieren",
     failed: "Export nicht möglich. Bitte versuchen Sie es gleich noch einmal.",
   },
+  markdownImport: {
+    title: "Markdown importieren",
+    description: "Erstellt und öffnet eine neue Markdown-Notiz mit dem Dateinamen als Titel.",
+    file: "Markdown-Datei",
+    fileHint: "Eine UTF-8-Datei mit der Endung .md · bis zu 512 KiB. Bilddateien müssen separat übertragen werden.",
+    action: "Als Notiz importieren",
+    importing: "Wird importiert…",
+    errors: {
+      unsupported: "Wähle eine Datei mit der Endung .md.",
+      tooLarge: "Wähle eine Datei mit höchstens 512 KiB.",
+      encoding: "Wähle eine als UTF-8-Text gespeicherte Markdown-Datei.",
+      failed: "Import fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
+      loginRequired: "Melde dich vor dem Import erneut an.",
+    },
+  },
   backup: {
     title: "Vollständige Sicherung und Wiederherstellung",
     scope: "Ordner, Notizen, Anheftungen, Hintergrundbilder, Papierkorb und Verlauf in einer Datei sichern.",

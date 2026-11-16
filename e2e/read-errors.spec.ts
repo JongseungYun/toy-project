@@ -24,6 +24,38 @@ test.beforeEach(async ({ page, next }) => {
   await signUpAndEnter(page);
 });
 
+test("R08: Markdown 가져오기 저장 응답 유실 후 재시도해도 한 노트만 만든다", async ({ page, next }) => {
+  let loseResponse = true;
+  const requests: string[] = [];
+  next.onFetch(async (request) => {
+    if (request.method === "POST" && new URL(request.url).pathname === "/rest/v1/notes") {
+      const body = await request.clone().json();
+      requests.push(body.id);
+      const response = await fetch(request);
+      if (loseResponse && response.ok) {
+        loseResponse = false;
+        await response.arrayBuffer();
+        return Response.json({ code: "TEST_LOST_RESPONSE", message: "Import committed" }, { status: 503 });
+      }
+      return response;
+    }
+  });
+  await page.goto("/settings");
+  await expect(page.getByLabel("Markdown 파일", { exact: true })).toBeEnabled();
+  await page.getByLabel("Markdown 파일", { exact: true }).setInputFiles({
+    name: "응답 유실.md", mimeType: "text/markdown", buffer: Buffer.from("# 중복 없이 복구"),
+  });
+  const submit = page.getByRole("button", { name: "노트로 가져오기", exact: true });
+  await submit.click();
+  await expect(page.getByText("가져오지 못했습니다.", { exact: false })).toBeVisible();
+  await submit.click();
+  await expect(page).toHaveURL(/\/notes\//);
+  await expect(page.getByTestId("note-body")).toHaveValue("# 중복 없이 복구");
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toBe(requests[1]);
+  await expect(page.getByTestId("note-item")).toHaveCount(1);
+});
+
 test("R07: 종료된 세션으로 보관함을 열면 다시 로그인할 수 있다", async ({ page, next }) => {
   await createDocNote(page);
   const noteUrl = page.url();

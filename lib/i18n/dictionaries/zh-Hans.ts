@@ -300,6 +300,21 @@ export const zhHans: Messages = {
     action: "导出为文件",
     failed: "导出失败。请稍后再试。",
   },
+  markdownImport: {
+    title: "导入 Markdown",
+    description: "使用文件名作为标题，在笔记库中创建并打开新的 Markdown 笔记。",
+    file: "Markdown 文件",
+    fileHint: "一个 UTF-8 .md 文件 · 最大 512 KiB。图片文件需要单独迁移。",
+    action: "导入为笔记",
+    importing: "正在导入…",
+    errors: {
+      unsupported: "请选择扩展名为 .md 的文件。",
+      tooLarge: "请选择不超过 512 KiB 的文件。",
+      encoding: "请选择以 UTF-8 文本保存的 Markdown 文件。",
+      failed: "导入失败。请检查网络连接后重试。",
+      loginRequired: "请重新登录后再导入。",
+    },
+  },
   backup: {
     title: "完整备份与还原",
     scope: "将文件夹、笔记、置顶、背景图片、回收站和修改历史保存到一个文件。",

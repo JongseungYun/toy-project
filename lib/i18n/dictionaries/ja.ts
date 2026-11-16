@@ -300,6 +300,21 @@ export const ja: Messages = {
     action: "ファイルに書き出す",
     failed: "書き出せませんでした。しばらくしてからもう一度お試しください。",
   },
+  markdownImport: {
+    title: "Markdownを取り込む",
+    description: "ファイル名をタイトルにして、新しいMarkdownノートを作成して開きます。",
+    file: "Markdownファイル",
+    fileHint: "UTF-8の.mdファイル1つ · 最大512 KiB。画像ファイルは別途移してください。",
+    action: "ノートとして取り込む",
+    importing: "取り込み中…",
+    errors: {
+      unsupported: "拡張子が.mdのファイルを選んでください。",
+      tooLarge: "512 KiB以下のファイルを選んでください。",
+      encoding: "UTF-8テキストで保存したMarkdownファイルを選んでください。",
+      failed: "取り込めませんでした。接続を確認して再試行してください。",
+      loginRequired: "再度ログインしてから取り込んでください。",
+    },
+  },
   backup: {
     title: "全体バックアップ・復元",
     scope: "フォルダー、ノート、固定、背景画像、ゴミ箱、変更履歴を1つのファイルに保存します。",

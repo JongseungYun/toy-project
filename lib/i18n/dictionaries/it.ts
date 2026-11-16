@@ -300,6 +300,21 @@ export const it: Messages = {
     action: "Esporta come file",
     failed: "Esportazione non riuscita. Riprova tra poco.",
   },
+  markdownImport: {
+    title: "Importa Markdown",
+    description: "Crea e apre una nuova nota Markdown usando il nome del file come titolo.",
+    file: "File Markdown",
+    fileHint: "Un file .md UTF-8 · massimo 512 KiB. Le immagini vanno trasferite separatamente.",
+    action: "Importa come nota",
+    importing: "Importazione…",
+    errors: {
+      unsupported: "Scegli un file con estensione .md.",
+      tooLarge: "Scegli un file di massimo 512 KiB.",
+      encoding: "Scegli un file Markdown salvato come testo UTF-8.",
+      failed: "Importazione non riuscita. Controlla la connessione e riprova.",
+      loginRequired: "Accedi di nuovo prima di importare.",
+    },
+  },
   backup: {
     title: "Backup completo e ripristino",
     scope: "Conserva cartelle, note, fissaggi, sfondi, cestino e cronologia in un file.",

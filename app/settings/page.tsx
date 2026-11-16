@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefaultBackgroundRow } from "@/components/notes/default-background-row";
 import { LanguageRow } from "@/components/notes/language-row";
 import { BackupCard } from "@/components/notes/backup-card";
+import { MarkdownImportCard } from "@/components/notes/markdown-import-card";
 import { RecoverySettingsForm } from "@/components/account/recovery-forms";
 import { recoverySettings } from "@/lib/account/recovery";
 
@@ -119,6 +120,7 @@ export default async function SettingsPage() {
       </Card>
 
       <BackupCard />
+      <MarkdownImportCard />
 
       <Card>
         <CardHeader>

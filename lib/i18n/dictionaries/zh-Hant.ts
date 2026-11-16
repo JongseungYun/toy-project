@@ -300,6 +300,21 @@ export const zhHant: Messages = {
     action: "匯出成檔案",
     failed: "匯出失敗。請稍後再試。",
   },
+  markdownImport: {
+    title: "匯入 Markdown",
+    description: "使用檔名作為標題，在筆記庫中建立並開啟新的 Markdown 筆記。",
+    file: "Markdown 檔案",
+    fileHint: "一個 UTF-8 .md 檔案 · 最大 512 KiB。圖片檔案需要另外搬移。",
+    action: "匯入為筆記",
+    importing: "正在匯入…",
+    errors: {
+      unsupported: "請選擇副檔名為 .md 的檔案。",
+      tooLarge: "請選擇不超過 512 KiB 的檔案。",
+      encoding: "請選擇以 UTF-8 文字儲存的 Markdown 檔案。",
+      failed: "匯入失敗。請檢查網路連線後重試。",
+      loginRequired: "請重新登入後再匯入。",
+    },
+  },
   backup: {
     title: "完整備份與還原",
     scope: "將資料夾、筆記、置頂、背景圖片、垃圾桶和修改歷史儲存到一個檔案。",

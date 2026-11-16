@@ -300,6 +300,21 @@ export const ko: Messages = {
     action: "파일로 내보내기",
     failed: "내보내지 못했습니다. 잠시 후 다시 시도해 주세요.",
   },
+  markdownImport: {
+    title: "Markdown 가져오기",
+    description: "파일명을 제목으로 사용해 내 노트에 새 Markdown 노트를 만들고 엽니다.",
+    file: "Markdown 파일",
+    fileHint: "UTF-8 .md 파일 하나 · 최대 512 KiB. 이미지 파일은 별도로 옮겨야 합니다.",
+    action: "노트로 가져오기",
+    importing: "가져오는 중…",
+    errors: {
+      unsupported: "확장자가 .md인 파일을 선택해 주세요.",
+      tooLarge: "512 KiB 이하의 파일을 선택해 주세요.",
+      encoding: "UTF-8 텍스트로 저장한 Markdown 파일을 선택해 주세요.",
+      failed: "가져오지 못했습니다. 연결을 확인하고 다시 시도해 주세요.",
+      loginRequired: "다시 로그인한 뒤 가져오기를 시도해 주세요.",
+    },
+  },
   backup: {
     title: "전체 백업·복원",
     scope: "폴더, 노트, 고정, 배경 이미지, 휴지통과 수정 이력을 파일 하나로 보관합니다.",
