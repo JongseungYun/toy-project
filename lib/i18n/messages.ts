@@ -190,6 +190,21 @@ export interface Messages {
     alignCenter: string;
     alignRight: string;
   };
+  table: {
+    tools: string;
+    insert: string;
+    rows: string;
+    columns: string;
+    insertHint: string;
+    editHint: string;
+    rowBefore: string;
+    rowAfter: string;
+    columnBefore: string;
+    columnAfter: string;
+    deleteRow: string;
+    deleteColumn: string;
+    deleteTable: string;
+  };
   markdown: {
     resize: string;
     viewer: string;

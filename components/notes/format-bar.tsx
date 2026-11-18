@@ -42,6 +42,8 @@ import {
 } from "@/components/ui/select";
 import { useMessages } from "@/components/i18n-provider";
 import { clearDocFormatting } from "@/lib/notes/doc-formatting";
+import { editDocTable, insertDocTable, selectedTableCell } from "@/lib/notes/doc-table";
+import { TableButton } from "@/components/notes/table-button";
 
 const TOGGLES = [
   { command: "bold", key: "bold", Icon: TextBIcon },
@@ -180,6 +182,7 @@ export function FormatBar({
   const t = useMessages();
   const [state, setState] = useState<FormatState>(IDLE);
   const [expanded, setExpanded] = useState(false);
+  const [inTable, setInTable] = useState(false);
   const id = useId();
   const extraClass = expanded ? "contents" : "hidden @lg/note:contents";
 
@@ -209,6 +212,7 @@ export function FormatBar({
 
     picked.current = selection.getRangeAt(0).cloneRange();
     setState(readState());
+    setInTable(Boolean(selectedTableCell(editor)));
   }, [editorRef, readState]);
 
   useEffect(() => {
@@ -249,6 +253,7 @@ export function FormatBar({
       typingHighlight.current = { range: current.cloneRange(), value: nextHighlight };
     }
     setState(readState());
+    setInTable(Boolean(selectedTableCell(editor)));
   }
 
   return (
@@ -351,13 +356,25 @@ export function FormatBar({
         />
       ))}
 
+      <div id={`${id}-table`} className={extraClass}>
+        <TableButton
+          inTable={inTable}
+          onInsert={(rows, columns) => run(() => {
+            if (editorRef.current) insertDocTable(editorRef.current, rows, columns);
+          })}
+          onEdit={(action) => run(() => {
+            if (editorRef.current) editDocTable(editorRef.current, action);
+          })}
+        />
+      </div>
+
       <Button
         type="button"
         variant="ghost"
         size="sm"
         className="ml-auto @lg/note:hidden"
         aria-expanded={expanded}
-        aria-controls={`${id}-font ${id}-color ${id}-strike ${id}-other`}
+        aria-controls={`${id}-font ${id}-color ${id}-strike ${id}-table ${id}-other`}
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => setExpanded((value) => !value)}
       >

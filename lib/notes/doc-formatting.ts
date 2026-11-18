@@ -1,6 +1,6 @@
 import { FONT_OPTIONS, SIZE_OPTIONS } from "@/lib/notes/rich-text";
 
-const BLOCKS = new Set(["P", "DIV", "UL", "OL", "LI"]);
+const BLOCKS = new Set(["P", "DIV", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]);
 const SKIP = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "IMG"]);
 const INLINE = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "SPAN"]);
 
@@ -136,7 +136,13 @@ export function clearDocFormatting(editor: HTMLElement) {
       parent.removeAttribute("style");
       parent.removeAttribute("class");
     }
-    if (block === copy) copy.innerHTML = normalizeDocHtml(copy.innerHTML, true);
+    if (block.tagName === "TD" || block.tagName === "TH") {
+      // 셀 단독 HTML을 div로 파싱하면 브라우저가 td/th 태그를 버린다.
+      // 구조는 유지하고 셀 안의 서식만 정리한다.
+      block.removeAttribute("style");
+      block.removeAttribute("class");
+      block.innerHTML = normalizeDocHtml(block.innerHTML, true);
+    } else if (block === copy) copy.innerHTML = normalizeDocHtml(copy.innerHTML, true);
     else block.outerHTML = normalizeDocHtml(block.outerHTML, true);
   }
 

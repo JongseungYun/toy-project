@@ -11,6 +11,7 @@ import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 import { normalizeDocHtml, plainTextHtml, restoreDocFormatting } from "@/lib/notes/doc-formatting";
+import { moveTableCell } from "@/lib/notes/doc-table";
 
 function htmlOf(content: NoteContent): string {
   return (content as DocContent).html ?? "";
@@ -83,6 +84,11 @@ export function DocEditor({
           onKeyDown={(event) => {
             plainPaste.current = (event.ctrlKey || event.metaKey) && event.shiftKey;
             if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing) {
+              if (moveTableCell(event.currentTarget, event.shiftKey)) {
+                event.preventDefault();
+                autosave.scheduleSave();
+                return;
+              }
               const selection = window.getSelection();
               const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
               const inListItem = (node: Node) => {
@@ -125,7 +131,7 @@ export function DocEditor({
             autosave.scheduleSave();
           }}
           style={surface}
-          className="prose-note doc-list-markers min-h-full w-full rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
+          className="prose-note doc-list-markers doc-tables min-h-full w-full rounded-2xl bg-card p-6 text-[15px] leading-7 shadow-sm outline-none ring-1 ring-foreground/5"
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
       </div>
