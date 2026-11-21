@@ -188,6 +188,10 @@ export const en: Messages = {
     alignRight: "Align right",
   },
   table: {
+    width: "Column width (px)",
+    height: "Row height (px)",
+    resize: "Apply size",
+    resizeHint: "Drag cell borders or enter a size. Cells cannot be smaller than their content.",
     tools: "Table tools",
     insert: "Insert table",
     rows: "Rows",

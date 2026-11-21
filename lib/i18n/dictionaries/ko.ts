@@ -188,6 +188,10 @@ export const ko: Messages = {
     alignRight: "오른쪽 정렬",
   },
   table: {
+    width: "열 너비 (px)",
+    height: "행 높이 (px)",
+    resize: "크기 적용",
+    resizeHint: "셀 경계선을 드래그하거나 크기를 입력하세요. 내용보다 작게 줄일 수는 없습니다.",
     tools: "표 도구",
     insert: "표 추가",
     rows: "행 수",

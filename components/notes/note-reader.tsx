@@ -6,6 +6,7 @@ import {
   parseCanvasElements,
 } from "@/lib/notes/canvas";
 import { sanitizeHtml } from "@/lib/notes/sanitize";
+import { normalizeTableHeaderHtml } from "@/lib/notes/doc-table-background";
 import type {
   DocContent,
   MarkdownContent,
@@ -74,7 +75,7 @@ export function NoteReader({
       style={surface}
       className="doc-list-markers doc-tables p-5 text-[15px] leading-7 sm:p-8"
       dangerouslySetInnerHTML={{
-        __html: sanitizeHtml((content as DocContent).html ?? ""),
+        __html: normalizeTableHeaderHtml(sanitizeHtml((content as DocContent).html ?? "")),
       }}
     />
   );

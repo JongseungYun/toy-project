@@ -188,6 +188,10 @@ export const ja: Messages = {
     alignRight: "右揃え",
   },
   table: {
+    width: "列幅 (px)",
+    height: "行の高さ (px)",
+    resize: "サイズを適用",
+    resizeHint: "セルの境界をドラッグするかサイズを入力します。内容より小さくはできません。",
     tools: "表ツール",
     insert: "表を挿入",
     rows: "行数",

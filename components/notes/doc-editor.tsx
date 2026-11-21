@@ -12,9 +12,11 @@ import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 import { normalizeDocHtml, plainTextHtml, restoreDocFormatting } from "@/lib/notes/doc-formatting";
 import { moveTableCell } from "@/lib/notes/doc-table";
+import { clearWhiteHeaderBackgrounds, normalizeTableHeaderHtml } from "@/lib/notes/doc-table-background";
+import { useDocTableResize } from "@/components/notes/use-doc-table-resize";
 
 function htmlOf(content: NoteContent): string {
-  return (content as DocContent).html ?? "";
+  return normalizeTableHeaderHtml((content as DocContent).html ?? "");
 }
 
 /**
@@ -36,6 +38,7 @@ export function DocEditor({
   const [initialHtml] = useState(() => htmlOf(note.content));
   const editorRef = useRef<HTMLDivElement>(null);
   const plainPaste = useRef(false);
+  useDocTableResize(editorRef);
 
   const readDraft = useCallback(() => {
     const html = editorRef.current?.innerHTML ?? "";
@@ -80,7 +83,10 @@ export function DocEditor({
           aria-multiline="true"
           aria-label={t.note.bodyLabel}
           data-testid="note-body"
-          onInput={autosave.scheduleSave}
+          onInput={() => {
+            if (editorRef.current) clearWhiteHeaderBackgrounds(editorRef.current);
+            autosave.scheduleSave();
+          }}
           onKeyDown={(event) => {
             plainPaste.current = (event.ctrlKey || event.metaKey) && event.shiftKey;
             if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing) {
@@ -125,9 +131,10 @@ export function DocEditor({
             event.preventDefault();
             const html = event.clipboardData.getData("text/html");
             const text = event.clipboardData.getData("text/plain");
-            const content = html && !plainPaste.current ? normalizeDocHtml(html) : plainTextHtml(text);
+            const content = html && !plainPaste.current ? normalizeTableHeaderHtml(normalizeDocHtml(html)) : plainTextHtml(text);
             plainPaste.current = false;
             document.execCommand("insertHTML", false, content);
+            clearWhiteHeaderBackgrounds(event.currentTarget);
             autosave.scheduleSave();
           }}
           style={surface}

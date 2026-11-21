@@ -188,6 +188,10 @@ export const es: Messages = {
     alignRight: "Alinear a la derecha",
   },
   table: {
+    width: "Ancho de columna (px)",
+    height: "Alto de fila (px)",
+    resize: "Aplicar tamaño",
+    resizeHint: "Arrastra los bordes o introduce el tamaño. Las celdas deben contener el texto.",
     tools: "Herramientas de tabla",
     insert: "Insertar tabla",
     rows: "Filas",

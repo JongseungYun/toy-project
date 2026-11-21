@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useMessages } from "@/components/i18n-provider";
 import { clearDocFormatting } from "@/lib/notes/doc-formatting";
-import { editDocTable, insertDocTable, selectedTableCell } from "@/lib/notes/doc-table";
+import { editDocTable, insertDocTable, resizeSelectedTableCell, selectedTableCell } from "@/lib/notes/doc-table";
 import { TableButton } from "@/components/notes/table-button";
 
 const TOGGLES = [
@@ -359,6 +359,14 @@ export function FormatBar({
       <div id={`${id}-table`} className={extraClass}>
         <TableButton
           inTable={inTable}
+          readSize={() => {
+            const node = picked.current?.startContainer;
+            const cell = (node instanceof Element ? node : node?.parentElement)?.closest("td, th");
+            return cell && editorRef.current?.contains(cell) ? cell.getBoundingClientRect() : null;
+          }}
+          onResize={(width, height) => run(() => {
+            if (editorRef.current) resizeSelectedTableCell(editorRef.current, width, height);
+          })}
           onInsert={(rows, columns) => run(() => {
             if (editorRef.current) insertDocTable(editorRef.current, rows, columns);
           })}

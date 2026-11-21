@@ -95,6 +95,12 @@ test("모바일에서 표 도구를 터치하고 표만 가로로 스크롤한�
   await dialog.getByRole("button", { name: "아래에 행 추가", exact: true }).tap();
   await expect(table.locator("tr")).toHaveCount(4);
   await expect(table).toContainText("모바일 표");
+  await page.getByRole("button", { name: "표 도구", exact: true }).tap();
+  await dialog.getByLabel("열 너비 (px)", { exact: true }).fill("160");
+  await dialog.getByLabel("행 높이 (px)", { exact: true }).fill("70");
+  await dialog.getByRole("button", { name: "크기 적용", exact: true }).tap();
+  await expect(table.locator("td").first()).toHaveCSS("width", "160px");
+  await expect(table.locator("tr").nth(1)).toHaveCSS("height", "70px");
   await context.close();
 });
 
@@ -136,4 +142,68 @@ test("표를 붙여넣고 셀 서식을 지워도 공유와 HTML 내보내기에
   await expect(shared.getByTestId("shared-body").locator("td").first()).toHaveCSS("border-top-width", "1px");
   await guest.close();
   await page.getByRole("button", { name: "공유 중지" }).click();
+});
+
+test("머리글의 흰 배경을 지우고 경계선 드래그·숫자 입력으로 표 크기를 저장한다", async ({ page }, testInfo) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  const body = page.getByTestId("note-body");
+  await body.click();
+  await insertTable(page);
+  const table = body.locator("table");
+  await body.evaluate((editor) => {
+    const data = new DataTransfer();
+    data.setData("text/html", '<span style="background-color:rgb(255,255,255);font-size:14px">제목</span>');
+    editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data }));
+  });
+  await expect(table.locator("th").first()).toHaveText("제목");
+  await expect(table.locator("th span").first()).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+
+  const before = (await table.locator("th").first().boundingBox())!;
+  await page.mouse.move(before.x + before.width - 2, before.y + before.height / 2);
+  await expect(body).toHaveCSS("cursor", "col-resize");
+  await page.mouse.down();
+  await page.mouse.move(before.x + before.width - 82, before.y + before.height / 2, { steps: 8 });
+  await expect(page.locator(".doc-table-resize-guide")).toBeVisible();
+  await page.mouse.up();
+  await expect.poll(async () => (await table.locator("th").first().boundingBox())!.width).toBeLessThan(before.width - 60);
+  const width = (await table.locator("th").first().boundingBox())!.width;
+  await body.press("Control+z");
+  await expect.poll(async () => (await table.locator("th").first().boundingBox())!.width).toBeGreaterThan(before.width - 3);
+  await body.press("Control+Shift+z");
+  await expect.poll(async () => Math.abs((await table.locator("th").first().boundingBox())!.width - width)).toBeLessThan(3);
+
+  const header = (await table.locator("th").first().boundingBox())!;
+  await page.mouse.move(header.x + header.width / 2, header.y + header.height - 2);
+  await expect(body).toHaveCSS("cursor", "row-resize");
+  await page.mouse.down();
+  await page.mouse.move(header.x + header.width / 2, header.y + header.height + 38, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => (await table.locator("tr").first().boundingBox())!.height).toBeGreaterThan(header.height + 30);
+
+  await table.locator("th").first().click();
+  await editTable(page, "아래에 행 추가");
+  await expect(table.locator("tr")).toHaveCount(4);
+  await expect.poll(async () => Math.abs((await table.locator("tr").nth(1).locator("td").first().boundingBox())!.width - width)).toBeLessThan(3);
+  await editTable(page, "오른쪽에 열 추가");
+  await expect(table.locator("tr").first().locator("th")).toHaveCount(4);
+  await editTable(page, "열 삭제");
+  await expect(table.locator("th")).toHaveCount(3);
+
+  await page.getByRole("button", { name: "표 도구", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "표 도구" });
+  await dialog.getByLabel("열 너비 (px)", { exact: true }).fill("180");
+  await dialog.getByLabel("행 높이 (px)", { exact: true }).fill("90");
+  await dialog.getByRole("button", { name: "크기 적용", exact: true }).click();
+  await expect(table.locator("td").first()).toHaveCSS("width", "180px");
+  await expect(table.locator("tr").nth(1)).toHaveCSS("height", "90px");
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-saved-count", /[1-9]\d*/, { timeout: 20_000 });
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", { timeout: 20_000 });
+  await page.reload();
+  await expect(body).toBeVisible();
+  await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  await expect(table.locator("td").first()).toHaveCSS("width", "180px");
+  await expect(table.locator("tr").nth(1)).toHaveCSS("height", "90px");
+  await expect(table.locator("th").first()).toContainText("제목");
+  await page.screenshot({ path: testInfo.outputPath("table-resized.png") });
 });

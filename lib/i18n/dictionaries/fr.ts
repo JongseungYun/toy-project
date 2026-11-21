@@ -188,6 +188,10 @@ export const fr: Messages = {
     alignRight: "Aligner à droite",
   },
   table: {
+    width: "Largeur de colonne (px)",
+    height: "Hauteur de ligne (px)",
+    resize: "Appliquer la taille",
+    resizeHint: "Faites glisser les bordures ou saisissez une taille. Le contenu impose une taille minimale.",
     tools: "Outils de tableau",
     insert: "Insérer un tableau",
     rows: "Lignes",

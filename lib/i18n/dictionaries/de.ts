@@ -188,6 +188,10 @@ export const de: Messages = {
     alignRight: "Rechtsbündig",
   },
   table: {
+    width: "Spaltenbreite (px)",
+    height: "Zeilenhöhe (px)",
+    resize: "Größe anwenden",
+    resizeHint: "Zellränder ziehen oder Größe eingeben. Der Inhalt bestimmt die Mindestgröße.",
     tools: "Tabellenwerkzeuge",
     insert: "Tabelle einfügen",
     rows: "Zeilen",

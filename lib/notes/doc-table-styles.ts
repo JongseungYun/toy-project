@@ -5,8 +5,10 @@ export const DOC_TABLE_STYLES = `
     border-collapse: collapse; margin: 1rem 0;
   }
   .doc-tables table > tbody { display: table; width: 100%; }
+  .doc-tables table > thead, .doc-tables table > tfoot { display: table; }
   .doc-tables th, .doc-tables td {
     min-width: 6rem; max-width: 24rem; padding: .5rem .75rem;
+    box-sizing: border-box;
     border: 1px solid var(--border, #cbd5e1);
     text-align: left; vertical-align: top; overflow-wrap: anywhere;
   }

@@ -191,6 +191,10 @@ export interface Messages {
     alignRight: string;
   };
   table: {
+    width: string;
+    height: string;
+    resize: string;
+    resizeHint: string;
     tools: string;
     insert: string;
     rows: string;

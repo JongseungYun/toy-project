@@ -188,6 +188,10 @@ export const zhHans: Messages = {
     alignRight: "右对齐",
   },
   table: {
+    width: "列宽 (px)",
+    height: "行高 (px)",
+    resize: "应用尺寸",
+    resizeHint: "拖动单元格边界或输入尺寸。单元格不能小于其内容。",
     tools: "表格工具",
     insert: "插入表格",
     rows: "行数",

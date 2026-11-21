@@ -188,6 +188,10 @@ export const zhHant: Messages = {
     alignRight: "靠右對齊",
   },
   table: {
+    width: "欄寬 (px)",
+    height: "列高 (px)",
+    resize: "套用尺寸",
+    resizeHint: "拖曳儲存格邊界或輸入尺寸。儲存格不能小於其內容。",
     tools: "表格工具",
     insert: "插入表格",
     rows: "列數",

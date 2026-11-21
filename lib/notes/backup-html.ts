@@ -13,7 +13,7 @@ const skip = new Set(
   ),
 );
 const properties = new Set(
-  "color background-color font-family font-size font-weight font-style text-decoration text-decoration-line text-align line-height white-space width max-width min-width margin margin-left margin-right margin-top margin-bottom padding padding-left padding-right padding-top padding-bottom border border-left border-right border-top border-bottom list-style-type".split(
+  "color background-color font-family font-size font-weight font-style text-decoration text-decoration-line text-align line-height white-space width max-width min-width height table-layout margin margin-left margin-right margin-top margin-bottom padding padding-left padding-right padding-top padding-bottom border border-left border-right border-top border-bottom list-style-type".split(
     " ",
   ),
 );

@@ -180,6 +180,13 @@
   @apply text-primary underline;
 }
 
+.doc-table-resize-guide {
+  position: fixed;
+  pointer-events: none;
+  background: var(--primary);
+  z-index: 40;
+}
+
 /* Markdown 뷰어. 프로토타입의 .md-view가 정한 크기와 간격을 따른다. */
 .prose-md {
   line-height: 1.8;

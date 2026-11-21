@@ -188,6 +188,10 @@ export const it: Messages = {
     alignRight: "Allinea a destra",
   },
   table: {
+    width: "Larghezza colonna (px)",
+    height: "Altezza riga (px)",
+    resize: "Applica dimensioni",
+    resizeHint: "Trascina i bordi o inserisci le dimensioni. Le celle devono contenere il testo.",
     tools: "Strumenti tabella",
     insert: "Inserisci tabella",
     rows: "Righe",
