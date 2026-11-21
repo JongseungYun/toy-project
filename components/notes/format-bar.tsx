@@ -4,6 +4,7 @@ import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   ListBulletsIcon,
+  ListChecksIcon,
   ListNumbersIcon,
   TextAlignCenterIcon,
   TextAlignLeftIcon,
@@ -44,6 +45,8 @@ import { useMessages } from "@/components/i18n-provider";
 import { clearDocFormatting } from "@/lib/notes/doc-formatting";
 import { editDocTable, insertDocTable, resizeSelectedTableCell, selectedTableCell } from "@/lib/notes/doc-table";
 import { TableButton } from "@/components/notes/table-button";
+import { DocLinkButton } from "@/components/notes/doc-link-button";
+import { changeLink, rangeElement, toggleChecklist } from "@/lib/notes/doc-actions";
 
 const TOGGLES = [
   { command: "bold", key: "bold", Icon: TextBIcon },
@@ -183,6 +186,7 @@ export function FormatBar({
   const [state, setState] = useState<FormatState>(IDLE);
   const [expanded, setExpanded] = useState(false);
   const [inTable, setInTable] = useState(false);
+  const [inTask, setInTask] = useState(false);
   const id = useId();
   const extraClass = expanded ? "contents" : "hidden @lg/note:contents";
 
@@ -211,6 +215,7 @@ export function FormatBar({
     if (!editor.contains(selection.anchorNode)) return;
 
     picked.current = selection.getRangeAt(0).cloneRange();
+    setInTask(Boolean(rangeElement(picked.current)?.closest("li[data-task]")));
     setState(readState());
     setInTable(Boolean(selectedTableCell(editor)));
   }, [editorRef, readState]);
@@ -249,6 +254,7 @@ export function FormatBar({
     const selection = window.getSelection();
     const current = selection?.rangeCount ? selection.getRangeAt(0) : null;
     if (current) picked.current = current.cloneRange();
+    setInTask(Boolean(rangeElement(current)?.closest("li[data-task]")));
     if (nextHighlight && current?.collapsed) {
       typingHighlight.current = { range: current.cloneRange(), value: nextHighlight };
     }
@@ -357,6 +363,11 @@ export function FormatBar({
       ))}
 
       <div id={`${id}-table`} className={extraClass}>
+        <ToggleButton label={t.formatBar.checklist} Icon={ListChecksIcon}
+          active={inTask}
+          onRun={() => run(() => { if (editorRef.current) toggleChecklist(editorRef.current); })} />
+        <DocLinkButton read={() => rangeElement(picked.current)?.closest("a")?.getAttribute("href") ?? null}
+          apply={address => run(() => { if (editorRef.current) changeLink(editorRef.current, address); })} />
         <TableButton
           inTable={inTable}
           readSize={() => {

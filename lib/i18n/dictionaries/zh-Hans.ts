@@ -163,6 +163,10 @@ export const zhHans: Messages = {
     yesterday: "昨天",
   },
   formatBar: {
+    checklist: "清单",
+    link: "链接",
+    openLink: "打开链接",
+    removeLink: "移除链接",
     mixedColors: "混合",
     noColor: "无",
     defaultColor: "默认颜色",

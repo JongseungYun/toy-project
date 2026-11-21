@@ -1,0 +1,92 @@
+import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { createDocNote, signUpAndEnter } from "./support/account";
+
+test.describe("좁은 화면", () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  test("빈 문서에서 체크리스트를 시작하고 터치로 완료하며 링크를 해제한다", async ({ page }) => {
+    await signUpAndEnter(page);
+    await createDocNote(page);
+    const body = page.getByTestId("note-body");
+    const button = (name: string) => page.getByRole("button", { name, exact: true });
+    await body.tap();
+    await button("더보기").tap();
+    await button("체크리스트").tap();
+    await page.keyboard.type("일정");
+    const item = body.locator("li[data-task]");
+    await expect(item).toHaveText("일정");
+    const box = (await item.boundingBox())!;
+    await page.touchscreen.tap(box.x - 12, box.y + box.height / 2);
+    await expect(item).toHaveAttribute("data-task", "done");
+    await item.tap();
+    await page.keyboard.press("End");
+    await button("링크").tap();
+    await page.getByLabel("URL", { exact: true }).fill("https://example.com");
+    await button("적용").tap();
+    await item.locator("a").tap();
+    await button("링크").tap();
+    await button("링크 해제").tap();
+    await expect(item.locator("a")).toHaveCount(0);
+    await expect(item).toContainText("https://example.com");
+  });
+});
+
+test("체크리스트 이어쓰기·완료와 링크 수정이 저장·공유·내보내기에 반영된다", async ({ page, browser }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  const body = page.getByTestId("note-body");
+  const button = (name: string) => page.getByRole("button", { name, exact: true });
+  await body.fill("회의록");
+  await body.press("End");
+  await button("글머리 목록").click();
+  await button("체크리스트").click();
+  const items = body.locator("li[data-task]");
+  await expect(items).toHaveCount(1);
+  const box = (await items.first().boundingBox())!;
+  await page.mouse.click(box.x - 12, box.y + box.height / 2);
+  await expect(items.first()).toHaveAttribute("data-task", "done");
+  await items.first().click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("참고 자료");
+  await expect(items.nth(1)).toHaveAttribute("data-task", "open");
+  await page.keyboard.press("Shift+Home");
+  await button("링크").click();
+  await page.getByLabel("URL", { exact: true }).fill("https://example.com/one");
+  await button("적용").click();
+  const anchor = items.nth(1).locator("a");
+  await expect(anchor).toHaveText("참고 자료");
+  await anchor.click();
+  await button("링크").click();
+  await page.getByLabel("URL", { exact: true }).fill("https://example.com/two");
+  await button("적용").click();
+  await expect(anchor).toHaveAttribute("href", "https://example.com/two");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("다음 문단");
+  await expect(items).toHaveCount(2);
+  await expect(body).toContainText("다음 문단");
+  await expect(page.getByTestId("note-item").filter({hasText:"다음 문단"})).toBeVisible({timeout:20000});
+  await page.reload();
+  await expect(items.first()).toHaveAttribute("data-task", "done");
+  await expect(anchor).toHaveAttribute("href", "https://example.com/two");
+  const downloading = page.waitForEvent("download");
+  await page.getByTestId("export-note").click();
+  const html = readFileSync((await (await downloading).path())!, "utf8");
+  expect(html).toContain('data-task="done"');
+  expect(html).toContain('href="https://example.com/two"');
+  await button("공유").click();
+  await page.getByTestId("start-sharing").click();
+  const guest = await browser.newContext();
+  try {
+    const shared = await guest.newPage();
+    await shared.goto(await page.getByTestId("share-link").inputValue());
+    const reader = shared.getByTestId("shared-body");
+    await expect(reader.locator('li[data-task="done"]')).toHaveText("회의록");
+    await expect(reader.getByRole("link", {name:"참고 자료"})).toHaveAttribute("href","https://example.com/two");
+  } finally {
+    await guest.close();
+    await button("공유 중지").click();
+  }
+});

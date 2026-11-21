@@ -163,6 +163,10 @@ export const ko: Messages = {
     yesterday: "어제",
   },
   formatBar: {
+    checklist: "체크리스트",
+    link: "링크",
+    openLink: "링크 열기",
+    removeLink: "링크 해제",
     mixedColors: "혼합",
     noColor: "없음",
     defaultColor: "기본 색",

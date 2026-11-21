@@ -163,6 +163,10 @@ export const en: Messages = {
     yesterday: "Yesterday",
   },
   formatBar: {
+    checklist: "Checklist",
+    link: "Link",
+    openLink: "Open link",
+    removeLink: "Remove link",
     mixedColors: "Mixed",
     noColor: "None",
     defaultColor: "Default colour",

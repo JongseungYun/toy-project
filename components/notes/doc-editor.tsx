@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { editorRange, rangeElement, toggleTask } from "@/lib/notes/doc-actions";
 import { previewFromHtml } from "@/lib/notes/display";
 import { applyCommand } from "@/lib/notes/rich-text";
 import type { DocContent, Note, NoteContent } from "@/lib/notes/types";
@@ -38,6 +39,16 @@ export function DocEditor({
   const [initialHtml] = useState(() => htmlOf(note.content));
   const editorRef = useRef<HTMLDivElement>(null);
   const plainPaste = useRef(false);
+  const splittingTask = useRef(false);
+  useEffect(() => {
+    const editor = editorRef.current!;
+    const beforeInput = (event: InputEvent) => {
+      splittingTask.current = event.inputType === "insertParagraph" &&
+        Boolean(rangeElement(editorRange(editor))?.closest("li[data-task]"));
+    };
+    editor.addEventListener("beforeinput", beforeInput);
+    return () => editor.removeEventListener("beforeinput", beforeInput);
+  }, []);
   useDocTableResize(editorRef);
 
   const readDraft = useCallback(() => {
@@ -84,10 +95,33 @@ export function DocEditor({
           aria-label={t.note.bodyLabel}
           data-testid="note-body"
           onInput={() => {
+            if (splittingTask.current && editorRef.current) {
+              const item = rangeElement(editorRange(editorRef.current))?.closest("li");
+              if (item) item.dataset.task = "open";
+              splittingTask.current = false;
+            }
             if (editorRef.current) clearWhiteHeaderBackgrounds(editorRef.current);
             autosave.scheduleSave();
           }}
+          onClick={(event) => {
+            const item = event.target instanceof HTMLElement ? event.target.closest("li[data-task]") : null;
+            if (!(item instanceof HTMLElement)) return;
+            const offset = item.getBoundingClientRect().left - event.clientX;
+            if (offset >= 0 && offset <= 24) {
+              toggleTask(item);
+              autosave.scheduleSave();
+            }
+          }}
           onKeyDown={(event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !event.nativeEvent.isComposing) {
+              const item = rangeElement(editorRange(event.currentTarget))?.closest("li[data-task]");
+              if (item instanceof HTMLElement) {
+                event.preventDefault();
+                toggleTask(item);
+                autosave.scheduleSave();
+                return;
+              }
+            }
             plainPaste.current = (event.ctrlKey || event.metaKey) && event.shiftKey;
             if (event.key === "Tab" && !event.ctrlKey && !event.metaKey && !event.altKey && !event.nativeEvent.isComposing) {
               if (moveTableCell(event.currentTarget, event.shiftKey)) {

@@ -166,6 +166,10 @@ export interface Messages {
     yesterday: string;
   };
   formatBar: {
+    checklist: string;
+    link: string;
+    openLink: string;
+    removeLink: string;
     mixedColors: string;
     noColor: string;
     defaultColor: string;

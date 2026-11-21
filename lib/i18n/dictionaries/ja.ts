@@ -163,6 +163,10 @@ export const ja: Messages = {
     yesterday: "昨日",
   },
   formatBar: {
+    checklist: "チェックリスト",
+    link: "リンク",
+    openLink: "リンクを開く",
+    removeLink: "リンクを解除",
     mixedColors: "混在",
     noColor: "なし",
     defaultColor: "既定の色",

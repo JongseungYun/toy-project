@@ -163,6 +163,10 @@ export const zhHant: Messages = {
     yesterday: "昨天",
   },
   formatBar: {
+    checklist: "待辦清單",
+    link: "連結",
+    openLink: "開啟連結",
+    removeLink: "移除連結",
     mixedColors: "混合",
     noColor: "無",
     defaultColor: "預設色彩",

@@ -163,6 +163,10 @@ export const it: Messages = {
     yesterday: "Ieri",
   },
   formatBar: {
+    checklist: "Lista di attività",
+    link: "Link",
+    openLink: "Apri link",
+    removeLink: "Rimuovi link",
     mixedColors: "Misti",
     noColor: "Nessuno",
     defaultColor: "Colore predefinito",

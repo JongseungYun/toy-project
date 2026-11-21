@@ -1,4 +1,5 @@
 import { FONT_OPTIONS, SIZE_OPTIONS } from "@/lib/notes/rich-text";
+import { webAddress } from "@/lib/notes/doc-actions";
 
 const BLOCKS = new Set(["P", "DIV", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]);
 const SKIP = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "IMG"]);
@@ -53,10 +54,13 @@ export function normalizeDocHtml(html: string, clearFormatting = false): string 
 
     const block = BLOCKS.has(node.tagName) || /^(H[1-6]|PRE|BLOCKQUOTE|SECTION|ARTICLE|TR)$/.test(node.tagName);
     const tag = BLOCKS.has(node.tagName) ? node.tagName.toLowerCase() : block ? "div" : "span";
-    const target = block || (!clearFormatting && INLINE.has(node.tagName))
+    const href = node.tagName === "A" ? webAddress(node.getAttribute("href") ?? "") : null;
+    const target = href ? document.createElement("a") : block || (!clearFormatting && INLINE.has(node.tagName))
       ? document.createElement(block ? tag : node.tagName.toLowerCase())
       : parent;
     if (target !== parent) parent.append(target);
+    if (href) target.setAttribute("href", href);
+    if (tag === "li" && ["open", "done"].includes(node.dataset.task ?? "")) target.dataset.task = node.dataset.task;
 
     const style: TextStyle = clearFormatting ? {} : { ...inherited };
     if (!clearFormatting) {

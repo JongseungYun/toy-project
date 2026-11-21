@@ -1,5 +1,13 @@
 /** 편집·공유·HTML 내보내기에서 같은 글머리 순환을 사용한다. */
 export const DOC_LIST_STYLES = `
+  .doc-list-markers li[data-task] { position: relative; list-style-type: none; }
+  .doc-list-markers li[data-task]::before {
+    content: "☐"; position: absolute; left: -1.5rem; width: 1.5rem;
+    text-align: center; font-family: system-ui, sans-serif;
+  }
+  .doc-list-markers li[data-task="done"]::before { content: "☑"; }
+  .doc-list-markers[contenteditable] li[data-task]::before { cursor: pointer; }
+  .doc-list-markers a[href] { text-decoration: underline; }
   .doc-list-markers { --note-bullet: initial; }
   .doc-list-markers ul {
     --note-bullet: disc;

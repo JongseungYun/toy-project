@@ -29,6 +29,9 @@ export function backupHtml(html: string): string {
     const add = (key: string, value: string) =>
       attrs.push(`${key}="${escapeHtml(value)}"`);
     const style = node.properties.style;
+    if (node.tagName === "li" && (node.properties.dataTask === "open" || node.properties.dataTask === "done")) {
+      add("data-task", node.properties.dataTask);
+    }
     if (typeof style === "string") {
       const parts = style.split(";");
       const safe = parts.filter(
