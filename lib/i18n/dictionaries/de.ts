@@ -163,6 +163,11 @@ export const de: Messages = {
     yesterday: "Gestern",
   },
   formatBar: {
+    image: "Bild einfügen",
+    imageType: "JPG, PNG oder WebP auswählen.",
+    imageSize: "Ein Bild bis 5 MB auswählen.",
+    imageBudget: "Das Bild ist für diese Notiz zu groß. Verkleinern oder eine neue Notiz verwenden.",
+    imageRead: "Bild konnte nicht eingefügt werden. Datei und Einfügeposition prüfen.",
     checklist: "Checkliste",
     link: "Link",
     openLink: "Link öffnen",

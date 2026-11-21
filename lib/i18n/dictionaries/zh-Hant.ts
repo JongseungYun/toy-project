@@ -163,6 +163,11 @@ export const zhHant: Messages = {
     yesterday: "昨天",
   },
   formatBar: {
+    image: "插入圖片",
+    imageType: "請選擇 JPG、PNG 或 WebP 圖片。",
+    imageSize: "請選擇不超過 5MB 的圖片。",
+    imageBudget: "此圖片對目前的筆記來說太大。請縮小圖片或使用新筆記。",
+    imageRead: "無法插入圖片，請檢查檔案與插入位置。",
     checklist: "待辦清單",
     link: "連結",
     openLink: "開啟連結",

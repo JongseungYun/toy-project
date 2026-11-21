@@ -163,6 +163,11 @@ export const fr: Messages = {
     yesterday: "Hier",
   },
   formatBar: {
+    image: "Insérer une image",
+    imageType: "Choisissez une image JPG, PNG ou WebP.",
+    imageSize: "Choisissez une image de 5 Mo maximum.",
+    imageBudget: "Image trop grande pour cette note. Réduisez-la ou utilisez une nouvelle note.",
+    imageRead: "Insertion impossible. Vérifiez le fichier et le point d’insertion.",
     checklist: "Liste de tâches",
     link: "Lien",
     openLink: "Ouvrir le lien",

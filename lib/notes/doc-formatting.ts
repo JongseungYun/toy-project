@@ -1,5 +1,6 @@
 import { FONT_OPTIONS, SIZE_OPTIONS } from "@/lib/notes/rich-text";
 import { webAddress } from "@/lib/notes/doc-actions";
+import { isNoteImage, noteImageHtml } from "./doc-image";
 
 const BLOCKS = new Set(["P", "DIV", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]);
 const SKIP = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "IMG"]);
@@ -44,6 +45,10 @@ export function normalizeDocHtml(html: string, clearFormatting = false): string 
         if (index) target.append(document.createElement("br"));
         target.append(document.createTextNode(part));
       });
+      return;
+    }
+    if (node instanceof HTMLImageElement && isNoteImage(node.getAttribute("src"))) {
+      parent.insertAdjacentHTML("beforeend", noteImageHtml(node.src, node.alt));
       return;
     }
     if (!(node instanceof HTMLElement) || SKIP.has(node.tagName)) return;

@@ -1,6 +1,7 @@
 import { fromHtml } from "hast-util-from-html";
 import type { RootContent } from "hast";
 import { escapeHtml } from "@/lib/utils";
+import { isNoteImage, noteImageHtml } from "./doc-image";
 
 const tags = new Set(
   "p div span ul ol li br b strong i em u s strike font h1 h2 h3 h4 h5 h6 pre blockquote code a table thead tbody tfoot tr th td hr".split(
@@ -22,6 +23,9 @@ const properties = new Set(
 export function backupHtml(html: string): string {
   function visit(node: RootContent): string {
     if (node.type === "text") return escapeHtml(node.value);
+    if (node.type === "element" && node.tagName === "img" && isNoteImage(node.properties.src)) {
+      return noteImageHtml(node.properties.src, String(node.properties.alt ?? ""));
+    }
     if (node.type !== "element" || skip.has(node.tagName)) return "";
     const children = node.children.map(visit).join("");
     if (!tags.has(node.tagName)) return children;

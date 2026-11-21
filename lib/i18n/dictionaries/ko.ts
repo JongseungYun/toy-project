@@ -163,6 +163,11 @@ export const ko: Messages = {
     yesterday: "어제",
   },
   formatBar: {
+    image: "이미지 삽입",
+    imageType: "JPG, PNG 또는 WebP 이미지를 선택하세요.",
+    imageSize: "5MB 이하의 이미지를 선택하세요.",
+    imageBudget: "이 문서에 넣기에는 이미지가 큽니다. 이미지를 줄이거나 새 노트에 넣어 주세요.",
+    imageRead: "이미지를 넣지 못했습니다. 본문 위치와 파일을 확인하고 다시 시도하세요.",
     checklist: "체크리스트",
     link: "링크",
     openLink: "링크 열기",

@@ -15,6 +15,7 @@ import { normalizeDocHtml, plainTextHtml, restoreDocFormatting } from "@/lib/not
 import { moveTableCell } from "@/lib/notes/doc-table";
 import { clearWhiteHeaderBackgrounds, normalizeTableHeaderHtml } from "@/lib/notes/doc-table-background";
 import { useDocTableResize } from "@/components/notes/use-doc-table-resize";
+import { IMAGE_TYPES, IMAGE_DOCUMENT_BUDGET, prepareNoteImage, type ImageProblem } from "@/lib/notes/doc-image";
 
 function htmlOf(content: NoteContent): string {
   return normalizeTableHeaderHtml((content as DocContent).html ?? "");
@@ -38,6 +39,9 @@ export function DocEditor({
   // 그 뒤로는 손대지 않아야 새로 그려질 때 쓰던 내용이 날아가지 않는다.
   const [initialHtml] = useState(() => htmlOf(note.content));
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const insertionRange = useRef<Range | null>(null);
+  const [imageError, setImageError] = useState<ImageProblem | null>(null);
   const plainPaste = useRef(false);
   const splittingTask = useRef(false);
   useEffect(() => {
@@ -62,6 +66,37 @@ export function DocEditor({
 
   const t = useMessages();
   const autosave = useNoteAutosave({ note, readDraft, applyRemote });
+
+  function fits(editor: HTMLElement, html: string) {
+    return new TextEncoder().encode(JSON.stringify(editor.innerHTML + html)).length <= IMAGE_DOCUMENT_BUDGET;
+  }
+
+  async function insertImage(file: File, range: Range | null) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setImageError(null);
+    const previous = editor.innerHTML;
+    try {
+      const html = await prepareNoteImage(file);
+      if (editorRef.current !== editor) return;
+      if (editor.innerHTML !== previous || (range && !editor.contains(range.commonAncestorContainer))) throw new Error("imageRead");
+      if (!fits(editor, html)) throw new Error("imageBudget");
+      const position = range ?? document.createRange();
+      if (!range) {
+        position.selectNodeContents(editor);
+        position.collapse(false);
+      }
+      editor.focus();
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(position);
+      if (!document.execCommand("insertHTML", false, html)) throw new Error("imageRead");
+      autosave.scheduleSave();
+    } catch (error) {
+      const key = error instanceof Error ? error.message : "";
+      setImageError(key === "imageBudget" || key === "imageType" || key === "imageSize" ? key : "imageRead");
+    }
+  }
 
   return (
     <NoteFrame
@@ -163,10 +198,21 @@ export function DocEditor({
           }}
           onPaste={(event) => {
             event.preventDefault();
+            setImageError(null);
+            const image = Array.from(event.clipboardData.files).find(file => file.type.startsWith("image/"));
+            if (image && !plainPaste.current) {
+              void insertImage(image, editorRange(event.currentTarget)?.cloneRange() ?? null);
+              return;
+            }
             const html = event.clipboardData.getData("text/html");
             const text = event.clipboardData.getData("text/plain");
             const content = html && !plainPaste.current ? normalizeTableHeaderHtml(normalizeDocHtml(html)) : plainTextHtml(text);
             plainPaste.current = false;
+            if (!content) return;
+            if (content.includes("<img") && !fits(event.currentTarget, content)) {
+              setImageError("imageBudget");
+              return;
+            }
             document.execCommand("insertHTML", false, content);
             clearWhiteHeaderBackgrounds(event.currentTarget);
             autosave.scheduleSave();
@@ -177,7 +223,16 @@ export function DocEditor({
         />
       </div>
 
-      <FormatBar editorRef={editorRef} onChange={autosave.scheduleSave} />
+      {imageError && <p role="alert" className="px-3 py-1 text-sm text-destructive">{t.formatBar[imageError]}</p>}
+      <input hidden ref={fileRef} type="file" accept={IMAGE_TYPES.join(",")} onChange={event => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (file) void insertImage(file, insertionRange.current);
+      }} />
+      <FormatBar editorRef={editorRef} onChange={autosave.scheduleSave} onChooseImage={range => {
+        insertionRange.current = range;
+        fileRef.current?.click();
+      }} />
     </NoteFrame>
   );
 }

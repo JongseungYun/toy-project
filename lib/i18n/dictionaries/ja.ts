@@ -163,6 +163,11 @@ export const ja: Messages = {
     yesterday: "昨日",
   },
   formatBar: {
+    image: "画像を挿入",
+    imageType: "JPG、PNG、WebPを選択してください。",
+    imageSize: "5MB以下の画像を選択してください。",
+    imageBudget: "このノートには画像が大きすぎます。縮小するか新しいノートに挿入してください。",
+    imageRead: "画像を挿入できません。ファイルと挿入位置を確認してください。",
     checklist: "チェックリスト",
     link: "リンク",
     openLink: "リンクを開く",

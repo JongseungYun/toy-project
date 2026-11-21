@@ -1,3 +1,5 @@
+import { backupHtml } from "./backup-html";
+
 // 공유 링크로 보여줄 일반 문서의 본문 손질.
 //
 // 일반 문서는 편집기가 만든 HTML을 그대로 보관한다. 내 화면에서는 내가 쓴 것을
@@ -25,6 +27,8 @@ const DANGEROUS_URL =
  * 함께 지운다.
  */
 export function sanitizeHtml(html: string): string {
+  // 파일 복원과 같은 HTML 허용 목록으로 본문 이미지와 글 서식을 함께 읽는다.
+  if (/<img\b[^>]*\bsrc=["']data:image\/webp;base64,/i.test(html)) return backupHtml(html);
   let safe = html;
 
   for (const tag of BLOCK_TAGS) {

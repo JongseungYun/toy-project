@@ -166,6 +166,11 @@ export interface Messages {
     yesterday: string;
   };
   formatBar: {
+    image: string;
+    imageType: string;
+    imageSize: string;
+    imageBudget: string;
+    imageRead: string;
     checklist: string;
     link: string;
     openLink: string;

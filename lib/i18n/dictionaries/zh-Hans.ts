@@ -163,6 +163,11 @@ export const zhHans: Messages = {
     yesterday: "昨天",
   },
   formatBar: {
+    image: "插入图片",
+    imageType: "请选择 JPG、PNG 或 WebP 图片。",
+    imageSize: "请选择不超过 5MB 的图片。",
+    imageBudget: "这张图片对当前笔记来说太大。请缩小图片或使用新笔记。",
+    imageRead: "无法插入图片，请检查文件和插入位置。",
     checklist: "清单",
     link: "链接",
     openLink: "打开链接",

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
   ListBulletsIcon,
   ListChecksIcon,
+  ImageIcon,
   ListNumbersIcon,
   TextAlignCenterIcon,
   TextAlignLeftIcon,
@@ -178,9 +179,11 @@ function ToggleButton({
 export function FormatBar({
   editorRef,
   onChange,
+  onChooseImage,
 }: {
   editorRef: RefObject<HTMLDivElement | null>;
   onChange: () => void;
+  onChooseImage: (range: Range | null) => void;
 }) {
   const t = useMessages();
   const [state, setState] = useState<FormatState>(IDLE);
@@ -363,6 +366,10 @@ export function FormatBar({
       ))}
 
       <div id={`${id}-table`} className={extraClass}>
+        <Button type="button" variant="ghost" size="icon-sm" title={t.formatBar.image} aria-label={t.formatBar.image}
+          onMouseDown={event => event.preventDefault()} onClick={() => onChooseImage(picked.current?.cloneRange() ?? null)}>
+          <ImageIcon />
+        </Button>
         <ToggleButton label={t.formatBar.checklist} Icon={ListChecksIcon}
           active={inTask}
           onRun={() => run(() => { if (editorRef.current) toggleChecklist(editorRef.current); })} />
