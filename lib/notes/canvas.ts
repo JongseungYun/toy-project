@@ -22,6 +22,7 @@ export function canvasScale(viewport: CanvasSize): number {
 }
 
 export const CANVAS_TOOLS = [
+  "select",
   "pen",
   "eraser",
   "rect",
@@ -67,6 +68,14 @@ export interface TextElement {
 }
 
 export type CanvasElement = PenElement | ShapeElement | TextElement;
+
+export function translateCanvasElement(element: CanvasElement, dx: number, dy: number): CanvasElement {
+  if (element.kind === "pen") {
+    return { ...element, points: element.points.map((value, i) => value + (i % 2 === 0 ? dx : dy)) };
+  }
+  if (element.kind === "text") return { ...element, x: element.x + dx, y: element.y + dy };
+  return { ...element, x1: element.x1 + dx, y1: element.y1 + dy, x2: element.x2 + dx, y2: element.y2 + dy };
+}
 
 export interface CanvasContent {
   elements: CanvasElement[];

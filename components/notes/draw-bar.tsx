@@ -3,6 +3,7 @@
 import {
   ArrowRightIcon,
   CircleIcon,
+  CursorIcon,
   EraserIcon,
   LineSegmentIcon,
   PencilSimpleIcon,
@@ -18,6 +19,7 @@ import {
 import { useMessages } from "@/components/i18n-provider";
 
 const TOOLS: { tool: CanvasTool; Icon: typeof PencilSimpleIcon }[] = [
+  { tool: "select", Icon: CursorIcon },
   { tool: "pen", Icon: PencilSimpleIcon },
   { tool: "eraser", Icon: EraserIcon },
   { tool: "rect", Icon: RectangleIcon },
@@ -55,14 +57,15 @@ export function DrawBar({
       role="toolbar"
       aria-label={t.draw.toolbar}
     >
-      {TOOLS.map(({ tool: candidate, Icon }, index) => (
+      {TOOLS.map(({ tool: candidate, Icon }) => (
         <div key={candidate} className="contents">
-          {(index === 2 || index === 6) && (
+          {(candidate === "rect" || candidate === "text") && (
             <span className="mx-1 h-5 w-px bg-border" />
           )}
           <button
             type="button"
             aria-label={t.draw[candidate]}
+            title={t.draw[candidate]}
             aria-pressed={tool === candidate}
             onClick={() => onToolChange(candidate)}
             className={cn(

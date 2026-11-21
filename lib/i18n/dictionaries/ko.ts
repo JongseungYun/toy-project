@@ -224,6 +224,7 @@ export const ko: Messages = {
   draw: {
     toolbar: "그리기 도구",
     pen: "펜",
+    select: "선택 및 이동",
     eraser: "지우개",
     rect: "사각형",
     ellipse: "원",

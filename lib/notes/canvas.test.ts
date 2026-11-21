@@ -6,6 +6,7 @@ import {
   parseCanvasElements,
   penPoints,
   previewFromCanvas,
+  translateCanvasElement,
   type CanvasElement,
 } from "@/lib/notes/canvas";
 
@@ -26,6 +27,17 @@ const label: CanvasElement = {
   color: "#2b2b2b",
   size: 17,
 };
+
+describe("그림 요소 이동", () => {
+  it("펜의 모든 점과 글상자 기준점을 같은 거리만큼 옮긴다", () => {
+    expect(translateCanvasElement(pen, -5, 14)).toEqual({ ...pen, points: [5, 24, 15, 34] });
+    expect(translateCanvasElement(label, -5, 14)).toEqual({ ...label, x: 35, y: 74 });
+  });
+  it.each(["rect", "ellipse", "line", "arrow"] as const)("%s의 두 끝점과 방향을 보존한다", (kind) => {
+    const shape = { id: "c", kind, x1: 80, y1: 90, x2: 60, y2: 50, color: "red", width: 4 };
+    expect(translateCanvasElement(shape, 10, -10)).toEqual({ ...shape, x1: 90, y1: 80, x2: 70, y2: 40 });
+  });
+});
 
 describe("확장된 그림면", () => {
   it("기존 그림은 좌표를 바꾸지 않고 기존 최소 크기로 읽는다", () => {

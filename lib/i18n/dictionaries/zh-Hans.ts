@@ -224,6 +224,7 @@ export const zhHans: Messages = {
   draw: {
     toolbar: "绘图工具",
     pen: "画笔",
+    select: "选择并移动",
     eraser: "橡皮",
     rect: "矩形",
     ellipse: "椭圆",

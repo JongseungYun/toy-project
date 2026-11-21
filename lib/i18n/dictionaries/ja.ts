@@ -224,6 +224,7 @@ export const ja: Messages = {
   draw: {
     toolbar: "描画ツール",
     pen: "ペン",
+    select: "選択して移動",
     eraser: "消しゴム",
     rect: "四角形",
     ellipse: "円",

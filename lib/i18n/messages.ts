@@ -227,6 +227,7 @@ export interface Messages {
   draw: {
     toolbar: string;
     pen: string;
+    select: string;
     eraser: string;
     rect: string;
     ellipse: string;

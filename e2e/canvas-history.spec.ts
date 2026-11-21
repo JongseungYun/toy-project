@@ -23,6 +23,76 @@ async function draw(page: Page, tool: string, x: number, y = 70) {
   await page.mouse.up();
 }
 
+test("R13: 겹친 요소 중 위쪽만 이동하고 취소·되돌리기·재저장을 지원한다", async ({ page }) => {
+  await openCanvas(page);
+  await draw(page, "사각형", 80);
+  await draw(page, "원", 100);
+  const paper = page.getByTestId("note-body");
+  const box = (await paper.boundingBox())!;
+  const ellipse = paper.locator('[data-kind="ellipse"] > ellipse');
+  const rect = paper.locator('[data-kind="rect"] > rect');
+  const origin = (await ellipse.getAttribute("cx"))!;
+  const rectStart = await rect.getAttribute("x");
+  const select = page.getByRole("button", { name: "선택 및 이동" });
+  await select.click();
+  const drag = async () => {
+    await page.mouse.move(box.x + 150, box.y + 110);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 245, box.y + 160, { steps: 6 });
+  };
+  await drag();
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect(ellipse).toHaveAttribute("cx", origin);
+  await drag();
+  await page.mouse.up();
+  await expect(ellipse).not.toHaveAttribute("cx", origin);
+  const moved = (await ellipse.getAttribute("cx"))!;
+  await expect(rect).toHaveAttribute("x", rectStart!);
+  await paper.press("ControlOrMeta+z");
+  await expect(ellipse).toHaveAttribute("cx", origin);
+  await page.mouse.click(box.x + 150, box.y + 110);
+  await paper.press("ControlOrMeta+Shift+z");
+  await expect(ellipse).toHaveAttribute("cx", moved);
+  await select.click();
+  await paper.focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("ArrowRight");
+  await expect(rect).toHaveAttribute("x", String(Number(rectStart) + 1));
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await page.reload();
+  await expect(ellipse).toHaveAttribute("cx", moved);
+  await expect(rect).toHaveAttribute("x", String(Number(rectStart) + 1));
+});
+
+test("R13: 좁은 화면에서 펜 자국을 손가락으로 잡아 원래 모양대로 옮긴다", async ({ page, context }) => {
+  await openCanvas(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await draw(page, "펜", 35);
+  await page.getByRole("button", { name: "선택 및 이동" }).click();
+  const paper = page.getByTestId("note-body");
+  const stroke = paper.locator('[data-kind="pen"] > polyline');
+  const points = () => stroke.evaluate((line: SVGPolylineElement) =>
+    Array.from(line.points, (p) => ({ x: p.x, y: p.y })));
+  const before = await points();
+  const { x, y, scale } = await stroke.evaluate((line: SVGPolylineElement) => {
+    const matrix = line.getScreenCTM()!;
+    const point = line.points.getItem(0).matrixTransform(matrix);
+    return { x: point.x, y: point.y, scale: matrix.a };
+  });
+  const client = await context.newCDPSession(page);
+  try {
+    await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + 40, y: y + 50 }] });
+    await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect.poll(points).toEqual(before.map((p) => ({
+      x: p.x + Math.round(40 / scale), y: p.y + Math.round(50 / scale),
+    })));
+  } finally {
+    await client.detach();
+  }
+});
+
 test("R12: 지우기로 삭제한 요소를 되돌리고 다시 실행한다", async ({ page }) => {
   await openCanvas(page);
   const elements = page.getByTestId("canvas-element");

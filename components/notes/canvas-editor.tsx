@@ -9,6 +9,7 @@ import {
   STROKE_COLORS,
   parseCanvasElements,
   previewFromCanvas,
+  translateCanvasElement,
   type CanvasElement,
   type CanvasSize,
   type CanvasTool,
@@ -36,6 +37,19 @@ const PEN_CURSOR = "url('/cursors/pen.svg') 5 27, crosshair";
 const ERASER_CURSOR = "url('/cursors/eraser.svg') 9 26, crosshair";
 
 type Point = { x: number; y: number };
+type Selection = Point & CanvasSize & { id: string };
+
+function selectionOf(group: SVGGElement): Selection {
+  const { x, y, width, height } = group.getBBox();
+  return { id: group.dataset.elementId!, x, y, width, height };
+}
+
+function moveOffset(selection: Selection, dx: number, dy: number): Point {
+  return {
+    x: Math.max(Math.min(0, -Math.floor(selection.x)), Math.round(dx)),
+    y: Math.max(Math.min(0, -Math.floor(selection.y)), Math.round(dy)),
+  };
+}
 
 /** 이벤트 사이의 경로도 훑는다. 도형은 브라우저가 실제로 그린 획으로 판정한다. */
 function erasedIdsBetween(svg: SVGSVGElement, from: Point, to: Point): Set<string> {
@@ -101,6 +115,9 @@ export function CanvasEditor({
   const [typing, setTyping] = useState<{ x: number; y: number } | null>(null);
   const erasing = useRef<{ pointerId: number; last: Point; recorded: boolean } | null>(null);
   const [erasePaper, setErasePaper] = useState<CanvasSize | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const moving = useRef<{ pointerId: number; start: Point; selection: Selection } | null>(null);
+  const [offset, setOffset] = useState<Point | null>(null);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -145,6 +162,9 @@ export function CanvasEditor({
   const applyRemote = useCallback(
     (content: NoteContent) => {
       erasing.current = null;
+      moving.current = null;
+      setSelection(null);
+      setOffset(null);
       setErasePaper(null);
       setDraft(null);
       setTyping(null);
@@ -173,6 +193,18 @@ export function CanvasEditor({
   function startDrawing(event: React.PointerEvent<SVGSVGElement>) {
     if (event.button !== 0) return;
     event.currentTarget.focus({ preventScroll: true });
+    if (tool === "select") {
+      if (moving.current) return;
+      const group = (event.target as Element).closest<SVGGElement>("[data-element-id]");
+      const selected = group && selectionOf(group);
+      setSelection(selected);
+      if (selected) {
+        moving.current = { pointerId: event.pointerId, start: originalPoint(event), selection: selected };
+        setOffset({ x: 0, y: 0 });
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+      return;
+    }
     if (tool === "eraser") {
       if (erasing.current) return;
       const point = originalPoint(event);
@@ -213,6 +245,14 @@ export function CanvasEditor({
   }
 
   function keepDrawing(event: React.PointerEvent<SVGSVGElement>) {
+    if (tool === "select") {
+      const gesture = moving.current;
+      if (gesture?.pointerId === event.pointerId) {
+        const point = originalPoint(event);
+        setOffset(moveOffset(gesture.selection, point.x - gesture.start.x, point.y - gesture.start.y));
+      }
+      return;
+    }
     if (tool === "eraser") {
       const gesture = erasing.current;
       if (!gesture || gesture.pointerId !== event.pointerId) return;
@@ -240,6 +280,16 @@ export function CanvasEditor({
   }
 
   function finishDrawing(event: React.PointerEvent<SVGSVGElement>) {
+    if (tool === "select") {
+      const gesture = moving.current;
+      if (gesture?.pointerId !== event.pointerId) return;
+      if (event.type === "pointerup") {
+        const point = originalPoint(event);
+        moveSelection(gesture.selection, moveOffset(gesture.selection, point.x - gesture.start.x, point.y - gesture.start.y));
+      }
+      stopMoving();
+      return;
+    }
     if (tool === "eraser") {
       const gesture = erasing.current;
       if (gesture?.pointerId === event.pointerId) {
@@ -310,11 +360,48 @@ export function CanvasEditor({
     setErasePaper(null);
   }
 
+  function stopMoving() {
+    moving.current = null;
+    setOffset(null);
+  }
+
+  function moveSelection(selected: Selection, delta: Point) {
+    if (!delta.x && !delta.y) return;
+    const next = historyRef.current.present.map((element) => element.id === selected.id
+      ? translateCanvasElement(element, delta.x, delta.y) : element);
+    commit(next);
+    setSelection({ ...selected, x: selected.x + delta.x, y: selected.y + delta.y });
+    autosave.scheduleSave();
+  }
+
+  function selectionKey(event: React.KeyboardEvent<SVGSVGElement>) {
+    if (tool !== "select" || !selection) return;
+    if (event.key === "Escape") {
+      stopMoving();
+      setSelection(null);
+      event.currentTarget.focus();
+      event.preventDefault();
+      return;
+    }
+    if (moving.current || event.metaKey || event.ctrlKey || event.altKey) return;
+    const step = event.shiftKey ? 10 : 1;
+    const arrows: Record<string, Point> = {
+      ArrowLeft: { x: -step, y: 0 }, ArrowRight: { x: step, y: 0 },
+      ArrowUp: { x: 0, y: -step }, ArrowDown: { x: 0, y: step },
+    };
+    const delta = arrows[event.key];
+    if (delta) {
+      event.preventDefault();
+      moveSelection(selection, moveOffset(selection, delta.x, delta.y));
+    }
+  }
+
   function stepHistory(redo: boolean) {
-    if (draft || erasing.current || typing) return;
+    if (draft || erasing.current || moving.current || typing) return;
     const current = historyRef.current;
     const next = redo ? redoCanvas(current) : undoCanvas(current);
     if (next === current) return;
+    setSelection(null);
     applyHistory(next);
     autosave.scheduleSave();
   }
@@ -332,7 +419,7 @@ export function CanvasEditor({
     stepHistory(redo);
   }
 
-  const busy = draft !== null || erasePaper !== null || typing !== null;
+  const busy = draft !== null || erasePaper !== null || offset !== null || typing !== null;
 
   return (
     <div className="contents" onKeyDown={historyKey}>
@@ -388,7 +475,7 @@ export function CanvasEditor({
                 <svg
                   ref={svgRef}
                   data-testid="note-body"
-                  role="img"
+                  role={tool === "select" ? "group" : "img"}
                   tabIndex={0}
                   aria-label={t.draw.surface}
                   width={paper.width * scale}
@@ -398,16 +485,34 @@ export function CanvasEditor({
                   onPointerMove={keepDrawing}
                   onPointerUp={finishDrawing}
                   onPointerCancel={finishDrawing}
-                  onLostPointerCapture={() => { stopErasing(); setDraft(null); }}
-                  className="block max-w-none touch-none rounded-md bg-[#fffdf8] shadow-sm ring-1 ring-border"
+                  onKeyDown={selectionKey}
+                  onLostPointerCapture={(event) => {
+                    if (moving.current?.pointerId === event.pointerId) stopMoving();
+                    stopErasing();
+                    setDraft(null);
+                  }}
+                  className="block max-w-none touch-none select-none rounded-md bg-[#fffdf8] shadow-sm ring-1 ring-border"
                   style={{
                     ...surface,
-                    cursor: tool === "eraser" ? ERASER_CURSOR : tool === "pen" ? PEN_CURSOR : "crosshair",
+                    cursor: tool === "select" ? (offset ? "grabbing" : "default") :
+                      tool === "eraser" ? ERASER_CURSOR : tool === "pen" ? PEN_CURSOR : "crosshair",
                   }}
                 >
-                  {elements.map((element) => (
-                    <g key={element.id} data-testid="canvas-element" data-kind={element.kind}>
+                  {elements.map((element, index) => (
+                    <g key={element.id} data-testid="canvas-element" data-kind={element.kind}
+                      data-element-id={element.id}
+                      tabIndex={tool === "select" ? 0 : undefined}
+                      aria-label={tool === "select" ? `${t.draw[element.kind]} ${index + 1}` : undefined}
+                      onFocus={tool === "select" ? (event) => setSelection(selectionOf(event.currentTarget)) : undefined}
+                      transform={selection?.id === element.id && offset ? `translate(${offset.x} ${offset.y})` : undefined}
+                      style={tool === "select" ? { cursor: offset ? "grabbing" : "grab" } : undefined}
+                    >
                       <CanvasShape element={element} />
+                      {tool === "select" && (
+                        <g pointerEvents={element.kind === "rect" || element.kind === "ellipse" || element.kind === "text" ? "all" : "stroke"}>
+                          <CanvasShape element={element} hitArea />
+                        </g>
+                      )}
                       {tool === "eraser" && (
                         // 눈에 보이지 않는 굵은 획으로 경로 접촉을 판정한다.
                         <g
@@ -419,6 +524,13 @@ export function CanvasEditor({
                       )}
                     </g>
                   ))}
+                  {selection && (
+                    <rect pointerEvents="none" fill="none" stroke="#2563eb" strokeDasharray="5 4"
+                      vectorEffect="non-scaling-stroke"
+                      x={selection.x + (offset?.x ?? 0) - 4} y={selection.y + (offset?.y ?? 0) - 4}
+                      width={selection.width + 8} height={selection.height + 8}
+                    />
+                  )}
                   {draft && <CanvasShape element={draft.element} />}
                 </svg>
 
@@ -449,7 +561,7 @@ export function CanvasEditor({
 
         <DrawBar
           tool={tool}
-          onToolChange={setTool}
+          onToolChange={(next) => { stopMoving(); setSelection(null); setTool(next); }}
           width={width}
           onWidthChange={setWidth}
           color={color}

@@ -224,6 +224,7 @@ export const it: Messages = {
   draw: {
     toolbar: "Strumenti di disegno",
     pen: "Penna",
+    select: "Seleziona e sposta",
     eraser: "Gomma",
     rect: "Rettangolo",
     ellipse: "Ellisse",
