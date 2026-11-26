@@ -224,6 +224,10 @@ export const de: Messages = {
     placeholder: "# Mit einer Überschrift beginnen",
   },
   draw: {
+    copySketch: "Skizze kopieren",
+    sketchCopied: "Kopiert. In ein Dokument einfügen.",
+    sketchCopyFailed: "Die Skizze konnte nicht kopiert werden.",
+    downloadPng: "PNG herunterladen",
     toolbar: "Zeichenwerkzeuge",
     pen: "Stift",
     select: "Auswählen und verschieben",

@@ -27,6 +27,7 @@ import { CanvasShape } from "@/components/notes/canvas-figure";
 import { DrawBar } from "@/components/notes/draw-bar";
 import { NoteFrame } from "@/components/notes/note-frame";
 import { ExportButton } from "@/components/notes/export-button";
+import { CopySketchButton } from "@/components/notes/copy-sketch-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
 import { Button } from "@/components/ui/button";
@@ -566,7 +567,9 @@ export function CanvasEditor({
           onWidthChange={setWidth}
           color={color}
           onColorChange={setColor}
-        />
+        >
+          <CopySketchButton elements={elements} title={autosave.title} disabled={busy} />
+        </DrawBar>
       </NoteFrame>
     </div>
   );

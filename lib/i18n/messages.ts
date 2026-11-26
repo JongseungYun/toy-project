@@ -227,6 +227,10 @@ export interface Messages {
     placeholder: string;
   };
   draw: {
+    copySketch: string;
+    sketchCopied: string;
+    sketchCopyFailed: string;
+    downloadPng: string;
     toolbar: string;
     pen: string;
     select: string;

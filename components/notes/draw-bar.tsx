@@ -11,6 +11,7 @@ import {
   TextTIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 import {
   STROKE_COLORS,
   STROKE_WIDTHS,
@@ -35,6 +36,7 @@ const COLOR_KEYS = ["black", "red", "blue"] as const;
 
 /** 그림면 아래에 고정된 도구 모음. 도구, 선 굵기, 선 색을 고른다. */
 export function DrawBar({
+  children,
   tool,
   onToolChange,
   width,
@@ -42,6 +44,7 @@ export function DrawBar({
   color,
   onColorChange,
 }: {
+  children?: ReactNode;
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
   width: number;
@@ -113,6 +116,7 @@ export function DrawBar({
           />
         </button>
       ))}
+      {children}
     </div>
   );
 }

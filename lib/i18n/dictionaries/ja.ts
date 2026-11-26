@@ -224,6 +224,10 @@ export const ja: Messages = {
     placeholder: "# 見出しから書いてみましょう",
   },
   draw: {
+    copySketch: "スケッチをコピー",
+    sketchCopied: "コピーしました。文書に貼り付けてください。",
+    sketchCopyFailed: "スケッチをコピーできませんでした。",
+    downloadPng: "PNGをダウンロード",
     toolbar: "描画ツール",
     pen: "ペン",
     select: "選択して移動",

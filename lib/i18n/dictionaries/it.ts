@@ -224,6 +224,10 @@ export const it: Messages = {
     placeholder: "# Comincia da un titolo",
   },
   draw: {
+    copySketch: "Copia schizzo",
+    sketchCopied: "Copiato. Incollalo in un documento.",
+    sketchCopyFailed: "Impossibile copiare lo schizzo.",
+    downloadPng: "Scarica PNG",
     toolbar: "Strumenti di disegno",
     pen: "Penna",
     select: "Seleziona e sposta",

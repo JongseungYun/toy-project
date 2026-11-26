@@ -224,6 +224,10 @@ export const en: Messages = {
     placeholder: "# Start with a heading",
   },
   draw: {
+    copySketch: "Copy sketch",
+    sketchCopied: "Copied. Paste into a document.",
+    sketchCopyFailed: "Could not copy the sketch.",
+    downloadPng: "Download PNG",
     toolbar: "Drawing tools",
     pen: "Pen",
     select: "Select and move",

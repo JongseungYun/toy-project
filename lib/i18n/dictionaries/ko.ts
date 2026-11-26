@@ -224,6 +224,10 @@ export const ko: Messages = {
     placeholder: "# 제목부터 써 보세요",
   },
   draw: {
+    copySketch: "스케치 복사",
+    sketchCopied: "복사했습니다. 일반 문서에 붙여넣으세요.",
+    sketchCopyFailed: "스케치를 복사하지 못했습니다.",
+    downloadPng: "PNG 다운로드",
     toolbar: "그리기 도구",
     pen: "펜",
     select: "선택 및 이동",

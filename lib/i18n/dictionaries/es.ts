@@ -224,6 +224,10 @@ export const es: Messages = {
     placeholder: "# Empieza por un título",
   },
   draw: {
+    copySketch: "Copiar boceto",
+    sketchCopied: "Copiado. Pégalo en un documento.",
+    sketchCopyFailed: "No se pudo copiar el boceto.",
+    downloadPng: "Descargar PNG",
     toolbar: "Herramientas de dibujo",
     pen: "Lápiz",
     select: "Seleccionar y mover",

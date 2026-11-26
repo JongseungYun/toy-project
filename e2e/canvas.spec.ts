@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { signUpAndEnter } from "./support/account";
+import { readFileSync } from "node:fs";
+import { createDocNote, signUpAndEnter } from "./support/account";
 
 // 자동 저장은 입력이 멈추고 2초 뒤에 일어난다. 그보다 넉넉히 기다린다.
 const SAVED = { timeout: 20_000 };
@@ -51,6 +52,71 @@ async function drag(
 async function pickTool(page: Page, label: string) {
   await page.getByRole("button", { name: label, exact: true }).click();
 }
+
+test("R15: 스케치를 일반 문서의 커서 위치에 붙이고 원본과 독립적으로 저장한다", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signUpAndEnter(page);
+  await createCanvasNote(page);
+  const sketchUrl = page.url();
+  const body = page.getByTestId("note-body");
+  const copy = page.getByRole("button", { name: "스케치 복사" });
+  await expect(copy).toBeDisabled();
+  await pickTool(page, "사각형");
+  await drag(page, body, { x: 80, y: 60 }, { x: 670, y: 160 });
+  await copy.click();
+  await expect(page.getByText("복사했습니다. 일반 문서에 붙여넣으세요.")).toBeVisible();
+  await waitForSave(page, "0");
+  await createDocNote(page);
+  await expect(body).toHaveAttribute("contenteditable", "true");
+  const docUrl = page.url();
+  await body.fill("앞뒤");
+  await body.press("Home");
+  await body.press("ArrowRight");
+  await body.press("ControlOrMeta+v");
+  const image = body.locator("img");
+  await expect(image).toBeVisible();
+  expect(await image.evaluate(el => [el.previousSibling?.textContent, el.nextSibling?.textContent])).toEqual(["앞", "뒤"]);
+  const src = await image.getAttribute("src");
+  expect(src).toMatch(/^data:image\/webp;base64,/);
+  // 기존 최소 그림면 밖에도 사각형의 획이 실제 픽셀로 들어갔는지 확인한다.
+  expect(await image.evaluate(async (el: HTMLImageElement) => {
+    await el.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = el.naturalWidth;
+    canvas.height = el.naturalHeight;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(el, 0, 0);
+    const rgba = ctx.getImageData(620, 0, canvas.width - 620, canvas.height).data;
+    return rgba.some((value, index) => index % 4 === 0 && value < 100);
+  })).toBe(true);
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await page.goto(sketchUrl);
+  await expect(page.getByTestId("canvas-element")).toHaveCount(1);
+  await drag(page, body, { x: 20, y: 190 }, { x: 180, y: 220 });
+  await expect(page.getByTestId("canvas-element")).toHaveCount(2);
+  await waitForSave(page, "0");
+  await page.goto(docUrl);
+  await expect(image).toHaveAttribute("src", src!);
+});
+
+test("R15: 클립보드 쓰기가 거절되면 PNG 파일로 스케치를 옮길 수 있다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createCanvasNote(page);
+  await drag(page, page.getByTestId("note-body"), { x: 40, y: 40 }, { x: 120, y: 70 });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator.clipboard, "write", {
+      value: () => Promise.reject(new DOMException("Denied", "NotAllowedError")),
+    });
+  });
+  await page.getByRole("button", { name: "스케치 복사" }).click();
+  await expect(page.getByText("스케치를 복사하지 못했습니다.")).toBeVisible();
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "PNG 다운로드" }).click();
+  const file = await downloading;
+  expect(file.suggestedFilename()).toMatch(/\.png$/);
+  expect(readFileSync((await file.path())!).subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+});
 
 test("그림판에 선, 도형, 글상자를 넣으면 다시 열어도 그대로 있다", async ({ page }) => {
   await signUpAndEnter(page);

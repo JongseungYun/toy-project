@@ -224,6 +224,10 @@ export const fr: Messages = {
     placeholder: "# Commencez par un titre",
   },
   draw: {
+    copySketch: "Copier le croquis",
+    sketchCopied: "Croquis copié. Collez-le dans un document.",
+    sketchCopyFailed: "Impossible de copier le croquis.",
+    downloadPng: "Télécharger le PNG",
     toolbar: "Outils de dessin",
     pen: "Crayon",
     select: "Sélectionner et déplacer",

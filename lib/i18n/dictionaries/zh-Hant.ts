@@ -224,6 +224,10 @@ export const zhHant: Messages = {
     placeholder: "# 從標題開始寫",
   },
   draw: {
+    copySketch: "複製草圖",
+    sketchCopied: "已複製，可貼到一般文件中。",
+    sketchCopyFailed: "無法複製草圖。",
+    downloadPng: "下載 PNG",
     toolbar: "繪圖工具",
     pen: "畫筆",
     select: "選取並移動",

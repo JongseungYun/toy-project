@@ -1,7 +1,7 @@
 import { escapeHtml } from "@/lib/utils";
 
 export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+export const MAX_NOTE_IMAGE_BYTES = 5 * 1024 * 1024;
 // 본문과 Server Action 요청의 나머지 필드를 위한 여유를 남긴다.
 export const IMAGE_DOCUMENT_BUDGET = 768 * 1024;
 
@@ -18,7 +18,7 @@ export type ImageProblem = "imageType" | "imageSize" | "imageBudget" | "imageRea
 
 export async function prepareNoteImage(file: File): Promise<string> {
   if (!IMAGE_TYPES.includes(file.type)) throw new Error("imageType");
-  if (file.size > MAX_FILE_BYTES) throw new Error("imageSize");
+  if (file.size > MAX_NOTE_IMAGE_BYTES) throw new Error("imageSize");
   const bitmap = await createImageBitmap(file);
   try {
     const canvas = document.createElement("canvas");
