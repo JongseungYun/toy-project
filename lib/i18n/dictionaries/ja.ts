@@ -216,6 +216,7 @@ export const ja: Messages = {
     deleteTable: "表を削除",
   },
   markdown: {
+    imageAlt: "代替テキスト",
     linkText: "リンクテキスト",
     resize: "原文とプレビューのサイズを調整",
     viewer: "プレビュー",

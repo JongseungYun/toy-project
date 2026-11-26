@@ -219,6 +219,7 @@ export interface Messages {
     deleteTable: string;
   };
   markdown: {
+    imageAlt: string;
     linkText: string;
     resize: string;
     viewer: string;

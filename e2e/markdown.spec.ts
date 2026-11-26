@@ -130,6 +130,34 @@ test("R14: 번호 항목을 나누고 Shift+Enter나 코드 예제에서는 일�
   await expect(body).toHaveValue("1. 모바일\n2. ");
 });
 
+test("R14: 좁은 화면에서 이미지 주소와 대체 텍스트를 넣고 다시 열어 그림을 본다", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route("https://images.example.test/**", route => route.fulfill({
+    contentType: "image/svg+xml",
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="24"><rect width="48" height="24"/></svg>',
+  }));
+  await signUpAndEnter(page);
+  await createMarkdownNote(page);
+  const body = page.getByTestId("note-body");
+  await body.fill("지도 아래");
+  await body.evaluate((input: HTMLTextAreaElement) => input.setSelectionRange(0, 2));
+  await page.getByRole("button", { name: "이미지 삽입" }).click();
+  await expect(page.getByLabel("대체 텍스트")).toHaveValue("지도");
+  const address = "https://images.example.test/map(1).svg";
+  await page.getByLabel("URL", { exact: true }).fill(address);
+  await page.getByLabel("대체 텍스트").fill("지도 [입구]");
+  await page.getByRole("button", { name: "적용", exact: true }).click();
+  const expected = "![지도 \\[입구\\]](https://images.example.test/map\\(1\\).svg) 아래";
+  await expect(body).toHaveValue(expected);
+  const image = page.getByTestId("md-viewer").getByRole("img", { name: "지도 [입구]" });
+  await expect(image).toHaveAttribute("src", address);
+  await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(48);
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await page.reload();
+  await expect(body).toHaveValue(expected);
+  await expect(image).toBeVisible();
+});
+
 test("Markdown 노트를 만들어 쓰면 뷰어가 결과를 보여주고 그대로 저장된다", async ({
   page,
 }) => {

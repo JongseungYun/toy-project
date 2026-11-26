@@ -216,6 +216,7 @@ export const zhHant: Messages = {
     deleteTable: "刪除表格",
   },
   markdown: {
+    imageAlt: "替代文字",
     linkText: "連結文字",
     resize: "調整原文與預覽大小",
     viewer: "預覽",

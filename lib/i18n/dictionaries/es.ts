@@ -216,6 +216,7 @@ export const es: Messages = {
     deleteTable: "Eliminar tabla",
   },
   markdown: {
+    imageAlt: "Texto alternativo",
     linkText: "Texto del enlace",
     resize: "Cambiar el tamaño del texto y la vista previa",
     viewer: "Vista previa",

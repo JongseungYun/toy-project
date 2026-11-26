@@ -171,7 +171,8 @@ export function MarkdownEditor({
         <ResizablePanel id="markdown-source" defaultSize="50%" minSize="20%">
           <div className="flex h-full min-h-0 flex-col">
           <div className="flex shrink-0 items-center border-b border-border px-2">
-            <MarkdownLinkButton editor={textarea} trigger={linkButton} changeSource={changeSource} />
+            <MarkdownLinkButton kind="link" editor={textarea} shortcutTrigger={linkButton} changeSource={changeSource} />
+            <MarkdownLinkButton kind="image" editor={textarea} changeSource={changeSource} />
           </div>
           <textarea
             ref={bindSource}
