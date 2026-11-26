@@ -78,6 +78,34 @@ test("R14: 체크리스트 이어쓰기·종료를 실행 취소하고 저장한
   await expect(checks.last()).not.toBeChecked();
 });
 
+test("R14: 선택한 문구에 웹 링크를 넣고 실행 취소·저장·다시 열기를 지원한다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createMarkdownNote(page);
+  const body = page.getByTestId("note-body");
+  await body.fill("앞 문서 뒤");
+  await body.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(2, 4));
+  await body.press("ControlOrMeta+k");
+  await expect(page.getByLabel("링크 문구")).toHaveValue("문서");
+  const apply = page.getByRole("button", { name: "적용", exact: true });
+  await page.getByLabel("URL", { exact: true }).fill("잘못된 주소");
+  await expect(apply).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(body).toHaveValue("앞 문서 뒤");
+  await page.getByRole("button", { name: "링크", exact: true }).click();
+  await page.getByLabel("URL", { exact: true }).fill("https://example.com/docs");
+  await apply.click();
+  const expected = "앞 [문서](https://example.com/docs) 뒤";
+  await expect(body).toHaveValue(expected);
+  await expect(page.getByTestId("md-viewer").getByRole("link", { name: "문서" })).toHaveAttribute("href", "https://example.com/docs");
+  await body.press("ControlOrMeta+z");
+  await expect(body).toHaveValue("앞 문서 뒤");
+  await body.press("ControlOrMeta+Shift+z");
+  await expect(body).toHaveValue(expected);
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await page.reload();
+  await expect(body).toHaveValue(expected);
+});
+
 test("R14: 번호 항목을 나누고 Shift+Enter나 코드 예제에서는 일반 줄바꿈을 쓴다", async ({ page }) => {
   await signUpAndEnter(page);
   await createMarkdownNote(page);

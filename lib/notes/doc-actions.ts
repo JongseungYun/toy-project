@@ -1,11 +1,4 @@
-export function webAddress(value: string): string | null {
-  try {
-    const url = new URL(value.trim());
-    return ["http:", "https:"].includes(url.protocol) ? url.href : null;
-  } catch {
-    return null;
-  }
-}
+import { webAddress } from "./web-address";
 
 export function rangeElement(range?: Range | null) {
   const node = range?.startContainer;

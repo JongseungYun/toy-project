@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
-import { webAddress } from "@/lib/notes/doc-actions";
+import { webAddress } from "@/lib/notes/web-address";
 
 export function DocLinkButton({ read, apply }: {
   read: () => string | null;

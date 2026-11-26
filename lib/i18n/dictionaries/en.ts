@@ -216,6 +216,7 @@ export const en: Messages = {
     deleteTable: "Delete table",
   },
   markdown: {
+    linkText: "Link text",
     resize: "Resize source and preview",
     viewer: "Preview",
     source: "Markdown source",

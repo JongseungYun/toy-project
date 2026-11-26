@@ -216,6 +216,7 @@ export const zhHans: Messages = {
     deleteTable: "删除表格",
   },
   markdown: {
+    linkText: "链接文字",
     resize: "调整原文与预览大小",
     viewer: "预览",
     source: "Markdown 原文",

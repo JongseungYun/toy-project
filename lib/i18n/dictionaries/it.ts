@@ -216,6 +216,7 @@ export const it: Messages = {
     deleteTable: "Elimina tabella",
   },
   markdown: {
+    linkText: "Testo del link",
     resize: "Ridimensiona sorgente e anteprima",
     viewer: "Anteprima",
     source: "Sorgente Markdown",

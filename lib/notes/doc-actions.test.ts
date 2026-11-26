@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { backupHtml } from "./backup-html";
 import { normalizeDocHtml } from "./doc-formatting";
-import { webAddress } from "./doc-actions";
+import { webAddress } from "./web-address";
 
 describe("체크리스트와 링크", () => {
   const html = '<ul><li data-task="done"><a href="https://example.com/issue">검토</a></li><li data-task="open">배포</li></ul>';

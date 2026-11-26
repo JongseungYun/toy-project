@@ -216,6 +216,7 @@ export const ko: Messages = {
     deleteTable: "표 삭제",
   },
   markdown: {
+    linkText: "링크 문구",
     resize: "원문과 뷰어 크기 조절",
     viewer: "뷰어",
     source: "Markdown 원문",

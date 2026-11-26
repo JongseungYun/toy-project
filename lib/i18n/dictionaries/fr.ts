@@ -216,6 +216,7 @@ export const fr: Messages = {
     deleteTable: "Supprimer le tableau",
   },
   markdown: {
+    linkText: "Texte du lien",
     resize: "Redimensionner la source et l’aperçu",
     viewer: "Aperçu",
     source: "Source Markdown",

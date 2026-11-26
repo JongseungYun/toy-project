@@ -11,6 +11,7 @@ import { previewFromMarkdown } from "@/lib/notes/display";
 import { markdownListEdit } from "@/lib/notes/markdown-list";
 import type { MarkdownContent, Note, NoteContent } from "@/lib/notes/types";
 import { NoteFrame } from "@/components/notes/note-frame";
+import { MarkdownLinkButton } from "@/components/notes/markdown-link-button";
 import { ExportButton } from "@/components/notes/export-button";
 import { useMessages } from "@/components/i18n-provider";
 import { useNoteAutosave } from "@/components/notes/use-note-autosave";
@@ -68,8 +69,11 @@ export function MarkdownEditor({
   const sourceRef = useRef(initial.source);
   const viewerRef = useRef(initial.viewer);
   const enterKeyDown = useRef(false);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const linkButton = useRef<HTMLButtonElement>(null);
   const bindSource = useCallback((input: HTMLTextAreaElement | null) => {
     if (!input) return;
+    textarea.current = input;
     // 가상 키보드는 Enter 키 이벤트 없이 줄바꿈 입력만 전달할 수 있다.
     function beforeInput(event: InputEvent) {
       if (!event.cancelable || event.isComposing || enterKeyDown.current) return;
@@ -77,7 +81,10 @@ export function MarkdownEditor({
       if (insertListBreak(event.currentTarget as HTMLTextAreaElement)) event.preventDefault();
     }
     input.addEventListener("beforeinput", beforeInput);
-    return () => input.removeEventListener("beforeinput", beforeInput);
+    return () => {
+      textarea.current = null;
+      input.removeEventListener("beforeinput", beforeInput);
+    };
   }, []);
 
   const readDraft = useCallback(
@@ -162,12 +169,22 @@ export function MarkdownEditor({
         className="min-h-0 flex-1"
       >
         <ResizablePanel id="markdown-source" defaultSize="50%" minSize="20%">
+          <div className="flex h-full min-h-0 flex-col">
+          <div className="flex shrink-0 items-center border-b border-border px-2">
+            <MarkdownLinkButton editor={textarea} trigger={linkButton} changeSource={changeSource} />
+          </div>
           <textarea
             ref={bindSource}
             style={surface}
             value={source}
             onChange={(event) => changeSource(event.target.value)}
             onKeyDown={(event) => {
+              if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey &&
+                  !event.nativeEvent.isComposing && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                linkButton.current?.click();
+                return;
+              }
               enterKeyDown.current = event.key === "Enter";
               if (!enterKeyDown.current || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 ||
                   event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
@@ -179,8 +196,9 @@ export function MarkdownEditor({
             data-testid="note-body"
             spellCheck={false}
             placeholder={t.markdown.placeholder}
-            className="block h-full w-full min-h-0 min-w-0 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none"
+            className="block w-full min-h-0 min-w-0 flex-1 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none"
           />
+          </div>
         </ResizablePanel>
         {viewer && (
           <>

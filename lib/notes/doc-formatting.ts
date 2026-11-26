@@ -1,5 +1,5 @@
 import { FONT_OPTIONS, SIZE_OPTIONS } from "@/lib/notes/rich-text";
-import { webAddress } from "@/lib/notes/doc-actions";
+import { webAddress } from "@/lib/notes/web-address";
 import { isNoteImage, noteImageHtml } from "./doc-image";
 
 const BLOCKS = new Set(["P", "DIV", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]);
