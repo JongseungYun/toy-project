@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { EyeIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { previewFromMarkdown } from "@/lib/notes/display";
+import { markdownListEdit } from "@/lib/notes/markdown-list";
 import type { MarkdownContent, Note, NoteContent } from "@/lib/notes/types";
 import { NoteFrame } from "@/components/notes/note-frame";
 import { ExportButton } from "@/components/notes/export-button";
@@ -23,6 +24,17 @@ function subscribeToScreenWidth(onChange: () => void) {
 
 const isWideScreen = () => window.matchMedia("(min-width: 640px)").matches;
 const serverWideScreen = () => false;
+
+function insertListBreak(input: HTMLTextAreaElement) {
+  const { selectionStart, selectionEnd } = input;
+  const edit = markdownListEdit(input.value, selectionStart, selectionEnd);
+  if (!edit) return false;
+  input.setSelectionRange(edit.start, edit.end);
+  // 브라우저 편집 명령을 사용해 목록 기호도 줄바꿈과 함께 실행 취소한다.
+  if (document.execCommand(edit.text ? "insertText" : "delete", false, edit.text)) return true;
+  input.setSelectionRange(selectionStart, selectionEnd);
+  return false;
+}
 
 function read(content: NoteContent): MarkdownContent {
   const markdown = content as MarkdownContent;
@@ -55,6 +67,18 @@ export function MarkdownEditor({
 
   const sourceRef = useRef(initial.source);
   const viewerRef = useRef(initial.viewer);
+  const enterKeyDown = useRef(false);
+  const bindSource = useCallback((input: HTMLTextAreaElement | null) => {
+    if (!input) return;
+    // 가상 키보드는 Enter 키 이벤트 없이 줄바꿈 입력만 전달할 수 있다.
+    function beforeInput(event: InputEvent) {
+      if (!event.cancelable || event.isComposing || enterKeyDown.current) return;
+      if (event.inputType !== "insertLineBreak" && event.inputType !== "insertParagraph") return;
+      if (insertListBreak(event.currentTarget as HTMLTextAreaElement)) event.preventDefault();
+    }
+    input.addEventListener("beforeinput", beforeInput);
+    return () => input.removeEventListener("beforeinput", beforeInput);
+  }, []);
 
   const readDraft = useCallback(
     () => ({
@@ -139,9 +163,18 @@ export function MarkdownEditor({
       >
         <ResizablePanel id="markdown-source" defaultSize="50%" minSize="20%">
           <textarea
+            ref={bindSource}
             style={surface}
             value={source}
             onChange={(event) => changeSource(event.target.value)}
+            onKeyDown={(event) => {
+              enterKeyDown.current = event.key === "Enter";
+              if (!enterKeyDown.current || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229 ||
+                  event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+              if (insertListBreak(event.currentTarget)) event.preventDefault();
+            }}
+            onKeyUp={() => { enterKeyDown.current = false; }}
+            onBlur={() => { enterKeyDown.current = false; }}
             aria-label={t.markdown.source}
             data-testid="note-body"
             spellCheck={false}

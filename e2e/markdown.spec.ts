@@ -50,6 +50,58 @@ async function createMarkdownNote(page: Page) {
   await page.waitForURL(/\/notes\//);
 }
 
+test("R14: 체크리스트 이어쓰기·종료를 실행 취소하고 저장한 원문과 뷰어를 다시 연다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createMarkdownNote(page);
+  const body = page.getByTestId("note-body");
+  await body.fill("- [x] 완료");
+  await body.press("Enter");
+  await expect(body).toHaveValue("- [x] 완료\n- [ ] ");
+  await body.press("ControlOrMeta+z");
+  await expect(body).toHaveValue("- [x] 완료");
+  await body.press("Enter");
+  await page.keyboard.insertText("예정");
+  await body.press("Enter");
+  await body.press("Enter");
+  await expect(body).toHaveValue("- [x] 완료\n- [ ] 예정\n");
+  await body.press("ControlOrMeta+z");
+  await expect(body).toHaveValue("- [x] 완료\n- [ ] 예정\n- [ ] ");
+  await body.press("ControlOrMeta+Shift+z");
+  const expected = "- [x] 완료\n- [ ] 예정\n";
+  await expect(body).toHaveValue(expected);
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await page.reload();
+  await expect(body).toHaveValue(expected);
+  const checks = page.getByTestId("md-viewer").getByRole("checkbox");
+  await expect(checks).toHaveCount(2);
+  await expect(checks.first()).toBeChecked();
+  await expect(checks.last()).not.toBeChecked();
+});
+
+test("R14: 번호 항목을 나누고 Shift+Enter나 코드 예제에서는 일반 줄바꿈을 쓴다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createMarkdownNote(page);
+  const body = page.getByTestId("note-body");
+  await body.fill("9. 앞뒤");
+  await body.press("ArrowLeft");
+  await body.press("Enter");
+  await expect(body).toHaveValue("9. 앞\n10. 뒤");
+  await body.press("End");
+  await body.press("Shift+Enter");
+  await expect(body).toHaveValue("9. 앞\n10. 뒤\n");
+  await body.fill("```md\n- 예시");
+  await body.press("Enter");
+  await expect(body).toHaveValue("```md\n- 예시\n");
+  await body.fill("1. 모바일");
+  await body.dispatchEvent("keydown", { key: "Enter", isComposing: true, bubbles: true, cancelable: true });
+  await body.dispatchEvent("keyup", { key: "Enter", bubbles: true });
+  await expect(body).toHaveValue("1. 모바일");
+  await body.evaluate((input) => input.dispatchEvent(new InputEvent("beforeinput", {
+    inputType: "insertLineBreak", cancelable: true, bubbles: true,
+  })));
+  await expect(body).toHaveValue("1. 모바일\n2. ");
+});
+
 test("Markdown 노트를 만들어 쓰면 뷰어가 결과를 보여주고 그대로 저장된다", async ({
   page,
 }) => {
