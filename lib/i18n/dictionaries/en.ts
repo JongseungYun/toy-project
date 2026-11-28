@@ -113,6 +113,7 @@ export const en: Messages = {
     backToList: "Back to list",
   },
   format: {
+    quickCreate: "Quick create · {format}",
     doc: "Rich document",
     markdown: "Markdown",
     canvas: "Canvas",

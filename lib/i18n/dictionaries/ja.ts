@@ -113,6 +113,7 @@ export const ja: Messages = {
     backToList: "一覧へ",
   },
   format: {
+    quickCreate: "{format}をすぐ作成",
     doc: "文書",
     markdown: "Markdown",
     canvas: "キャンバス",

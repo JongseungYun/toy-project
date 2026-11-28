@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient, currentUser } from "@/lib/supabase/server";
 import { isShareToken } from "@/lib/notes/share";
+import { isNoteFormat } from "@/lib/notes/types";
 import type { ReadResult } from "@/lib/notes/read-result";
 import { sortColumn, type ResolvedSort } from "@/lib/notes/sort";
 import type {
@@ -36,6 +37,17 @@ interface NoteRow {
 // 배경도 목록이 함께 읽는다. 좌측 목록의 썸네일이 노트와 같은 배경을 입는다.
 const SUMMARY_COLUMNS =
   "id, format, title, preview, version, created_at, updated_at, background, folder_id, is_pinned";
+
+export async function lastCreatedFormat(): Promise<NoteFormat | null> {
+  const user = await currentUser();
+  if (!user) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("notes").select("format")
+    .eq("owner_id", user.id).is("deleted_at", null)
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
+    .limit(1).maybeSingle();
+  return isNoteFormat(data?.format) ? data.format : null;
+}
 
 function toSummary(row: Omit<NoteRow, "content" | "share_token">): NoteSummary {
   return {

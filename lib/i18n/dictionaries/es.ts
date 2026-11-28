@@ -113,6 +113,7 @@ export const es: Messages = {
     backToList: "Volver a la lista",
   },
   format: {
+    quickCreate: "Crear {format} al instante",
     doc: "Documento",
     markdown: "Markdown",
     canvas: "Lienzo",

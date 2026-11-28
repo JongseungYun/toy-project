@@ -113,6 +113,7 @@ export const zhHant: Messages = {
     backToList: "返回清單",
   },
   format: {
+    quickCreate: "快速建立{format}",
     doc: "文件",
     markdown: "Markdown",
     canvas: "畫板",

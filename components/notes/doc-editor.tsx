@@ -129,6 +129,7 @@ export function DocEditor({
           aria-multiline="true"
           aria-label={t.note.bodyLabel}
           data-testid="note-body"
+          id="note-body"
           onInput={() => {
             if (splittingTask.current && editorRef.current) {
               const item = rangeElement(editorRange(editorRef.current))?.closest("li");

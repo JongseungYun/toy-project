@@ -116,6 +116,7 @@ export interface Messages {
     backToList: string;
   };
   format: {
+    quickCreate: string;
     doc: string;
     markdown: string;
     canvas: string;

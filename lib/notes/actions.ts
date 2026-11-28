@@ -7,7 +7,7 @@ import { parseBackground } from "@/lib/notes/background";
 import { isNoteFormat, type NoteContent, type NoteFormat } from "@/lib/notes/types";
 
 /** 새 노트를 만들고 바로 편집 화면으로 보낸다. 지금 열려 있는 폴더 안에 만든다. */
-export async function createNote(format: NoteFormat, folderId: string | null = null) {
+export async function createNote(format: NoteFormat, folderId: string | null = null, focusBody = false) {
   if (!isNoteFormat(format)) {
     throw new Error(`알 수 없는 형식입니다: ${format}`);
   }
@@ -36,7 +36,7 @@ export async function createNote(format: NoteFormat, folderId: string | null = n
     throw new Error("노트를 만들지 못했습니다.");
   }
 
-  redirect(`/notes/${data.id}`);
+  redirect(`/notes/${data.id}${focusBody ? "?compose=1" : ""}`);
 }
 
 export interface SaveNoteInput {

@@ -113,6 +113,7 @@ export const it: Messages = {
     backToList: "Torna all'elenco",
   },
   format: {
+    quickCreate: "Crea subito · {format}",
     doc: "Documento",
     markdown: "Markdown",
     canvas: "Tela",

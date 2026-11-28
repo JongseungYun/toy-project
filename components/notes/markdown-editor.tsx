@@ -195,6 +195,7 @@ export function MarkdownEditor({
             onBlur={() => { enterKeyDown.current = false; }}
             aria-label={t.markdown.source}
             data-testid="note-body"
+            id="note-body"
             spellCheck={false}
             placeholder={t.markdown.placeholder}
             className="block w-full min-h-0 min-w-0 flex-1 resize-none bg-card p-5 font-mono text-[13px] leading-7 outline-none"

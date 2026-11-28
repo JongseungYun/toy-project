@@ -476,6 +476,7 @@ export function CanvasEditor({
                 <svg
                   ref={svgRef}
                   data-testid="note-body"
+                  id="note-body"
                   role={tool === "select" ? "group" : "img"}
                   tabIndex={0}
                   aria-label={t.draw.surface}

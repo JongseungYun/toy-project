@@ -113,6 +113,7 @@ export const ko: Messages = {
     backToList: "목록으로",
   },
   format: {
+    quickCreate: "{format} 바로 만들기",
     doc: "일반 문서",
     markdown: "Markdown",
     canvas: "그림판",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   FileTextIcon,
   MarkdownLogoIcon,
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { useMessages } from "@/components/i18n-provider";
-import type { Messages } from "@/lib/i18n/messages";
+import { format as formatMessage, type Messages } from "@/lib/i18n/messages";
 
 // 스펙이 정한 세 형식. 노트마다 하나를 고르고, 만든 뒤에는 바꾸지 않는다.
 const CREATABLE_FORMATS: { format: NoteFormat; icon: typeof FileTextIcon }[] = [
@@ -82,31 +82,69 @@ function FormatCards({
 export function FormatPicker({
   variant,
   folderId = null,
+  recent = null,
 }: {
   variant: "card" | "button";
   /** 지금 열려 있는 폴더. 새 노트는 이 안에 만들어진다. */
   folderId?: string | null;
+  recent?: NoteFormat | null;
 }) {
   const t = useMessages();
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<NoteFormat | null>(null);
   const [pending, startTransition] = useTransition();
+  const shortcutTarget = useRef<HTMLButtonElement>(null);
+  const creating = useRef(false);
+  const quickLabel = recent ? formatMessage(t.format.quickCreate, { format: t.format[recent] }) : "";
 
-  function pick(format: NoteFormat) {
+  useEffect(() => {
+    if (variant !== "card" || open) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing || event.repeat || !event.altKey || !event.shiftKey ||
+          event.ctrlKey || event.metaKey || event.code !== "KeyN") return;
+      const target = event.target;
+      if (target instanceof Element && target.closest("#note-body, input, textarea, select, [contenteditable]:not([contenteditable=false]), [role=dialog], [role=alertdialog], [role=menu], [role=combobox]")) return;
+      const button = shortcutTarget.current;
+      if (!button || button.disabled || !button.getClientRects().length) return;
+      event.preventDefault();
+      button.click();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [variant, open]);
+
+  function pick(format: NoteFormat, focusBody = false) {
+    if (creating.current) return;
+    creating.current = true;
     setPicked(format);
     startTransition(async () => {
-      await createNote(format, folderId);
+      try {
+        await createNote(format, folderId, focusBody);
+      } finally {
+        creating.current = false;
+      }
     });
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
+      {variant === "card" && recent && (
+        <Button type="button" ref={shortcutTarget} disabled={pending} onClick={() => pick(recent, true)}
+          className="mb-1.5 w-full" aria-keyshortcuts="Alt+Shift+N"
+          title={`${quickLabel} (Alt+Shift+N)`}>
+          {pending && !open ? <Spinner /> : <PlusIcon />}
+          {quickLabel}
+        </Button>
+      )}
       <DialogTrigger
         render={
           variant === "card" ? (
             <button
               type="button"
-              className="flex h-20 w-full flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-sidebar-border bg-sidebar text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-sidebar-accent hover:text-primary"
+              ref={!recent ? shortcutTarget : undefined}
+              disabled={pending}
+              aria-keyshortcuts={!recent ? "Alt+Shift+N" : undefined}
+              className={`flex ${recent ? "h-9" : "h-20 flex-col"} w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-sidebar-border bg-sidebar text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-sidebar-accent hover:text-primary`}
             >
               <PlusIcon className="size-5" />
               {t.library.newNote}

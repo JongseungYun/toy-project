@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeftIcon, WarningIcon } from "@phosphor-icons/react";
@@ -177,6 +177,17 @@ export function NoteFrame({
   const t = useMessages();
   const locale = useLocale();
   const params = useSearchParams();
+  const compose = params.get("compose") === "1";
+  useEffect(() => {
+    if (!compose) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("note-body")?.focus({ preventScroll: true });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("compose");
+      window.history.replaceState(null, "", url);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [compose, noteId]);
   const query = params.get("q");
   const view = resolveLibraryView(params.get("view") ?? undefined);
   const backHref = query

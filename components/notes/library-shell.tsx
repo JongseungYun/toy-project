@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FolderBar } from "@/components/notes/folder-bar";
 import { FolderListItem } from "@/components/notes/folder-list-item";
 import { FormatPicker } from "@/components/notes/format-picker";
+import { lastCreatedFormat } from "@/lib/notes/queries";
 import { LibraryViewport } from "@/components/notes/library-viewport";
 import { NoteListItem } from "@/components/notes/note-list-item";
 import { SortControls } from "@/components/notes/sort-controls";
@@ -23,6 +24,10 @@ import { format, type Messages } from "@/lib/i18n/messages";
 
 /** 좁은 화면에서 앞에 세울 칸. 넓은 화면에서는 둘 다 보이므로 쓰이지 않는다. */
 export type NarrowPane = "list" | "detail";
+
+async function NewNoteCard({ folderId }: { folderId: string | null }) {
+  return <FormatPicker variant="card" folderId={folderId} recent={await lastCreatedFormat()} />;
+}
 
 /**
  * 보관함과 노트 편집이 함께 쓰는 두 칸 레이아웃.
@@ -144,7 +149,7 @@ export function LibraryShell({
             ) : (
               <>
                 <div className="sticky top-0 z-10 bg-sidebar pt-2.5 pb-1">
-                  <FormatPicker variant="card" folderId={createIn} />
+                  <NewNoteCard folderId={createIn} />
                 </div>
 
                 {folders.length > 0 && (

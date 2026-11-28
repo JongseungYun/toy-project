@@ -37,6 +37,54 @@ async function writeNote(page: Page, text: string) {
   ).toBeVisible(SAVED);
 }
 
+test("R16: 최근 Markdown 형식을 빈 폴더에 한 번에 만들고 본문에 바로 입력한다", async ({ page }) => {
+  await signUpAndEnter(page);
+  const newNote = page.getByRole("complementary").getByRole("button", { name: "새 노트 만들기" });
+  await expect(newNote).toBeVisible();
+  await expect(page.getByRole("button", { name: /바로 만들기/ })).toHaveCount(0);
+  await newNote.press("Alt+Shift+n");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Markdown" }).click();
+  await expect(page.getByLabel("Markdown 원문")).toBeVisible();
+  await page.goto("/");
+  await makeFolder(page, "현장 기록");
+  await openFolder(page, "현장 기록");
+  const folderUrl = page.url();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Markdown 바로 만들기" }).click();
+  const body = page.getByLabel("Markdown 원문");
+  await expect(body).toBeFocused();
+  await page.keyboard.insertText("현장에서 바로 작성");
+  await expect(body).toHaveValue("현장에서 바로 작성");
+  await expect(page.getByTestId("save-state")).toHaveAttribute("data-state", "saved", SAVED);
+  await page.goto(folderUrl);
+  await expect(page.getByTestId("note-item")).toHaveCount(1);
+  await expect(page.getByTestId("note-item")).toContainText("현장에서 바로 작성");
+});
+
+test("R16: 입력 중에는 단축키를 건너뛰고 형식을 바꾸면 다음 빠른 생성에 반영한다", async ({ page }) => {
+  await signUpAndEnter(page);
+  await createDocNote(page);
+  const firstUrl = page.url();
+  const quickDoc = page.getByRole("button", { name: "일반 문서 바로 만들기" });
+  await expect(quickDoc).toBeVisible();
+  await page.getByLabel("노트 제목", { exact: true }).press("Alt+Shift+n");
+  await expect(page.getByLabel("노트 제목", { exact: true })).toBeFocused();
+  await quickDoc.focus();
+  await page.keyboard.press("Alt+Shift+n");
+  await expect(page).not.toHaveURL(firstUrl);
+  await expect(page.getByTestId("note-body")).toBeFocused();
+  await expect(page.getByTestId("note-item")).toHaveCount(2);
+  await page.getByRole("button", { name: "새 노트 만들기", exact: true }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: "그림판" }).click();
+  const quickCanvas = page.getByRole("button", { name: "그림판 바로 만들기" });
+  await expect(quickCanvas).toBeVisible();
+  await quickCanvas.click();
+  await expect(page.getByLabel("그림면", { exact: true })).toBeFocused();
+  await expect(page.getByTestId("note-item")).toHaveCount(4);
+});
+
 test("폴더를 만들어 들어가고 경로로 상위에 돌아온다", async ({ page }) => {
   await signUpAndEnter(page);
 
@@ -163,6 +211,7 @@ test("노트를 지우면 휴지통으로 가고 보관함 목록에서 사라�
 
   await expect(page).toHaveURL(/localhost:3000\/$/);
   await expect(page.getByTestId("note-item")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /바로 만들기/ })).toHaveCount(0);
 
   await page.goto("/trash");
   await expect(page.getByTestId("trash-row")).toContainText("임시 — 나중에 정리");
@@ -172,6 +221,7 @@ test("노트를 지우면 휴지통으로 가고 보관함 목록에서 사라�
   await expect(page.getByTestId("trash-row")).toHaveCount(0);
   await page.goto("/");
   await expect(page.getByTestId("note-item")).toContainText("임시 — 나중에 정리");
+  await expect(page.getByRole("button", { name: "일반 문서 바로 만들기" })).toBeVisible();
 });
 
 test("돌아갈 폴더가 아직 휴지통에 있으면 되돌린 폴더가 보관함 뿌리로 온다", async ({
